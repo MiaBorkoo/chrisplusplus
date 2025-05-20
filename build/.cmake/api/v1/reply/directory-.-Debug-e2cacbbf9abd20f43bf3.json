@@ -33,10 +33,13 @@
 		{
 			"backtrace" : 1,
 			"component" : "Unspecified",
-			"destination" : "bin",
+			"destination" : ".",
 			"paths" : 
 			[
-				"LoginForm.exe"
+				{
+					"from" : "LoginForm.app",
+					"to" : "LoginForm.app/Contents/MacOS/LoginForm"
+				}
 			],
 			"targetId" : "LoginForm::@6890427a1f51a3e7e1df",
 			"targetIndex" : 0,
@@ -45,7 +48,7 @@
 		{
 			"backtrace" : 2,
 			"component" : "Unspecified",
-			"scriptFile" : "build/.qt/deploy_LoginForm_b3c0daac23.cmake",
+			"scriptFile" : "build/.qt/deploy_LoginForm_02b049ca84.cmake",
 			"type" : "script"
 		}
 	],

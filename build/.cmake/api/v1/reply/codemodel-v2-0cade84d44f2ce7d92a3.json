@@ -7,7 +7,7 @@
 				{
 					"build" : ".",
 					"hasInstallRule" : true,
-					"jsonFile" : "directory-.-Debug-b6824dd4ef94479584d7.json",
+					"jsonFile" : "directory-.-Debug-e2cacbbf9abd20f43bf3.json",
 					"minimumCMakeVersion" : 
 					{
 						"string" : "3.16"
@@ -44,21 +44,21 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "LoginForm::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-LoginForm-Debug-335aaea12c02af2d5e0c.json",
+					"jsonFile" : "target-LoginForm-Debug-3274ff8dcafc3fdfebaf.json",
 					"name" : "LoginForm",
 					"projectIndex" : 0
 				},
 				{
 					"directoryIndex" : 0,
 					"id" : "LoginForm_autogen::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-LoginForm_autogen-Debug-f3b0f9ab006b0b5e853f.json",
+					"jsonFile" : "target-LoginForm_autogen-Debug-d8ee3cd96315497a0114.json",
 					"name" : "LoginForm_autogen",
 					"projectIndex" : 0
 				},
 				{
 					"directoryIndex" : 0,
 					"id" : "LoginForm_autogen_timestamp_deps::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-LoginForm_autogen_timestamp_deps-Debug-3491b46204fcc43c7729.json",
+					"jsonFile" : "target-LoginForm_autogen_timestamp_deps-Debug-8a71da5c76d7cd391c44.json",
 					"name" : "LoginForm_autogen_timestamp_deps",
 					"projectIndex" : 0
 				}
@@ -68,12 +68,12 @@
 	"kind" : "codemodel",
 	"paths" : 
 	{
-		"build" : "C:/Users/jogen/MyRepos/Epic/chrisplusplus/build",
-		"source" : "C:/Users/jogen/MyRepos/Epic/chrisplusplus"
+		"build" : "/Users/miaborko/Desktop/epic_b8/chrisplusplus/build",
+		"source" : "/Users/miaborko/Desktop/epic_b8/chrisplusplus"
 	},
 	"version" : 
 	{
 		"major" : 2,
-		"minor" : 8
+		"minor" : 7
 	}
 }
