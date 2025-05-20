@@ -1,0 +1,20 @@
+[
+{
+  "directory": "C:/Users/jogen/MyRepos/Epic/chrisplusplus/build",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/Users/jogen/MyRepos/Epic/chrisplusplus/build/LoginForm_autogen/include -isystem C:/Qt/6.9.0/mingw_64/include/QtCore -isystem C:/Qt/6.9.0/mingw_64/include -isystem C:/Qt/6.9.0/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.9.0/mingw_64/include/QtWidgets -isystem C:/Qt/6.9.0/mingw_64/include/QtGui -DQT_QML_DEBUG -DQT_DECLARATIVE_DEBUG -g -o CMakeFiles\\LoginForm.dir\\LoginForm_autogen\\mocs_compilation.cpp.obj -c C:\\Users\\jogen\\MyRepos\\Epic\\chrisplusplus\\build\\LoginForm_autogen\\mocs_compilation.cpp",
+  "file": "C:\\Users\\jogen\\MyRepos\\Epic\\chrisplusplus\\build\\LoginForm_autogen\\mocs_compilation.cpp",
+  "output": "CMakeFiles\\LoginForm.dir\\LoginForm_autogen\\mocs_compilation.cpp.obj"
+},
+{
+  "directory": "C:/Users/jogen/MyRepos/Epic/chrisplusplus/build",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/Users/jogen/MyRepos/Epic/chrisplusplus/build/LoginForm_autogen/include -isystem C:/Qt/6.9.0/mingw_64/include/QtCore -isystem C:/Qt/6.9.0/mingw_64/include -isystem C:/Qt/6.9.0/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.9.0/mingw_64/include/QtWidgets -isystem C:/Qt/6.9.0/mingw_64/include/QtGui -DQT_QML_DEBUG -DQT_DECLARATIVE_DEBUG -g -o CMakeFiles\\LoginForm.dir\\main.cpp.obj -c C:\\Users\\jogen\\MyRepos\\Epic\\chrisplusplus\\main.cpp",
+  "file": "C:\\Users\\jogen\\MyRepos\\Epic\\chrisplusplus\\main.cpp",
+  "output": "CMakeFiles\\LoginForm.dir\\main.cpp.obj"
+},
+{
+  "directory": "C:/Users/jogen/MyRepos/Epic/chrisplusplus/build",
+  "command": "c:\\Qt\\Tools\\mingw1310_64\\bin\\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -IC:/Users/jogen/MyRepos/Epic/chrisplusplus/build/LoginForm_autogen/include -isystem C:/Qt/6.9.0/mingw_64/include/QtCore -isystem C:/Qt/6.9.0/mingw_64/include -isystem C:/Qt/6.9.0/mingw_64/mkspecs/win32-g++ -isystem C:/Qt/6.9.0/mingw_64/include/QtWidgets -isystem C:/Qt/6.9.0/mingw_64/include/QtGui -DQT_QML_DEBUG -DQT_DECLARATIVE_DEBUG -g -o CMakeFiles\\LoginForm.dir\\mainwindow.cpp.obj -c C:\\Users\\jogen\\MyRepos\\Epic\\chrisplusplus\\mainwindow.cpp",
+  "file": "C:\\Users\\jogen\\MyRepos\\Epic\\chrisplusplus\\mainwindow.cpp",
+  "output": "CMakeFiles\\LoginForm.dir\\mainwindow.cpp.obj"
+}
+]
