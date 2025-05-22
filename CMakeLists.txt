@@ -5,6 +5,9 @@ find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
 
 qt_standard_project_setup()
 
+add_subdirectory(sockets) #for adding a sockets library in /sockets, BUT CHECK IF THIS IS CORRECT
+
+
 qt_add_executable(LoginForm
     WIN32 MACOSX_BUNDLE
     main.cpp
@@ -13,13 +16,21 @@ qt_add_executable(LoginForm
     mainwindow.ui
 )
 
+
 target_link_libraries(LoginForm
     PRIVATE
         Qt::Core
         Qt::Widgets
+        sockets
 )
-
 include(GNUInstallDirs)
+
+add_executable(testSSLforNow #testing my ssl library here temp 
+    testSSLforNow.cpp
+)
+target_link_libraries(testSSLforNow
+    PRIVATE sockets
+)
 
 install(TARGETS LoginForm
     BUNDLE  DESTINATION .
