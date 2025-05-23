@@ -5,15 +5,13 @@ find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
 
 qt_standard_project_setup()
 
-add_subdirectory(sockets) #for adding a sockets library in /sockets, BUT CHECK IF THIS IS CORRECT
-
+add_subdirectory(sockets) #for adding a sockets library in /sockets, BUT CHECK IF THIS IS CORRECT (its correct, Well done Mia!)
+add_subdirectory(models)
+add_subdirectory(encryption)
 
 qt_add_executable(LoginForm
     WIN32 MACOSX_BUNDLE
-    main.cpp
-    mainwindow.cpp
-    mainwindow.h
-    mainwindow.ui
+    models/LoginModel.cpp
 )
 
 
@@ -22,6 +20,7 @@ target_link_libraries(LoginForm
         Qt::Core
         Qt::Widgets
         sockets
+        encryption
 )
 include(GNUInstallDirs)
 
