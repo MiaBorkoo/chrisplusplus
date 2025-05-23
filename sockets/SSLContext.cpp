@@ -45,9 +45,11 @@ SSLContext::SSLContext()
     // 5) Require server certificate verification
     SSL_CTX_set_verify(ctx_, SSL_VERIFY_PEER, nullptr);
 
+    // 6) Optional: Load client certificate for mutual TLS
+    loadClientCertificate("", "");
+
     // now here we can also set verify depth, callbacks, ciphers list - I'm not too sure about this part, will look into it later
 }
-
 
 SSLContext::~SSLContext()
 {
@@ -75,4 +77,14 @@ SSLContext& SSLContext::operator=(SSLContext&& other) noexcept
 SSL_CTX* SSLContext::get() const
 {
     return ctx_;
+}
+
+void SSLContext::loadClientCertificate(const std::string& certFile, 
+                                     const std::string& keyFile) {
+    if (SSL_CTX_use_certificate_file(ctx_, certFile.c_str(), SSL_FILETYPE_PEM) <= 0) {
+        throw std::runtime_error("Failed to load client certificate");
+    }
+    if (SSL_CTX_use_PrivateKey_file(ctx_, keyFile.c_str(), SSL_FILETYPE_PEM) <= 0) {
+        throw std::runtime_error("Failed to load client private key");
+    }
 }

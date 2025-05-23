@@ -11,7 +11,6 @@ class SSLContext {
 
         //constructor and destructor
         SSLContext();
-
         ~SSLContext();
 
 

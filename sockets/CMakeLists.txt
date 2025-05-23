@@ -1,10 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 project(sockets LANGUAGES CXX)
 
-# # Set OpenSSL root for Homebrew installations
-# if(APPLE)
-#     set(OPENSSL_ROOT_DIR /opt/homebrew/opt/openssl@3)  # this was just me because
-# endif()
 
 find_package(OpenSSL REQUIRED)
 
