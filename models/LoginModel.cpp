@@ -6,7 +6,6 @@ LoginModel::LoginModel() {
 // User functions
 
 bool LoginModel::login(const std::string& username, const std::string& key) {
-    return true; 
 }
 
 bool LoginModel::signUp(const std::string& username, const std::string& key) {

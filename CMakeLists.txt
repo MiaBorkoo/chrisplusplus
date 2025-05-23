@@ -8,10 +8,13 @@ qt_standard_project_setup()
 add_subdirectory(sockets) #for adding a sockets library in /sockets, BUT CHECK IF THIS IS CORRECT (its correct, Well done Mia!)
 add_subdirectory(models)
 add_subdirectory(encryption)
+add_subdirectory(database)
 
 qt_add_executable(LoginForm
     WIN32 MACOSX_BUNDLE
     models/LoginModel.cpp
+    database/UserDatabase.cpp
+    database/AuthClient.cpp
 )
 
 
@@ -21,6 +24,7 @@ target_link_libraries(LoginForm
         Qt::Widgets
         sockets
         encryption
+        database
 )
 include(GNUInstallDirs)
 
