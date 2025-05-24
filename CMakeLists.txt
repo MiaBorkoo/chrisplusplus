@@ -7,6 +7,7 @@ qt_standard_project_setup()
 
 add_subdirectory(sockets) #for adding a sockets library in /sockets, BUT CHECK IF THIS IS CORRECT
 add_subdirectory(httpC)
+add_subdirectory(fileIO)
 
 qt_add_executable(LoginForm
     WIN32 MACOSX_BUNDLE
@@ -22,6 +23,7 @@ target_link_libraries(LoginForm
         Qt::Widgets
         sockets
         http_layer
+        file_transfer
 )
 include(GNUInstallDirs)
 
@@ -52,6 +54,18 @@ target_link_libraries(testComplete
     PRIVATE 
         sockets
         http_layer
+)
+
+# Add file transfer test
+add_executable(testFileTransfer
+    tests/testFileTransfer.cpp
+)
+target_link_libraries(testFileTransfer
+    PRIVATE 
+        sockets
+        http_layer
+        file_transfer
+        Qt::Core
 )
 
 install(TARGETS LoginForm
