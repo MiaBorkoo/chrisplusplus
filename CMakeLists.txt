@@ -15,6 +15,7 @@ qt_add_executable(LoginForm
     models/LoginModel.cpp
     database/UserDatabase.cpp
     database/AuthClient.cpp
+    database/Database.cpp
 )
 
 
