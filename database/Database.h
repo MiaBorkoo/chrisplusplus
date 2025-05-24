@@ -1,51 +1,39 @@
 #ifndef DATABASE_H
 #define DATABASE_H
 
-#include <QString>
 #include <QObject>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
 
-// Forward declaration
-class QSslError;
+// Abstract base class for client-side API-based "database" handlers
+class Database : public QObject {
+    Q_OBJECT
+
+public:
+    virtual ~Database() = default;
+
+    // Pure virtual function for optional syncing/caching
+    virtual void sync() = 0;
+
+protected:
+    explicit Database(QObject* parent = nullptr) : QObject(parent) {}
+};
+
+#endif // DATABASE_H
+#ifndef DATABASE_H
+#define DATABASE_H
+
+#include <QObject>
 
 class Database : public QObject {
     Q_OBJECT
 
 public:
-    enum class DatabaseError {
-        NoError,
-        NetworkError,
-        ServerError,
-        TimeoutError,
-        SslError
-    };
+    virtual ~Database() = default;
 
-    explicit Database(const QString& baseUrl, const QString& apiKey, QObject* parent = nullptr);
-    virtual ~Database();
-
-    virtual void setRequestTimeout(int milliseconds) = 0;
-
-    // Utility methods 
-    virtual DatabaseError getLastError() const = 0;
-    virtual QString getLastErrorString() const = 0;
-
-signals:
-    void sslErrorOccurred(const QString& error);
-
-protected slots:
-    virtual void handleNetworkReply() = 0;
-    virtual void handleSslErrors(QNetworkReply* reply, const QList<QSslError>& errors) = 0;
-    virtual void handleTimeout() = 0;
+    // Pure virtual function for optional syncing/caching
+    virtual void sync() = 0;
 
 protected:
-    // Protected members for derived classes 
-    QString baseUrl_;
-    QString apiKey_;
-    QNetworkAccessManager* networkManager_;
+    explicit Database(QObject* parent = nullptr) : QObject(parent) {}
 };
-
-// Make enum available for Qt signals/slots
-Q_DECLARE_METATYPE(Database::DatabaseError)
 
 #endif // DATABASE_H

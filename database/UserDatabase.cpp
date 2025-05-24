@@ -1,25 +1,17 @@
 // UserDatabase.cpp
 #include "UserDatabase.h"
 
-UserDatabase::UserDatabase() {
-    // Initialize the database or load existing data
+void UserDatabase::login(const QString& username, const QString& authKey) {
+    authClient->login(username, authKey);
 }
 
-bool UserDatabase::addUser(const std::string& username, const std::string& password) {
-    if (userExists(username)) {
-        return false; // User already exists
-    }
-    userDatabase[username] = password; // Store password (consider hashing in real implementation)
-    return true;
+void UserDatabase::registerUser(const QString& username, const QString& authSalt,
+                                const QString& encSalt, const QString& authKey,
+                                const QString& encryptedMEK) {
+    authClient->registerUser(username, authSalt, encSalt, authKey, encryptedMEK);
 }
 
-bool UserDatabase::userExists(const std::string& username) {
-    return userDatabase.find(username) != userDatabase.end();
-}
-
-std::string UserDatabase::getUserPassword(const std::string& username) {
-    if (userExists(username)) {
-        return userDatabase[username];
-    }
-    return ""; // Return empty string if user does not exist
+void UserDatabase::changePassword(const QString& username, const QString& oldAuthKey,
+                                  const QString& newAuthKey, const QString& newEncryptedMEK) {
+    authClient->changePassword(username, oldAuthKey, newAuthKey, newEncryptedMEK);
 }
