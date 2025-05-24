@@ -9,18 +9,11 @@ class UserDatabase : public Database {
 
 public:
     explicit UserDatabase(AuthClient* client, QObject* parent = nullptr)
-        : Database(parent), authClient(client) {
-            setConnectionString("UserDatabase");
-        }
+        : Database(parent), authClient(client) {}
 
     bool login(const QString& username, const QString& authKey);
-    bool registerUser(const QString& username, const QString& authSalt,
-                      const QString& encSalt, const QString& authKey,
-                      const QString& encryptedMEK);
-    bool changePassword(const QString& username, const QString& oldAuthKey,
-                        const QString& newAuthKey, const QString& newEncryptedMEK);
-
-    
+    bool signUp(const QString& username, const QString& authSalt, const QString& encSalt, const QString& authKey, const QString& encryptedMEK);
+    bool changePassword(const QString& username, const QString& oldAuthKey, const QString& newAuthKey, const QString& newEncryptedMEK);
     bool userExists(const QString& username);
     void sync() override;
     bool isReady() const override;
@@ -32,12 +25,12 @@ private slots:
     void handleRegistrationResult(bool success);
     void handlePasswordChangeResult(bool success);
     void handleAuthError(const QString& error);
+    void handleUserExistsResult(bool exists);
 
 private:
-    AuthClient* authClient;
+    AuthClient* authClient = nullptr;
     QString currentUsername;
     bool userLoggedIn;
-
     void setUpConnections();
 
 signals:
@@ -46,6 +39,5 @@ signals:
     void userRegistered(const QString& username);
     void passwordChanged(const QString& username);
 };
-
 
 #endif // USER_DATABASE_H

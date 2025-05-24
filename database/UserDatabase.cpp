@@ -33,7 +33,11 @@ bool UserDatabase::changePassword(const QString& username, const QString& oldAut
 
 bool UserDatabase::userExists(const QString& username) {
     if (!authClient) return false;
-    return authClient->userExists(username);
+    if (responseCache.contains(username)) {
+        return responseCache[username]->value("exists").toBool();
+    }
+    authClient->userExists(username);
+    return false;
 }
 void UserDatabase::sync() {
     if (userLoggedIn && authClient && authClient->hasValidSession()) {
