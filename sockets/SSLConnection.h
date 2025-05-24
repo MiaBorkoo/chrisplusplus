@@ -37,7 +37,9 @@ public:
 
 private:
     //resolve the host to a socket file descriptor
-    int connectTCP(const std::string& host, const std::string& port);
+    int connectTCP(const std::string& host, 
+                   const std::string& port, 
+                   int timeout_seconds = 30);  // Add default parameter
 
     //after the SSL_connect(), verify the chain and hostname match
     void verifyPeerCertificate();

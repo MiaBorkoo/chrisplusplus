@@ -29,7 +29,9 @@ add_executable(testSSLforNow #testing my ssl library here temp
     testSSLforNow.cpp
 )
 target_link_libraries(testSSLforNow
-    PRIVATE sockets
+    PRIVATE 
+        sockets
+        http_layer
 )
 
 # Add HTTP test
@@ -37,6 +39,16 @@ add_executable(testHTTP
     testHTTP.cpp
 )
 target_link_libraries(testHTTP
+    PRIVATE 
+        sockets
+        http_layer
+)
+
+# Add complete test
+add_executable(testComplete
+    testComplete.cpp
+)
+target_link_libraries(testComplete
     PRIVATE 
         sockets
         http_layer
