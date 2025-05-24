@@ -91,9 +91,6 @@ bool LoginModel::changePassword(const std::string& username, const std::string& 
     return true; 
 }
 
-bool LoginModel::validateCredentials(const std::string& username, const std::string& authKey) {
-}
-
 // File functions
 
 std::vector<FileData> LoginModel::listOwnedFiles(const std::string& username) {
