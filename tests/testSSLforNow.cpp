@@ -1,8 +1,8 @@
 // test_ssl.cpp
 #include <iostream>
-#include "SSLContext.h"
-#include "SSLConnection.h"
-#include "httpC/HttpClient.h"
+#include "../sockets/SSLContext.h"
+#include "../sockets/SSLConnection.h"
+#include "../httpC/HttpClient.h"
 
 void testRawSSL() {
     std::cout << "=== Testing Raw SSL Connection ===\n";

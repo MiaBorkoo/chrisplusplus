@@ -1,8 +1,8 @@
 #include <iostream>
 #include <iomanip>
-#include "sockets/SSLContext.h"
-#include "sockets/SSLConnection.h"
-#include "httpC/HttpClient.h"
+#include "../sockets/SSLContext.h"
+#include "../sockets/SSLConnection.h"
+#include "../httpC/HttpClient.h"
 
 void printSeparator(const std::string& title) {
     std::cout << "\n" << std::string(60, '=') << std::endl;

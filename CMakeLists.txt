@@ -26,7 +26,7 @@ target_link_libraries(LoginForm
 include(GNUInstallDirs)
 
 add_executable(testSSLforNow #testing my ssl library here temp 
-    testSSLforNow.cpp
+    tests/testSSLforNow.cpp
 )
 target_link_libraries(testSSLforNow
     PRIVATE 
@@ -36,7 +36,7 @@ target_link_libraries(testSSLforNow
 
 # Add HTTP test
 add_executable(testHTTP
-    testHTTP.cpp
+    tests/testHTTP.cpp
 )
 target_link_libraries(testHTTP
     PRIVATE 
@@ -46,7 +46,7 @@ target_link_libraries(testHTTP
 
 # Add complete test
 add_executable(testComplete
-    testComplete.cpp
+    tests/testComplete.cpp
 )
 target_link_libraries(testComplete
     PRIVATE 

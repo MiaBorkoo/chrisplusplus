@@ -1,6 +1,6 @@
 #include <iostream>
-#include "sockets/SSLContext.h"
-#include "httpC/HttpClient.h"
+#include "../sockets/SSLContext.h"
+#include "../httpC/HttpClient.h"
 
 int main() {
     try {
