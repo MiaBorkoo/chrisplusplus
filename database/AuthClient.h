@@ -31,6 +31,10 @@ public:
     void changePassword(const QString& username, const QString& oldAuthKey, 
                         const QString& newAuthKey, const QString& newEncryptedMEK);
 
+    QString getSessionToken() const;
+    bool hasValidSession() const;
+    void clearSession();
+
 private slots:
     void handleNetworkReply();
     void handleSslErrors(QNetworkReply* reply, const QList<QSslError>& errors);
@@ -38,6 +42,7 @@ private slots:
 private:
     QString baseUrl;
     QString apiKey;
+    QString currentSessionToken;
     QNetworkAccessManager* networkManager;
 
     void performRequest(const QString& url, const QString& method, const QJsonObject& data, RequestType type);
@@ -45,7 +50,7 @@ private:
 signals:
     void registrationCompleted(bool success);
     void registrationFailed(const QString& error);
-    void loginCompleted(const QString& sessionToken);
+    void loginCompleted(bool success);
     void loginFailed(const QString& error);
     void passwordChangeCompleted(bool success);
     void passwordChangeFailed(const QString& error);
