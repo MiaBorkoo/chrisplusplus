@@ -2,6 +2,7 @@
 #include <string>
 #include <map>
 
+// parses raw HTTP responses from servers into structured data
 struct HttpResponse {
     int statusCode;                          // e.g. 200
     std::string statusMessage;               // e.g. "OK"

@@ -4,6 +4,7 @@
 #include "../sockets/SSLContext.h"
 #include "../sockets/SSLConnection.h"
 
+//
 class HttpClient {
 public:
     HttpClient(SSLContext& ctx,

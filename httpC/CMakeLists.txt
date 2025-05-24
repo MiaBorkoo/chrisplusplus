@@ -4,7 +4,9 @@ project(http_layer LANGUAGES CXX)
 # the http_layer library
 add_library(http_layer
     HttpRequest.h
+    HttpRequest.cpp
     HttpResponse.h
+    HttpResponse.cpp
     HttpClient.h
     HttpClient.cpp
 )
