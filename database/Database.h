@@ -15,8 +15,6 @@ public:
     virtual ~Database() = default;
 
     // Pure virtual functions that derived classes must implement
-    virtual bool connect() = 0;
-    virtual void disconnect() = 0;
     virtual void sync() = 0;
     virtual bool isReady() const = 0;
     virtual bool validateData(const QJsonObject& data) = 0;

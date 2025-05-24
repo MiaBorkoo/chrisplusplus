@@ -13,9 +13,9 @@ public:
 
     // User functions
     bool login(const std::string& username, const std::string& key);
-    bool signUp(const std::string& username, const std::string& key);
-    bool changePassword(const std::string& username, const std::string& oldKey, const std::string& newKey);
-    bool validateCredentials();
+    bool signUp(const std::string& username, const std::string& authSalt, const std::string& encSalt, const std::string& authKey, const std::string& encryptedMEK);
+    bool changePassword(const std::string& username, const std::string& oldAuthKey, const std::string& newAuthKey, const std::string& newEncryptedMEK);
+    bool validateCredentials(const std::string& username, const std::string& authKey);
 
     // File functions
 

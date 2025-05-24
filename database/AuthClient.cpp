@@ -46,6 +46,15 @@ void AuthClient::changePassword(const QString& username, const QString& oldAuthK
     performRequest(url, "POST", data, RequestType::ChangePassword);
 }
 
+bool AuthClient::userExists(const QString& username) {
+    QJsonObject data;
+    data["username"] = username;
+
+    QString url = baseUrl + "/user_exists";
+    performRequest(url, "GET", data, RequestType::UserExists);
+    return true;
+}
+
 //function to perform requests
 void AuthClient::performRequest(const QString& url, const QString& method, const QJsonObject& data, RequestType type) {
     //converts str url to QUrl

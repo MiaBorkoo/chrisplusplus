@@ -31,22 +31,10 @@ bool UserDatabase::changePassword(const QString& username, const QString& oldAut
     return true;
 }
 
-bool UserDatabase::connect() {
-    if (!authClient) {
-        setError("AuthClient is not available.");
-        return false;
-    }
-    setConnectionStatus(true);
-    return true;
+bool UserDatabase::userExists(const QString& username) {
+    if (!authClient) return false;
+    return authClient->userExists(username);
 }
-
-void UserDatabase::disconnect() {
-    setConnectionStatus(false);
-    currentUsername.clear();
-    userLoggedIn = false;
-    emit userLoggedOut();
-}
-
 void UserDatabase::sync() {
     if (userLoggedIn && authClient && authClient->hasValidSession()) {
         emit syncCompleted(true);

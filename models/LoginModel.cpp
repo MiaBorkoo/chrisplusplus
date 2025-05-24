@@ -24,30 +24,74 @@ bool LoginModel::login(const std::string& username, const std::string& key) {
         return false;
     }
 
+    if (!userDb->userExists(qtUsername)) {
+        emit loginError("User does not exist.");
+        return false;
+    }
+
     bool requestSent = userDb->login(qtUsername, qtKey);
     if (!requestSent) {
         emit loginError("Failed to initiate login request.");
         return false;
     }
-
     return true; 
 }
 
-bool LoginModel::signUp(const std::string& username, const std::string& key) {
+bool LoginModel::signUp(const std::string& username, const std::string& authSalt, const std::string& encSalt, const std::string& authKey, const std::string& encryptedMEK) {
+    if (!userDb) {
+        emit loginError("UserDatabase not initialized.");
+        return false;
+    }
+
+    QString qtUsername = QString::fromStdString(username);
+    QString qtAuthSalt = QString::fromStdString(authSalt);
+    QString qtEncSalt = QString::fromStdString(encSalt);
+    QString qtAuthKey = QString::fromStdString(authKey);
+    QString qtEncryptedMEK = QString::fromStdString(encryptedMEK);
+
+    if (qtUsername.isEmpty() || qtAuthSalt.isEmpty() || qtEncSalt.isEmpty() || qtAuthKey.isEmpty() || qtEncryptedMEK.isEmpty()) {
+        emit loginError("Username or key cannot be empty.");
+        return false;
+    }
+
+    if (userDb->userExists(qtUsername)) {
+        emit loginError("User already exists.");
+        return false;
+    }
+
+    bool requestSent = userDb->signUp(qtUsername, qtAuthSalt, qtEncSalt, qtAuthKey, qtEncryptedMEK);
+    if (!requestSent) {
+        emit loginError("Failed to initiate signup request.");
+        return false;
+    }
     return true; 
 }
 
-bool LoginModel::changePassword(const std::string& username, const std::string& oldKey, const std::string& newKey) {
+bool LoginModel::changePassword(const std::string& username, const std::string& oldAuthKey, const std::string& newAuthKey, const std::string& newEncryptedMEK) {
+    if (!userDb) {
+        emit loginError("UserDatabase not initialized.");
+        return false;
+    }
+
+    QString qtUsername = QString::fromStdString(username);
+    QString qtOldAuthKey = QString::fromStdString(oldAuthKey);
+    QString qtNewAuthKey = QString::fromStdString(newAuthKey);
+    QString qtNewEncryptedMEK = QString::fromStdString(newEncryptedMEK);
+
+    if (qtUsername.isEmpty() || qtOldAuthKey.isEmpty() || qtNewAuthKey.isEmpty() || qtNewEncryptedMEK.isEmpty()) {
+        emit loginError("Username or key cannot be empty.");
+        return false;
+    }
+
+    bool requestSent = userDb->changePassword(qtUsername, qtOldAuthKey, qtNewAuthKey, qtNewEncryptedMEK);
+    if (!requestSent) {
+        emit loginError("Failed to initiate password change request.");
+        return false;
+    }
     return true; 
 }
 
-bool LoginModel::validateCredentials() {
-    return true; 
-}
-
-UserData LoginModel::getUserData(const std::string& username) {
-    UserData user;
-    return user;
+bool LoginModel::validateCredentials(const std::string& username, const std::string& authKey) {
 }
 
 // File functions

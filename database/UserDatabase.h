@@ -20,8 +20,8 @@ public:
     bool changePassword(const QString& username, const QString& oldAuthKey,
                         const QString& newAuthKey, const QString& newEncryptedMEK);
 
-    bool connect() override;
-    void disconnect() override;
+    
+    bool userExists(const QString& username);
     void sync() override;
     bool isReady() const override;
     bool validateData(const QJsonObject& data) override;

@@ -16,7 +16,8 @@ public:
     enum class RequestType {
         Register,
         Login,
-        ChangePassword
+        ChangePassword,
+        UserExists
     };
 
     AuthClient(const QString& baseUrl, const QString& apiKey, QObject* parent = nullptr);
@@ -30,6 +31,7 @@ public:
     
     void changePassword(const QString& username, const QString& oldAuthKey, 
                         const QString& newAuthKey, const QString& newEncryptedMEK);
+    bool userExists(const QString& username);
 
     QString getSessionToken() const;
     bool hasValidSession() const;
