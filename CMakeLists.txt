@@ -1,25 +1,16 @@
 cmake_minimum_required(VERSION 3.19)
 project(LoginForm LANGUAGES CXX)
 
-# Provide a default OpenSSL path (optional, can be overridden)
-# Use a common path or leave empty to let CMake search standard locations
-set(OPENSSL_ROOT_DIR "" CACHE PATH "Path to OpenSSL root directory")
-
-# Find required packages
-find_package(Qt6 6.9 REQUIRED COMPONENTS Core Widgets Network) # Updated to 6.9 to match your Qt path
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Network)
 find_package(OpenSSL REQUIRED)
 
-# Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Qt setup
 qt_standard_project_setup()
 
-# Add subdirectories (only for sockets, which defines a library)
-add_subdirectory(sockets)
+add_subdirectory(sockets) #for adding a sockets library in /sockets, BUT CHECK IF THIS IS CORRECT (its correct, Well done Mia!)
 
-# Define the main executable with all source files
 qt_add_executable(LoginForm
     WIN32 MACOSX_BUNDLE
     main.cpp
@@ -29,7 +20,7 @@ qt_add_executable(LoginForm
     database/AuthClient.cpp
 )
 
-# Link libraries
+
 target_link_libraries(LoginForm
     PRIVATE
         Qt6::Core
@@ -38,8 +29,6 @@ target_link_libraries(LoginForm
         OpenSSL::SSL
         sockets
 )
-
-# Include directories for headers
 target_include_directories(LoginForm
     PRIVATE
         ${CMAKE_SOURCE_DIR}/sockets
@@ -62,7 +51,7 @@ qt_generate_deploy_app_script(
 )
 install(SCRIPT ${deploy_script})
 
-# Test executable
+# Test
 add_executable(testSSLforNow
     testSSLforNow.cpp
 )
