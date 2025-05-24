@@ -14,18 +14,18 @@ public:
     //param port  Service port (e.g. "443")
     //throws std::runtime_error on any failure (DNS, TCP, TLS, cert check)
 
-    //constructor for the SSLConnection class
+    // Regular constructor
     SSLConnection(class SSLContext& ctx,
                   const std::string& host,
                   const std::string& port);
 
     ~SSLConnection();
 
-    // No copies (sockets and SSL* can’t be shared safely)
+    // No copies (sockets and SSL* can't be shared safely)
     SSLConnection(const SSLConnection&) = delete;
     SSLConnection& operator=(const SSLConnection&) = delete;
 
-    // Allow move semantics (for containers/factories)
+    // Move constructor (different parameter signature)
     SSLConnection(SSLConnection&& other) noexcept;
     SSLConnection& operator=(SSLConnection&& other) noexcept;
 
