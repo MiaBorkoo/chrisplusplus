@@ -2,10 +2,10 @@
 #include "AuthDatabaseInterface.h"
 #include "../../network/AuthClient.h"
 
-class UserDatabase : public AuthDatabaseInterface {
+class AuthDatabase : public AuthDatabaseInterface {
     Q_OBJECT
 public:
-    explicit UserDatabase(AuthClient* client, QObject* parent = nullptr);
+    explicit AuthDatabase(AuthClient* client, QObject* parent = nullptr);
     
     // AuthDatabaseInterface implementation
     bool isReady() const override;

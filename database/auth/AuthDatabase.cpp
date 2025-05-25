@@ -1,12 +1,12 @@
-#include "UserDatabase.h"
+#include "AuthDatabase.h"
 
-UserDatabase::UserDatabase(AuthClient* client, QObject* parent)
+AuthDatabase::AuthDatabase(AuthClient* client, QObject* parent)
     : AuthDatabaseInterface(parent), m_client(client) {
     connect(m_client, &AuthClient::responseReceived,
-            this, &UserDatabase::handleLoginResponse);
+            this, &AuthDatabase::handleLoginResponse);
 }
 
-void UserDatabase::login(const QString& username, const QString& authKey) {
+void AuthDatabase::login(const QString& username, const QString& authKey) {
     QJsonObject data{
         {"username", username},
         {"auth_key", authKey}
@@ -14,7 +14,7 @@ void UserDatabase::login(const QString& username, const QString& authKey) {
     m_client->sendRequest("/login", "POST", data);
 }
 
-void UserDatabase::handleLoginResponse(int status, const QJsonObject& data) {
+void AuthDatabase::handleLoginResponse(int status, const QJsonObject& data) {
     if (status == 200) {
         m_sessionToken = data["token"].toString();
         emit loginCompleted(true, m_sessionToken);
