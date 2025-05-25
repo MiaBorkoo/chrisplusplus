@@ -1,37 +1,20 @@
-#ifndef LOGIN_MODEL_H
-#define LOGIN_MODEL_H
-
-#include <QString>
+#pragma once
 #include <QObject>
-#include <vector>
-#include "UserDatabase.h"
+#include "../database/auth/AuthDatabaseInterface.h"
 
 class LoginModel : public QObject {
     Q_OBJECT
 public:
-    explicit LoginModel(UserDatabase* userDatabase = nullptr, QObject* parent = nullptr);
+    explicit LoginModel(AuthDatabaseInterface* authDb, QObject* parent = nullptr);
 
-    // User functions
-    bool login(const std::string& username, const std::string& key);
-    bool signUp(const std::string& username, const std::string& authSalt, const std::string& encSalt, const std::string& authKey, const std::string& encryptedMEK);
-    bool changePassword(const std::string& username, const std::string& oldAuthKey, const std::string& newAuthKey, const std::string& newEncryptedMEK);
-    // File functions
-
-    bool shareFile(const std::string& filename, const std::string& recipientUsername);
-    bool revokeFile(const std::string& filename, const std::string& recipientUsername);
-    bool deleteFile(const std::string& filename);
-    bool uploadFile(const std::string& filename, const std::string& recipientUsername);
+    Q_INVOKABLE void login(const QString& username, const QString& password);
+    Q_INVOKABLE void registerUser(const QString& username,
+                                const QString& password);
 
 signals:
-    void loginSuccess(const QString& username);
-    void loginError(const QString& error);
-
-private slots:
-    void onUserLoggedIn(const QString& username);
-    void onError(const QString& error);
+    void authSuccess();
+    void authError(const QString& message);
 
 private:
-    UserDatabase* userDb;
+    AuthDatabaseInterface* m_authDb;
 };
-
-#endif // LOGIN_MODEL_H

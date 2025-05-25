@@ -1,123 +1,82 @@
 #include "LoginModel.h"
+#include <QCryptographicHash>
 
-LoginModel::LoginModel(UserDatabase* userDb = nullptr, QObject* parent = nullptr)
-    : QObject(parent), userDb(userDb) {
-    if (userDb) {
-        connect(userDb, &UserDatabase::userLoggedIn, this, &LoginModel::onUserLoggedIn);
-        connect(userDb, &UserDatabase::errorOccurred, this, &LoginModel::onError);
-    }
+LoginModel::LoginModel(AuthDatabaseInterface* authDb, QObject* parent)
+    : QObject(parent), m_authDb(authDb) 
+{
+    connect(m_authDb, &AuthDatabaseInterface::loginCompleted,
+            this, [this](bool success, const QString&) {
+                success ? emit authSuccess() : emit authError("Login failed");
+            });
+            
+    connect(m_authDb, &AuthDatabaseInterface::registrationCompleted,
+            this, [this](bool success) {
+                success ? emit authSuccess() : emit authError("Registration failed");
+            });
 }
 
-// User functions
-
-bool LoginModel::login(const std::string& username, const std::string& key) {
-    if (!userDb) {
-        emit loginError("UserDatabase not initialized.");
-        return false;
-    }
-
-    QString qtUsername = QString::fromStdString(username);
-    QString qtKey = QString::fromStdString(key);
-
-    if (qtUsername.isEmpty() || qtKey.isEmpty()) {
-        emit loginError("Username or key cannot be empty.");
-        return false;
-    }
-
-    if (!userDb->userExists(qtUsername)) {
-        emit loginError("User does not exist.");
-        return false;
-    }
-
-    bool requestSent = userDb->login(qtUsername, qtKey);
-    if (!requestSent) {
-        emit loginError("Failed to initiate login request.");
-        return false;
-    }
-    return true; 
+QString LoginModel::hashPassword(const QString& password, const QString& salt) const
+{
+    //temp func
+    return QCryptographicHash::hash(
+        (password + salt).toUtf8(), 
+        QCryptographicHash::Sha256
+    ).toHex();
 }
 
-bool LoginModel::signUp(const std::string& username, const std::string& authSalt, const std::string& encSalt, const std::string& authKey, const std::string& encryptedMEK) {
-    if (!userDb) {
-        emit loginError("UserDatabase not initialized.");
-        return false;
+void LoginModel::login(const QString& username, const QString& password)
+{
+    if (username.isEmpty() || password.isEmpty()) {
+        emit authError("Credentials cannot be empty");
+        return;
     }
+    
+    QString tempSalt = "static_salt"; 
+    QString hashedPassword = hashPassword(password, tempSalt);
+    
+    m_authDb->login(username, hashedPassword);
+}
 
-    QString qtUsername = QString::fromStdString(username);
-    QString qtAuthSalt = QString::fromStdString(authSalt);
-    QString qtEncSalt = QString::fromStdString(encSalt);
-    QString qtAuthKey = QString::fromStdString(authKey);
-    QString qtEncryptedMEK = QString::fromStdString(encryptedMEK);
-
-    if (qtUsername.isEmpty() || qtAuthSalt.isEmpty() || qtEncSalt.isEmpty() || qtAuthKey.isEmpty() || qtEncryptedMEK.isEmpty()) {
-        emit loginError("Username or key cannot be empty.");
-        return false;
+void LoginModel::registerUser(const QString& username, 
+                            const QString& password,
+                            const QString& confirmPassword)
+{
+    if (username.isEmpty() || password.isEmpty()) {
+        emit authError("Fields cannot be empty");
+        return;
     }
-
-    if (userDb->userExists(qtUsername)) {
-        emit loginError("User already exists.");
-        return false;
+    
+    if (password != confirmPassword) {
+        emit authError("Passwords don't match");
+        return;
     }
+    
+    // example
+    QString authSalt = QUuid::createUuid().toString();
+    QString encSalt = QUuid::createUuid().toString();
+    
+    QString authKey = hashPassword(password, authSalt);
+    QString encryptedMEK = "mock_encrypted_key"; 
+    
+    m_authDb->registerUser(username, authSalt, encSalt, authKey, encryptedMEK);
+}
 
-    bool requestSent = userDb->signUp(qtUsername, qtAuthSalt, qtEncSalt, qtAuthKey, qtEncryptedMEK);
-    if (!requestSent) {
-        emit loginError("Failed to initiate signup request.");
-        return false;
+void LoginModel::changePassword(const QString& username,
+                              const QString& oldPassword,
+                              const QString& newPassword,
+                              const QString& confirmPassword)
+{
+    if (newPassword != confirmPassword) {
+        emit authError("New passwords don't match");
+        return;
     }
-    return true; 
+    
+    QString oldAuthSalt = "retrieved_auth_salt";
+    QString encSalt = "retrieved_enc_salt";
+    
+    QString oldAuthKey = hashPassword(oldPassword, oldAuthSalt);
+    QString newAuthKey = hashPassword(newPassword, oldAuthSalt);
+    QString newEncryptedMEK = "reencrypted_mock_key"; 
+    
+    m_authDb->changePassword(username, oldAuthKey, newAuthKey, newEncryptedMEK);
 }
-
-bool LoginModel::changePassword(const std::string& username, const std::string& oldAuthKey, const std::string& newAuthKey, const std::string& newEncryptedMEK) {
-    if (!userDb) {
-        emit loginError("UserDatabase not initialized.");
-        return false;
-    }
-
-    QString qtUsername = QString::fromStdString(username);
-    QString qtOldAuthKey = QString::fromStdString(oldAuthKey);
-    QString qtNewAuthKey = QString::fromStdString(newAuthKey);
-    QString qtNewEncryptedMEK = QString::fromStdString(newEncryptedMEK);
-
-    if (qtUsername.isEmpty() || qtOldAuthKey.isEmpty() || qtNewAuthKey.isEmpty() || qtNewEncryptedMEK.isEmpty()) {
-        emit loginError("Username or key cannot be empty.");
-        return false;
-    }
-
-    bool requestSent = userDb->changePassword(qtUsername, qtOldAuthKey, qtNewAuthKey, qtNewEncryptedMEK);
-    if (!requestSent) {
-        emit loginError("Failed to initiate password change request.");
-        return false;
-    }
-    return true; 
-}
-
-// File functions
-
-std::vector<FileData> LoginModel::listOwnedFiles(const std::string& username) {
-    std::vector<FileData> files;
-    return files;
-}
-
-std::vector<FileData> LoginModel::listSharedFiles(const std::string& username) {
-    std::vector<FileData> files;
-    return files;
-}
-
-bool LoginModel::shareFile(const std::string& filename, const std::string& recipientUsername) {
-    return true; 
-}
-
-bool LoginModel::revokeFile(const std::string& filename, const std::string& recipientUsername) {
-    return true; 
-}
-
-bool LoginModel::deleteFile(const std::string& filename) {
-    return true; 
-}
-
-bool LoginModel::uploadFile(const std::string& filename, const std::string& recipientUsername) {
-    return true; 
-}
-
-
-
