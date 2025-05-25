@@ -1,0 +1,99 @@
+/* Input Fields */
+QLineEdit {
+    border: 2px solid #d4d4d4;
+    border-radius: 20px;
+    background-color: white;
+    font-size: 11px;
+    color: black;
+}
+
+QLineEdit:focus {
+    border: 2px solid #00e5e0;
+}
+
+QLineEdit:invalid {
+    border: 2px solid #ff4444;
+}
+
+/* Login Button */
+#loginButton {
+    background-color: #00e5e0;
+    color: black;
+    padding: 10px;
+    border-radius: 20px;
+    border: none;
+    font-size: 14px;
+}
+
+#loginButton:hover {
+    background-color: #00ccc6;
+}
+
+/* Sign Up Button */
+#signUpButton {
+    background-color: #00e5e0;
+    color: black;
+    padding: 10px;
+    border-radius: 20px;
+    border: none;
+    font-size: 14px;
+}
+
+#signUpButton:hover {
+    background-color: #00ccc6;
+}
+
+/* Sign Up Panel (black box) */
+#signUpPanel {
+    background: #111;
+    border-radius: 24px;
+    padding: 32px;
+}
+
+/* Sign Up Heading */
+#signUpHeading {
+    color: white;
+    font-size: 32px;
+    font-weight: bold;
+}
+
+/* Sign Up Labels */
+#signUpUsernameLabel, #signUpPasswordLabel, #signUpConfirmLabel {
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* Error Label */
+#errorLabel {
+    color: #ff4444;
+    font-size: 11px;
+}
+
+/* Login Link */
+#loginLink {
+    color: white;
+    font-size: 12px;
+}
+#loginLink a {
+    color: #00e5e0;
+    text-decoration: underline;
+}
+
+/* Labels */
+#loginHeading, #newHereLabel {
+    color: white;
+}
+
+#usernameLabel, #passwordLabel {
+    color: white;
+}
+
+/* Panels */
+#leftPanel {
+    background-color: #222222;
+}
+
+#rightPanel {
+    background-color: transparent;
+} 
