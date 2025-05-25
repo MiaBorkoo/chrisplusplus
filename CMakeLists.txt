@@ -31,7 +31,7 @@ target_include_directories(LoginForm
     PRIVATE
         ${CMAKE_SOURCE_DIR}/sockets
         ${CMAKE_SOURCE_DIR}/models
-        ${CMAKE_SOURCE_DIR}/database
+        ${CMAKE_SOURCE_DIR}/services
 )
 
 # Install targets
