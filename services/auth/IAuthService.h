@@ -2,6 +2,7 @@
 #include "../ApiService.h"
 #include <QString>
 
+//inheritance from ApiService
 class IAuthService : public ApiService {
     Q_OBJECT
 public:

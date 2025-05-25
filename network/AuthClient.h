@@ -4,14 +4,10 @@
 
 class AuthClient : public QObject {
     Q_OBJECT
-public:
-    explicit AuthClient(const QString& baseUrl, 
-                      const QString& apiKey,
-                      QObject* parent = nullptr);
+public:                                                                 //default arguement
+    explicit AuthClient(const QString& baseUrl, const QString& apiKey, QObject* parent = nullptr);
     
-    void sendRequest(const QString& endpoint,
-                    const QString& method,
-                    const QJsonObject& data);
+    void sendRequest(const QString& endpoint, const QString& method, const QJsonObject& data);
 
 signals:
     void responseReceived(int status, const QJsonObject& data);

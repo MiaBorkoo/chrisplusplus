@@ -3,9 +3,7 @@
 #include <QJsonDocument>
 #include <QSslConfiguration>
 
-AuthClient::AuthClient(const QString& baseUrl, 
-                     const QString& apiKey,
-                     QObject* parent) 
+AuthClient::AuthClient(const QString& baseUrl, const QString& apiKey, QObject* parent) 
     : QObject(parent), m_baseUrl(baseUrl), m_apiKey(apiKey) 
 {
     m_manager = new QNetworkAccessManager(this);

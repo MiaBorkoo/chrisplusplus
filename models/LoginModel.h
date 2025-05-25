@@ -2,6 +2,7 @@
 #include <QObject>
 #include "../database/auth/AuthDatabaseInterface.h"
 
+//class definition
 class LoginModel : public QObject {
     Q_OBJECT
 public:
@@ -10,6 +11,10 @@ public:
     Q_INVOKABLE void login(const QString& username, const QString& password);
     Q_INVOKABLE void registerUser(const QString& username,
                                 const QString& password);
+    Q_INVOKABLE void changePassword(const QString& username,
+                                const QString& oldPassword,
+                                const QString& newPassword);
+    Q_INVOKABLE void checkUserExists(const QString& username);
 
 signals:
     void authSuccess();
