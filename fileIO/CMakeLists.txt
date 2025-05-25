@@ -6,8 +6,9 @@ add_library(file_transfer
 
 target_link_libraries(file_transfer
     PUBLIC
-        Qt::Core
-        http_layer  
+        Qt6::Core
+        http_layer
+        sockets
 )
 
 target_include_directories(file_transfer

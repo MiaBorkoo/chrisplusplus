@@ -16,5 +16,7 @@ target_include_directories(http_layer
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}  # for Http*.h
 )
 target_link_libraries(http_layer
-    PUBLIC sockets                       
+    PUBLIC
+        Qt6::Core
+        sockets
 )
