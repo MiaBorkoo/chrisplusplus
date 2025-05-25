@@ -73,7 +73,7 @@ void LoginModel::changePassword(const QString& username,
     
     QString oldAuthSalt = "retrieved_auth_salt";
     QString encSalt = "retrieved_enc_salt";
-    
+
     QString oldAuthKey = hashPassword(oldPassword, oldAuthSalt);
     QString newAuthKey = hashPassword(newPassword, oldAuthSalt);
     QString newEncryptedMEK = "reencrypted_mock_key"; 
