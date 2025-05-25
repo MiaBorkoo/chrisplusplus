@@ -14,10 +14,8 @@ add_subdirectory(sockets) #for adding a sockets library in /sockets, BUT CHECK I
 qt_add_executable(LoginForm
     WIN32 MACOSX_BUNDLE
     main.cpp
+    database/auth/AuthDatabase.cpp
     models/LoginModel.cpp
-    database/Database.cpp
-    database/UserDatabase.cpp
-    database/AuthClient.cpp
 )
 
 
