@@ -38,10 +38,7 @@ add_executable(testSSLforNow
 )
 target_link_libraries(testSSLforNow PRIVATE sockets http_layer)
 
-add_executable(testHTTP
-    tests/testHTTP.cpp
-)
-target_link_libraries(testHTTP PRIVATE sockets http_layer)
+
 
 add_executable(testComplete
     tests/testComplete.cpp

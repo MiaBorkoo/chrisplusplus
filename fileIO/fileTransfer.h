@@ -54,6 +54,11 @@ public:
     // Cancel ongoing transfer
     void cancelTransfer();
 
+    // Performance tuning
+    void setChunkSize(size_t size);
+    void setOptimizedForLargeFiles(bool optimize); // Uses 256KB chunks
+    void setOptimizedForNetwork(const std::string& connectionType); // "dialup", "broadband", "gigabit"
+
 private:
     SSLContext& sslContext_;
     std::unique_ptr<HttpClient> httpClient_;
@@ -61,6 +66,8 @@ private:
     std::string serverPort_;
     QString authToken_;
     bool cancelRequested_;
+    
+    size_t chunkSize_{128 * 1024}; // Default 128KB
     
     // Helper methods
     HttpRequest createUploadRequest(const std::string& endpoint, const QString& filename, qint64 fileSize);

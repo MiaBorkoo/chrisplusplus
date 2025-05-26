@@ -35,6 +35,8 @@ public:
     //receive the data over the TLS channel
     ssize_t receive(void* buf, size_t buflen);
 
+    void setTimeout(int seconds);
+
 private:
     //resolve the host to a socket file descriptor
     int connectTCP(const std::string& host, 
@@ -47,4 +49,5 @@ private:
     int      sockfd_{-1};    //underlying TCP socket file descriptor
     SSL*     ssl_{nullptr};  //OpenSSL session object
     std::string host_;       //hostname for SNI & cert checks
+    int timeoutSeconds_{30};
 };

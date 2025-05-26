@@ -171,3 +171,13 @@ void SSLConnection::verifyPeerCertificate()
     
     X509_free(cert);
 }
+
+void SSLConnection::setTimeout(int seconds) {
+    timeoutSeconds_ = seconds;
+    // Apply to existing socket if connected
+    if (sockfd_ >= 0) {
+        struct timeval tv = {seconds, 0};
+        setsockopt(sockfd_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+        setsockopt(sockfd_, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+    }
+}
