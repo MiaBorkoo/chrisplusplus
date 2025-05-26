@@ -1,9 +1,17 @@
 #include "AuthService.h"
 
-AuthService::AuthService(AuthClient* client, QObject* parent)
+/**
+ * @class AuthService
+ * @brief Handles authentication-related operations such as login, registration, and password management.
+ * @author jjola00
+ *
+ * This class communicates with the Client to send requests to the server and handles responses.
+ * It also manages user sessions and emits signals for various authentication events.
+ */
+AuthService::AuthService(Client* client, QObject* parent)
     : IAuthService(parent), m_client(client) 
 {
-    connect(m_client, &AuthClient::responseReceived, 
+    connect(m_client, &Client::responseReceived, 
            this, [this](int status, const QJsonObject& data) {
         const QString endpoint = data["endpoint"].toString();
         
@@ -21,8 +29,10 @@ AuthService::AuthService(AuthClient* client, QObject* parent)
         }
     });
 
-    connect(m_client, &AuthClient::errorOccurred,
-            this, &AuthService::errorOccurred);
+    connect(m_client, &Client::networkError,
+            this, [this](const QString& error) {
+        emit errorOccurred("Network Error: " + error);
+    });
 }
 
 void AuthService::login(const QString& username, const QString& authKey) {
@@ -72,13 +82,18 @@ void AuthService::checkUserExists(const QString& username) {
     m_client->sendRequest("/check_user_exists", "POST", payload);
 }
 
+void AuthService::invalidateSession() {
+    m_sessionToken.clear(); 
+    emit errorOccurred("Session invalidated."); 
+}
+
 void AuthService::handleLoginResponse(int status, const QJsonObject& data) {
     if (status == 200) {
         m_sessionToken = data["token"].toString();
         emit loginCompleted(true, m_sessionToken);
     } else {
         emit loginCompleted(false, "");
-        emit errorOccurred(data.value("error").toString("Login failed"));
+        emit errorOccurred(data.value("error").toString("Login failed. Please check your credentials."));
     }
 }
 
@@ -86,15 +101,17 @@ void AuthService::handleRegisterResponse(int status, const QJsonObject& data) {
     const bool success = (status == 200);
     emit registrationCompleted(success);
     if (!success) {
-        emit errorOccurred(data.value("error").toString("Registration failed"));
+        emit errorOccurred(data.value("error").toString("Registration failed. Please try again."));
     }
 }
 
 void AuthService::handleChangePasswordResponse(int status, const QJsonObject& data) {
     const bool success = (status == 200);
     emit passwordChangeCompleted(success);
-    if (!success) {
-        emit errorOccurred(data.value("error").toString("Password change failed"));
+    if (success) {
+        invalidateSession(); 
+    } else {
+        emit errorOccurred(data.value("error").toString("Password change failed. Please try again."));
     }
 }
 
@@ -102,6 +119,6 @@ void AuthService::handleUserExistsResponse(int status, const QJsonObject& data) 
     const bool exists = (status == 200);
     emit userExistsChecked(exists);
     if (!exists) {
-        emit errorOccurred(data.value("error").toString("User check failed"));
+        emit errorOccurred(data.value("error").toString("User check failed. Please try again."));
     }
 }

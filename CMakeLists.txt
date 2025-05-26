@@ -15,7 +15,7 @@ qt_add_executable(LoginForm
     WIN32 MACOSX_BUNDLE
     main.cpp
     models/LoginModel.cpp
-    network/AuthClient.cpp
+    network/Client.cpp
     services/auth/AuthService.cpp
     services/files/FileService.cpp
 )

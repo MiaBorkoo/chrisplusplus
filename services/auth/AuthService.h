@@ -1,11 +1,11 @@
 #pragma once
 #include "IAuthService.h"
-#include "../../network/AuthClient.h"
+#include "../../network/Client.h"
 
 class AuthService : public IAuthService {
     Q_OBJECT
 public:
-    explicit AuthService(AuthClient* client = nullptr, QObject* parent = nullptr);
+    explicit AuthService(Client* client = nullptr, QObject* parent = nullptr);
     ~AuthService() override = default;
 
     // Interface implementations
@@ -23,9 +23,11 @@ public:
 
     QString sessionToken() const { return m_sessionToken; }
     bool hasActiveSession() const { return !m_sessionToken.isEmpty(); }
+    
+    void invalidateSession();
 
 private:
-    AuthClient* m_client;
+    Client* m_client;
     QString m_sessionToken;
     
     void handleLoginResponse(int status, const QJsonObject& data);

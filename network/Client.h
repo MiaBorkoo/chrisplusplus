@@ -2,10 +2,10 @@
 #include <QObject>
 #include <QNetworkAccessManager>
 
-class AuthClient : public QObject {
+class Client : public QObject {
     Q_OBJECT
 public:                                                                 //default arguement
-    explicit AuthClient(const QString& baseUrl, const QString& apiKey, QObject* parent = nullptr);
+    explicit Client(const QString& baseUrl, const QString& apiKey, QObject* parent = nullptr);
     
     void sendRequest(const QString& endpoint, const QString& method, const QJsonObject& data);
 

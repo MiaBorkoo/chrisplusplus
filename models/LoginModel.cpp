@@ -1,6 +1,14 @@
 #include "LoginModel.h"
 #include <QCryptographicHash>
 
+/**
+ * @class LoginModel
+ * @brief Manages login and registration operations.
+ * @author jjola00
+ *
+ * This class handles user login and registration operations.
+ */
+
 LoginModel::LoginModel(AuthDatabaseInterface* authDb, QObject* parent)
     : QObject(parent), m_authDb(authDb) 
 {
