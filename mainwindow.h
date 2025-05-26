@@ -6,6 +6,7 @@
 #include "views/LoginView.h"
 #include "controllers/LoginController.h"
 #include "views/SignUpView.h"
+#include "controllers/SignUpController.h"
 
 class MainWindow : public QMainWindow
 {
@@ -19,6 +20,7 @@ private:
     LoginView *m_loginView;
     LoginController *m_loginController;
     SignUpView *m_signUpView;
+    SignUpController *m_signUpController;
 };
 
 #endif // MAINWINDOW_H

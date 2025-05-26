@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "views/SignUpView.h"
+#include "controllers/SignUpController.h"
 #include <QScreen>
 #include <QApplication>
 #include <QStackedWidget>
@@ -18,8 +19,9 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     m_loginController = new LoginController(this);
     m_loginController->setView(m_loginView);
 
-    //creates sign up view
+    //creates sign up view and controller
     m_signUpView = new SignUpView(this);
+    m_signUpController = new SignUpController(m_signUpView, this);
 
     m_stack->addWidget(m_loginView);   //index 0 in the stacked widget
     m_stack->addWidget(m_signUpView);  //index 1 in the stacked widget

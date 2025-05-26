@@ -15,10 +15,10 @@ find_package(Qt6 COMPONENTS
     REQUIRED
 )
 
-# Temporarily comment out sockets
+#Temporarily comment out sockets
 #add_subdirectory(sockets)
 
-# Create resources file
+# Create resources file for the css file and logo
 set(RESOURCE_FILES
     resources.qrc
 )
@@ -35,6 +35,8 @@ add_executable(LoginApp
     views/SignUpView.h
     controllers/LoginController.cpp
     controllers/LoginController.h
+    controllers/SignUpController.cpp
+    controllers/SignUpController.h
     ${RESOURCE_FILES}
 )
 
@@ -48,7 +50,7 @@ target_link_libraries(LoginApp
 
 include(GNUInstallDirs)
 
-# Temporarily comment out SSL test
+# Temporarily commented out SSL test
 #add_executable(testSSLforNow
 #    testSSLforNow.cpp
 #)

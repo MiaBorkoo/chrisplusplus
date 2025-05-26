@@ -9,29 +9,10 @@
 #include <QPainter>
 #include <QLinearGradient>
 #include <QColor>
+#include <QDebug>
 
 SignUpView::SignUpView(QWidget *parent) : QWidget(parent)
 {
-    commonPasswords = QSet<QString>({
-    "123456789012",
-    "password1234",
-    "qwertyuiop12",
-    "iloveyou1234",
-    "adminadmin12",
-    "letmeinplease",
-    "footballrules",
-    "welcome12345",
-    "monkeymonkey",
-    "sunshine2020",
-    "superman1234",
-    "dragonfire12",
-    "trustno1ever",
-    "baseball1234",
-    "ilovefootball",
-    "password12345",
-    "abc123abc123",
-    "mysecurelogin"
-    });
 
     QFont headingFont("Helvetica Neue", 32, QFont::Bold);
     QFont labelFont("Arial", 12, QFont::Bold);
@@ -159,9 +140,11 @@ QString SignUpView::getUsername() const { return usernameEdit->text(); }
 QString SignUpView::getPassword() const { return passwordEdit->text(); }
 QString SignUpView::getConfirmPassword() const { return confirmPasswordEdit->text(); }
 
-void SignUpView::showError(const QString &message) {
-    errorLabel->setText(message);
-    errorLabel->show();
+void SignUpView::resetFieldStyles() {
+    QString normalStyle = "QLineEdit { background: white; color: black; border-radius: 20px; border: 2px solid #d4d4d4; font-size: 11px; }";
+    usernameEdit->setStyleSheet(normalStyle);
+    passwordEdit->setStyleSheet(normalStyle);
+    confirmPasswordEdit->setStyleSheet(normalStyle);
 }
 
 void SignUpView::clearFields() {
@@ -169,44 +152,30 @@ void SignUpView::clearFields() {
     passwordEdit->clear();
     confirmPasswordEdit->clear();
     errorLabel->hide();
-}
-
-bool SignUpView::isPasswordValid(const QString &password) {
-    if (password.length() < 12)
-        return false;
-    if (!password.contains(QRegularExpression("[A-Za-z]")))
-        return false;
-    if (!password.contains(QRegularExpression("[0-9]")))
-        return false;
-    if (commonPasswords.contains(password))
-        return false;
-    return true;
+    resetFieldStyles();
 }
 
 void SignUpView::handleSignUp() {
-    QString username = getUsername();
-    QString password = getPassword();
-    QString confirmPassword = getConfirmPassword();
-    errorLabel->hide();
-
-    if (username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
-        showError("All fields are required.");
-        return;
-    }
-    if (password != confirmPassword) {
-        showError("Passwords do not match.");
-        return;
-    }
-    if (!isPasswordValid(password)) {
-        showError("Password must be at least 12 characters, contain letters and numbers, and not be a common password.");
-        return;
-    }
-    clearFields();
-    showError("Sign up successful!");
+    resetFieldStyles();
+    emit signUpRequested(getUsername(), getPassword(), getConfirmPassword());
 }
 
-void SignUpView::handleLogin() {
-    emit loginRequested();
+void SignUpView::showError(const QString &message) {
+    errorLabel->setText(message);
+    errorLabel->show();
+
+    //this is to style fields based on error message
+    if (message.contains("username", Qt::CaseInsensitive)) {
+        usernameEdit->setStyleSheet("QLineEdit { background: white; color: black; border-radius: 20px; border: 2px solid #ff4444; font-size: 11px; }");
+    }
+    if (message.contains("password", Qt::CaseInsensitive)) {
+        passwordEdit->setStyleSheet("QLineEdit { background: white; color: black; border-radius: 20px; border: 2px solid #ff4444; font-size: 11px; }");
+        confirmPasswordEdit->setStyleSheet("QLineEdit { background: white; color: black; border-radius: 20px; border: 2px solid #ff4444; font-size: 11px; }");
+    }
+}
+
+void SignUpView::hideError() {
+    errorLabel->hide();
 }
 
 void SignUpView::paintEvent(QPaintEvent *event) {

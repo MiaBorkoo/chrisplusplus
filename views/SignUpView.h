@@ -3,7 +3,6 @@
 
 #include <QWidget>
 #include <QString>
-#include <QSet>
 #include <QPainter>
 
 class QLabel;
@@ -22,14 +21,14 @@ public:
     QString getConfirmPassword() const;
     void showError(const QString &message);
     void clearFields();
+    void hideError();
 
 signals:
-    void signUpAttempted(const QString &username, const QString &password, const QString &confirmPassword);
+    void signUpRequested(const QString &username, const QString &password, const QString &confirmPassword);
     void loginRequested();
 
 private slots:
     void handleSignUp();
-    void handleLogin();
 
 private:
     QLabel *logoLabel;
@@ -40,11 +39,9 @@ private:
     QLineEdit *passwordEdit;
     QLineEdit *confirmPasswordEdit;
     QPushButton *signUpButton;
-    QPushButton *loginButton;
     QLabel *errorLabel;
-    QSet<QString> commonPasswords;
-    bool isPasswordValid(const QString &password);
 
+    void resetFieldStyles();
     void paintEvent(QPaintEvent *event) override;
 };
 
