@@ -2,6 +2,7 @@
 #include <QNetworkRequest>
 #include <QJsonDocument>
 #include <QSslConfiguration>
+#include <QRegularExpression>
 
 /**
  * @class Client
@@ -22,6 +23,34 @@ void Client::sendRequest(const QString& endpoint,
                            const QString& method,
                            const QJsonObject& data) 
 {
+    // Input validation for endpoint and method
+    QRegularExpression validEndpointRegex("^[a-zA-Z0-9/_-]+$"); // Adjust regex as needed
+    if (!validEndpointRegex.match(endpoint).hasMatch()) {
+        emit networkError("Invalid endpoint format");
+        return;
+    }
+
+    // Validate method
+    QStringList validMethods = {"GET", "POST", "PUT", "DELETE"};
+    if (!validMethods.contains(method.toUpper())) {
+        emit networkError("Unsupported HTTP method");
+        return;
+    }
+
+    // Validate input data
+    for (auto it = data.begin(); it != data.end(); ++it) {
+        if (it.key().length() > 100 || it.value().toString().length() > 255) { // Example length checks
+            emit networkError("Input exceeds maximum length");
+            return;
+        }
+        // Sanitize input
+        QRegularExpression validInputRegex("^[a-zA-Z0-9_\\-\\.]+$"); // Adjust regex as needed
+        if (!validInputRegex.match(it.value().toString()).hasMatch()) {
+            emit networkError("Invalid input detected");
+            return;
+        }
+    }
+
     QUrl url(m_baseUrl + endpoint);
     QNetworkRequest request(url);
     
