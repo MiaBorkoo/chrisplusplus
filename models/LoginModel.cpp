@@ -1,15 +1,23 @@
 #include "LoginModel.h"
 #include <QCryptographicHash>
 
-LoginModel::LoginModel(AuthDatabaseInterface* authDb, QObject* parent)
+/**
+ * @class LoginModel
+ * @brief Manages login and registration operations.
+ * @author jjola00
+ *
+ * This class handles user login and registration operations.
+ */
+
+LoginModel::LoginModel(IAuthService* authDb, QObject* parent)
     : QObject(parent), m_authDb(authDb) 
 {
-    connect(m_authDb, &AuthDatabaseInterface::loginCompleted,
+    connect(m_authDb, &IAuthService::loginCompleted,
             this, [this](bool success, const QString&) {
                 success ? emit authSuccess() : emit authError("Login failed");
             });
             
-    connect(m_authDb, &AuthDatabaseInterface::registrationCompleted,
+    connect(m_authDb, &IAuthService::registrationCompleted,
             this, [this](bool success) {
                 success ? emit authSuccess() : emit authError("Registration failed");
             });

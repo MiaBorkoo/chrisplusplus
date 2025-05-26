@@ -1,14 +1,14 @@
 #pragma once
-#include "AuthDatabaseInterface.h"
-#include "../../network/AuthClient.h"
+#include "IAuthService.h"
+#include "../../network/Client.h"
 
-class AuthDatabase : public AuthDatabaseInterface {
+class AuthService : public IAuthService {
     Q_OBJECT
 public:
-    explicit AuthDatabase(AuthClient* client = nullptr, QObject* parent = nullptr);
-    
-    bool isReady() const override;
-    void clear() override;  
+    explicit AuthService(Client* client = nullptr, QObject* parent = nullptr);
+    ~AuthService() override = default;
+
+    // Interface implementations
     void login(const QString& username, const QString& authKey) override;
     void registerUser(const QString& username,
                     const QString& authSalt,
@@ -16,19 +16,24 @@ public:
                     const QString& authKey,
                     const QString& encryptedMEK) override;
     void changePassword(const QString& username,
-                        const QString& oldAuthKey,
-                        const QString& newAuthKey,
-                        const QString& newEncryptedMEK) override;
+                       const QString& oldAuthKey,
+                       const QString& newAuthKey,
+                       const QString& newEncryptedMEK) override;
     void checkUserExists(const QString& username) override;
 
+    QString sessionToken() const { return m_sessionToken; }
+    bool hasActiveSession() const { return !m_sessionToken.isEmpty(); }
+    
+    void invalidateSession();
+
 private:
-    AuthClient* m_client = nullptr;
+    Client* m_client;
     QString m_sessionToken;
     
-private slots:
     void handleLoginResponse(int status, const QJsonObject& data);
-    void handleError(const QString& error);
     void handleRegisterResponse(int status, const QJsonObject& data);
     void handleChangePasswordResponse(int status, const QJsonObject& data);
     void handleUserExistsResponse(int status, const QJsonObject& data);
+
+    void clearSession(); 
 };

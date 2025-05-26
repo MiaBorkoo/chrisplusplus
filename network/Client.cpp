@@ -1,18 +1,24 @@
-#include "AuthClient.h"
+#include "Client.h"
 #include <QNetworkRequest>
 #include <QJsonDocument>
 #include <QSslConfiguration>
 
-AuthClient::AuthClient(const QString& baseUrl, 
-                     const QString& apiKey,
-                     QObject* parent) 
+/**
+ * @class Client
+ * @brief Handles network requests and responses.
+ * @author jjola00
+ *
+ * This class sends requests to the server and handles responses.
+ */
+
+Client::Client(const QString& baseUrl, const QString& apiKey, QObject* parent) 
     : QObject(parent), m_baseUrl(baseUrl), m_apiKey(apiKey) 
 {
     m_manager = new QNetworkAccessManager(this);
     m_manager->setTransferTimeout(30000);
 }
 
-void AuthClient::sendRequest(const QString& endpoint,
+void Client::sendRequest(const QString& endpoint,
                            const QString& method,
                            const QJsonObject& data) 
 {
@@ -60,7 +66,13 @@ void AuthClient::sendRequest(const QString& endpoint,
                 QJsonDocument::fromJson(reply->readAll()).object()
             );
         } else {
-            emit networkError(reply->errorString());
+            QString errorMsg = reply->errorString();
+            if (reply->error() == QNetworkReply::TimeoutError) {
+                errorMsg = "Request timed out. Please try again.";
+            } else if (reply->error() == QNetworkReply::HostNotFoundError) {
+                errorMsg = "Server not found. Please check your network connection.";
+            }
+            emit networkError(errorMsg);
         }
         reply->deleteLater();
     });
