@@ -3,5 +3,10 @@
     <qresource prefix="/">
         <file>styles/login.css</file>
         <file>assets/logo.png</file>
+        <file>assets/folder.svg</file>
+        <file>assets/shared.svg</file>
+        <file>assets/inbox.svg</file>
+        <file>assets/account.svg</file>
+        <file>assets/logout.svg</file>
     </qresource>
 </RCC>

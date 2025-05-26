@@ -27,6 +27,5 @@ void LoginController::handleLoginAttempt()
     //clears the fields
     m_view->clearFields();
 
-    // Show success message
-    QMessageBox::information(nullptr, "Login", "Logged in successfully!");
+    emit loginSuccessful();
 } 

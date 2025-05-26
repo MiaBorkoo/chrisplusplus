@@ -37,6 +37,12 @@ qt_add_executable(LoginForm
     controllers/LoginController.h
     controllers/SignUpController.cpp
     controllers/SignUpController.h
+    views/HeaderWidget.cpp
+    views/HeaderWidget.h
+    views/SideNavWidget.cpp
+    views/SideNavWidget.h
+    views/FilesDashView.cpp
+    views/FilesDashView.h
     ${RESOURCE_FILES}
 )
 

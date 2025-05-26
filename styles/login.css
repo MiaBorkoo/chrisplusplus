@@ -91,9 +91,121 @@ QLineEdit:invalid {
 
 /* Panels */
 #leftPanel {
-    background-color: #222222;
+    background-color: #000000;
 }
 
 #rightPanel {
     background-color: transparent;
-} 
+}
+
+/* SideNavWidget Styles */
+SideNavWidget {
+    background-color: #1A1A1A;
+    color: #E0E0E0;
+    border-right: 1px solid #2C2F33;
+}
+
+SideNavWidget QPushButton {
+    color: #E0E0E0;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 0 8px;
+}
+
+SideNavWidget QPushButton:hover {
+    background: #2C2F33;
+    color: #FFFFFF;
+}
+
+SideNavWidget QPushButton:pressed {
+    background: #3A3D41;
+    color: #000435;
+}
+
+/* Style for Logout Button */
+SideNavWidget QPushButton[text="Logout"] {
+    color: #E0E0E0;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 0 8px;
+}
+
+SideNavWidget QPushButton[text="Logout"]:hover {
+    background: #2C2F33;
+    color: #FF4444; /* Red accent for logout action */
+}
+
+SideNavWidget QPushButton[text="Logout"]:pressed {
+    background: #3A3D41;
+    color: #FF4444;
+}
+
+/* HeaderWidget Styles */
+HeaderWidget {
+    background-color: #1A1A1A;
+    color: #FFFFFF;
+    border-bottom: 1px solid #2C2F33;
+}
+
+HeaderWidget QLabel {
+    font-size: 20px;
+    font-weight: bold;
+    color: #FFFFFF;
+    padding-left: 16px;
+}
+
+HeaderWidget QPushButton {
+    color: #E0E0E0;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 6px;
+}
+
+HeaderWidget QPushButton:hover {
+    background: #2C2F33;
+    color: #FFFFFF;
+}
+
+HeaderWidget QPushButton:pressed {
+    background: #3A3D41;
+    color: #000435;
+}
+
+/* Main Content Area */
+#mainContent {
+    background-color: #1A1A1A;
+    border: none;
+}
+
+#mainContent QLabel {
+    color: #E0E0E0;
+    font-size: 16px;
+    font-weight: 500;
+    padding: 16px;
+}
+
+/* File List Styles */
+#fileListWidget {
+    background-color: #1A1A1A;
+}
+
+#fileListWidget QLabel {
+    color: #E0E0E0;
+    font-size: 14px;
+    padding: 8px 16px;
+}
+
+#fileListWidget QLabel:hover {
+    background-color: #2C2F33;
+    border-radius: 4px;
+}

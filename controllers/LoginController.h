@@ -18,6 +18,9 @@ private slots:
 
 private:
     LoginView *m_view;
+
+signals:
+    void loginSuccessful();
 };
 
 #endif // LOGINCONTROLLER_H 

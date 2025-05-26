@@ -23,8 +23,11 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     m_signUpView = new SignUpView(this);
     m_signUpController = new SignUpController(m_signUpView, this);
 
+    m_filesDashView = new FilesDashView(this);
+
     m_stack->addWidget(m_loginView);   //index 0 in the stacked widget
     m_stack->addWidget(m_signUpView);  //index 1 in the stacked widget
+    m_stack->addWidget(m_filesDashView);  //index 2 in the stacked widget
 
     setCentralWidget(m_stack);
 
@@ -37,5 +40,10 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     //switches back to login view when login button is clicked on sign-up page
     connect(m_signUpView, &SignUpView::loginRequested, this, [this]() {
         m_stack->setCurrentWidget(m_loginView);
+    });
+
+    //switches to files dash view after successful login
+    connect(m_loginController, &LoginController::loginSuccessful, this, [this]() {
+        m_stack->setCurrentWidget(m_filesDashView);
     });
 }   
