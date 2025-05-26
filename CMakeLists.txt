@@ -48,11 +48,25 @@ add_executable(testComplete
 )
 target_link_libraries(testComplete PRIVATE sockets http_layer)
 
-# Add the new file upload test
-add_executable(testFileUpload
-    tests/testFileUpload.cpp
+
+
+# Add simple upload test for debugging
+add_executable(testFileUploadSimple
+    tests/testFileUploadSimple.cpp
 )
-target_link_libraries(testFileUpload PRIVATE 
+target_link_libraries(testFileUploadSimple PRIVATE 
+    Qt6::Core 
+    Qt6::Widgets 
+    file_transfer 
+    http_layer 
+    sockets
+)
+
+# Complete network system demo
+add_executable(testNetworkSystemComplete
+    tests/testNetworkSystemComplete.cpp
+)
+target_link_libraries(testNetworkSystemComplete PRIVATE 
     Qt6::Core 
     Qt6::Widgets 
     file_transfer 

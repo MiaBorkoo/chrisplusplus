@@ -5,9 +5,9 @@ std::string HttpRequest::serialize() const {
     
     // Add Host header if not present
     bool hasHost = false;
-    for (const auto& [key, value] : headers) {
-        result += key + ": " + value + "\r\n";
-        if (key == "Host") hasHost = true;
+    for (const auto& header : headers) {
+        result += header.first + ": " + header.second + "\r\n";
+        if (header.first == "Host") hasHost = true;
     }
     
     // Add Content-Length for POST/PUT with body

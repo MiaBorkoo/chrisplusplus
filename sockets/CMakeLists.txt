@@ -23,6 +23,7 @@ target_include_directories(sockets
 # link OpenSSL in
 target_link_libraries(sockets
     PUBLIC
+        Qt6::Core
         OpenSSL::SSL
         OpenSSL::Crypto
 )
