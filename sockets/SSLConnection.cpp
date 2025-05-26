@@ -6,6 +6,8 @@
 #include <openssl/x509v3.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <fcntl.h>        // Add this for F_GETFL, F_SETFL
+#include <sys/select.h>   // Add this for select()
 #include <stdexcept>
 #include <cstring>
 
@@ -93,7 +95,7 @@ ssize_t SSLConnection::receive(void* buf, size_t buflen)
 //this part is especially what mark taught us
 int SSLConnection::connectTCP(const std::string& host, //test calls this function with "example.com" and "443"
                               const std::string& port,
-                              int timeout_seconds = 30)
+                              int timeout_seconds)
 {
     struct addrinfo hints{}, *res, *rp;
     hints.ai_family   = AF_UNSPEC;     // IPv4 or IPv6
@@ -168,4 +170,14 @@ void SSLConnection::verifyPeerCertificate()
     }
     
     X509_free(cert);
+}
+
+void SSLConnection::setTimeout(int seconds) {
+    timeoutSeconds_ = seconds;
+    // Apply to existing socket if connected
+    if (sockfd_ >= 0) {
+        struct timeval tv = {seconds, 0};
+        setsockopt(sockfd_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+        setsockopt(sockfd_, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+    }
 }
