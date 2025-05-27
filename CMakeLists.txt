@@ -108,6 +108,33 @@ add_executable(testSSLforNow
 )
 target_link_libraries(testSSLforNow PRIVATE sockets http_layer)
 
+# Login functionality test
+qt_add_executable(testLogin
+    tests/testLogin.cpp
+    network/Client.cpp
+    services/auth/IAuthService.cpp
+    services/auth/AuthService.cpp
+)
+target_link_libraries(testLogin PRIVATE 
+    Qt6::Core 
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+    sockets
+    http_layer
+    OpenSSL::SSL
+    OpenSSL::Crypto
+)
+
+target_include_directories(testLogin PRIVATE
+    ${CMAKE_SOURCE_DIR}/models
+    ${CMAKE_SOURCE_DIR}/services
+    ${CMAKE_SOURCE_DIR}/services/auth
+    ${CMAKE_SOURCE_DIR}/network
+    ${CMAKE_SOURCE_DIR}/sockets
+    ${CMAKE_SOURCE_DIR}/httpC
+)
+
 add_executable(testFileUploadSimple
     tests/testFileUploadSimple.cpp
 )

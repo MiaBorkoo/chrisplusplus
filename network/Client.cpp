@@ -20,7 +20,7 @@ Client::Client(const QString& baseUrl, const QString& apiKey, QObject* parent)
     // Extract host and port from baseUrl
     QUrl url(baseUrl);
     std::string host = url.host().toStdString();
-    std::string port = QString::number(url.port(443)).toStdString();
+    std::string port = QString::number(url.port(80)).toStdString(); // Default to port 80 for HTTP
     
     m_httpClient = std::make_unique<HttpClient>(*m_sslContext, host, port);
 }

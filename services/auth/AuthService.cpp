@@ -24,7 +24,7 @@ void AuthService::login(const QString& username, const QString& authKey) {
     QJsonObject payload;
     payload["username"] = username;
     payload["auth_key"] = authKey;
-    m_client->sendRequest("/login", "POST", payload);
+    m_client->sendRequest("/api/auth/login", "POST", payload);
 }
 
 void AuthService::registerUser(const QString& username, const QString& authSalt,
@@ -37,7 +37,7 @@ void AuthService::registerUser(const QString& username, const QString& authSalt,
     payload["auth_key"] = authKey;
     payload["encrypted_mek"] = encryptedMEK;
     
-    m_client->sendRequest("/register", "POST", payload);
+    m_client->sendRequest("/api/auth/register", "POST", payload);
 }
 
 void AuthService::changePassword(const QString& username, const QString& oldAuthKey,
@@ -48,17 +48,17 @@ void AuthService::changePassword(const QString& username, const QString& oldAuth
     payload["new_auth_key"] = newAuthKey;
     payload["new_encrypted_mek"] = newEncryptedMEK;
     
-    m_client->sendRequest("/change_password", "POST", payload);
+    m_client->sendRequest("/api/auth/change_password", "POST", payload);
 }
 
 void AuthService::handleResponseReceived(int status, const QJsonObject& data) {
     QString endpoint = data.value("endpoint").toString();
     
-    if (endpoint == "/login") {
+    if (endpoint == "/api/auth/login") {
         handleLoginResponse(status, data);
-    } else if (endpoint == "/register") {
+    } else if (endpoint == "/api/auth/register") {
         handleRegisterResponse(status, data);
-    } else if (endpoint == "/change_password") {
+    } else if (endpoint == "/api/auth/change_password") {
         handleChangePasswordResponse(status, data);
     }
 }
@@ -68,14 +68,14 @@ void AuthService::handleNetworkError(const QString& error) {
 }
 
 void AuthService::handleLoginResponse(int status, const QJsonObject& data) {
-    const bool success = (status == 200 && data.value("success").toBool());
-    const QString token = data.value("token").toString();
+    const bool success = (status == 200);
+    const QString token = data.value("session_token").toString();
     
     emit loginCompleted(success, token);
     if (success) {
         m_sessionToken = token;
     } else {
-        emit errorOccurred(data.value("error").toString("Login failed. Please try again."));
+        emit errorOccurred(data.value("detail").toString("Login failed. Please try again."));
     }
 }
 
