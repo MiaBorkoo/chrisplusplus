@@ -9,4 +9,4 @@ public:
 
 signals:
     void errorOccurred(const QString& error);
-};
+}; 

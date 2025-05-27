@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <map>
 
-// 
 HttpClient::HttpClient(SSLContext& ctx,
                        const std::string& host,
                        const std::string& port)

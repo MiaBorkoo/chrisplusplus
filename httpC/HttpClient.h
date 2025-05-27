@@ -16,7 +16,7 @@ public:
 
     HttpResponse sendRequest(const HttpRequest& req);
     
-    // New streaming methods
+    // Streaming methods
     HttpResponse sendRequestWithStreamingBody(const HttpRequest& req, QIODevice& bodySource);
     bool downloadToStream(const HttpRequest& req, QIODevice& destination);
 

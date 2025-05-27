@@ -1,5 +1,6 @@
 #include "LoginModel.h"
 #include <QCryptographicHash>
+#include <QUuid>
 
 /**
  * @class LoginModel
@@ -12,28 +13,38 @@
 LoginModel::LoginModel(IAuthService* authDb, QObject* parent)
     : QObject(parent), m_authDb(authDb) 
 {
-    connect(m_authDb, &IAuthService::loginCompleted,
-            this, [this](bool success, const QString&) {
-                success ? emit authSuccess() : emit authError("Login failed");
-            });
+    // OLD-STYLE SIGNAL/SLOT 
+    connect(m_authDb, SIGNAL(loginCompleted(bool, QString)),
+            this, SLOT(handleLoginCompleted(bool, QString)));
             
-    connect(m_authDb, &IAuthService::registrationCompleted,
-            this, [this](bool success) {
-                success ? emit authSuccess() : emit authError("Registration failed");
-            });
+    connect(m_authDb, SIGNAL(registrationCompleted(bool)),
+            this, SLOT(handleRegistrationCompleted(bool)));
 }
 
-QString LoginModel::hashPassword(const QString& password, const QString& salt) const
-{
-    //temp func
+void LoginModel::handleLoginCompleted(bool success, const QString& token) {
+    if (success) {
+        emit authSuccess();
+    } else {
+        emit authError("Login failed");
+    }
+}
+
+void LoginModel::handleRegistrationCompleted(bool success) {
+    if (success) {
+        emit authSuccess();
+    } else {
+        emit authError("Registration failed");
+    }
+}
+
+QString LoginModel::hashPassword(const QString& password, const QString& salt) const {
     return QCryptographicHash::hash(
         (password + salt).toUtf8(), 
         QCryptographicHash::Sha256
     ).toHex();
 }
 
-void LoginModel::login(const QString& username, const QString& password)
-{
+void LoginModel::login(const QString& username, const QString& password) {
     if (username.isEmpty() || password.isEmpty()) {
         emit authError("Credentials cannot be empty");
         return;
@@ -47,8 +58,7 @@ void LoginModel::login(const QString& username, const QString& password)
 
 void LoginModel::registerUser(const QString& username, 
                             const QString& password,
-                            const QString& confirmPassword)
-{
+                            const QString& confirmPassword) {
     if (username.isEmpty() || password.isEmpty()) {
         emit authError("Fields cannot be empty");
         return;
@@ -59,7 +69,6 @@ void LoginModel::registerUser(const QString& username,
         return;
     }
     
-    // example
     QString authSalt = QUuid::createUuid().toString();
     QString encSalt = QUuid::createUuid().toString();
     
@@ -72,8 +81,7 @@ void LoginModel::registerUser(const QString& username,
 void LoginModel::changePassword(const QString& username,
                               const QString& oldPassword,
                               const QString& newPassword,
-                              const QString& confirmPassword)
-{
+                              const QString& confirmPassword) { //HAHAHAHA
     if (newPassword != confirmPassword) {
         emit authError("New passwords don't match");
         return;
