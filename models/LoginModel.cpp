@@ -2,10 +2,18 @@
 #include <QCryptographicHash>
 #include <QUuid>
 
+/**
+ * @class LoginModel
+ * @brief Manages login and registration operations.
+ * @author jjola00
+ *
+ * This class handles user login and registration operations.
+ */
+
 LoginModel::LoginModel(IAuthService* authDb, QObject* parent)
     : QObject(parent), m_authDb(authDb) 
 {
-    // ✅ OLD-STYLE SIGNAL/SLOT (avoids Qt 6.7 template issues)
+    // OLD-STYLE SIGNAL/SLOT 
     connect(m_authDb, SIGNAL(loginCompleted(bool, QString)),
             this, SLOT(handleLoginCompleted(bool, QString)));
             

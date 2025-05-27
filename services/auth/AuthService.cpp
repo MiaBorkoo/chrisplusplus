@@ -1,10 +1,18 @@
 #include "AuthService.h"
 #include <QJsonObject>
 
+/**
+ * @class AuthService
+ * @brief Handles authentication operations.
+ * @author jjola00
+ *
+ * This class handles authentication operations.
+ */
+
 AuthService::AuthService(Client* client, QObject* parent)
     : IAuthService(parent), m_client(client) 
 {
-    // ✅ OLD-STYLE SIGNAL/SLOT (avoids Qt template issues)
+    // SIGNAL/SLOT (avoids Qt template issues)
     connect(m_client, SIGNAL(responseReceived(int, QJsonObject)), 
             this, SLOT(handleResponseReceived(int, QJsonObject)));
 

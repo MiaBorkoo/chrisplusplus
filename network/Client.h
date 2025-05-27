@@ -6,7 +6,7 @@
 #include "../sockets/SSLContext.h"
 #include "../httpC/HttpClient.h"
 
-// ✅ SECURE: Uses YOUR HttpClient instead of QNetworkAccessManager
+// Uses HttpClient instead of QNetworkAccessManager
 class Client : public QObject {
     Q_OBJECT
 public:

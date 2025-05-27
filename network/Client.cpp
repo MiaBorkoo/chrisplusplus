@@ -1,12 +1,19 @@
 #include "Client.h"
 #include <QJsonDocument>
 #include <QUrl>
-#include <stdexcept>
+
+/**
+ * @class Client
+ * @brief Handles network requests and responses.
+ * @author jjola00
+ *
+ * This class sends requests to the server and handles responses.
+ */
 
 Client::Client(const QString& baseUrl, const QString& apiKey, QObject* parent) 
     : QObject(parent), m_baseUrl(baseUrl), m_apiKey(apiKey)
 {
-    // ✅ SECURE: Use YOUR SSL infrastructure
+    // uses SSL infrastructure
     SSLContext::initializeOpenSSL();
     m_sslContext = std::make_unique<SSLContext>();
     
@@ -42,7 +49,7 @@ void Client::sendRequest(const QString& endpoint, const QString& method, const Q
             request.body = doc.toJson(QJsonDocument::Compact).toStdString();
         }
         
-        // ✅ SECURE: Send via YOUR HttpClient (SSL encrypted)
+        // Send via HttpClient (SSL encrypted)
         HttpResponse response = m_httpClient->sendRequest(request);
         
         // Parse JSON response
