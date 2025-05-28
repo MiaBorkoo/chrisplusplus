@@ -56,6 +56,7 @@ qt_standard_project_setup()
 add_subdirectory(sockets)    # SSL/TLS layer (shared by both systems)
 add_subdirectory(httpC)      # HTTP protocol layer (YOUR addition)
 add_subdirectory(fileIO)     # File transfer layer (YOUR addition)
+add_subdirectory(tofu)       # TOFU system (NEW)
 
 # Main application with authentication
 qt_add_executable(ChrisPlusPlus
@@ -82,6 +83,7 @@ target_link_libraries(ChrisPlusPlus
         file_transfer
         http_layer
         sockets
+        tofu           # Add TOFU library
         OpenSSL::SSL
         OpenSSL::Crypto
 )
@@ -96,6 +98,7 @@ target_include_directories(ChrisPlusPlus
         ${CMAKE_SOURCE_DIR}/sockets
         ${CMAKE_SOURCE_DIR}/httpC
         ${CMAKE_SOURCE_DIR}/fileIO
+        ${CMAKE_SOURCE_DIR}/tofu    # Add TOFU include path
 )
 
 # ============================================================================
