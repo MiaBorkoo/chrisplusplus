@@ -7,29 +7,20 @@
 // Forward declaration
 class DeviceCertificate;
 
-/**
- * @brief Represents the trust level for a user's devices
- */
 enum class TrustLevel {
     Untrusted,
     TOFU,           // Trusted on first use
     OOBVerified     // Out-of-band verified
 };
 
-/**
- * @brief Represents a verification event in the trust history
- */
 struct VerificationEvent {
     QDateTime timestamp;
     QString method;        // "tofu", "qr_code", "voice"
-    QString deviceId;      // Device that performed verification
+    QString deviceId;      
     bool success;
     QString details;       // Additional verification details
 };
 
-/**
- * @brief Result of a trust check operation
- */
 struct TrustCheckResult {
     bool isTrusted;
     TrustLevel trust_level;
@@ -37,12 +28,6 @@ struct TrustCheckResult {
     bool requires_tofu_prompt;
 };
 
-/**
- * @brief Manages trust information for a user's devices
- * 
- * This class implements the TrustStoreEntry structure as defined in the project requirements.
- * It maintains a list of device certificates and their trust status.
- */
 class TrustStoreEntry {
 public:
     TrustStoreEntry();

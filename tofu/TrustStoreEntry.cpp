@@ -1,4 +1,5 @@
 #include "TrustStoreEntry.h"
+#include "DeviceCertificate.h"
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QJsonDocument>

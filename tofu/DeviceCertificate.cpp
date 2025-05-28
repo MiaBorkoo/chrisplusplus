@@ -4,6 +4,14 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 
+/**
+ * @class DeviceCertificate
+ * @brief Manages device certificate operations.
+ * @author jjola00
+ *
+ * This class handles device certificate operations.
+ */
+
 DeviceCertificate::DeviceCertificate() {
     createdAt_ = QDateTime::currentDateTimeUtc();
     // Default expiration is 1 year
