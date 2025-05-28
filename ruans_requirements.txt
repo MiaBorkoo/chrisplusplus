@@ -1,0 +1,712 @@
+# File Management & Sharing - Product Requirements Document
+
+## Overview
+
+**Owner**: Ruan
+**Dependencies**: Mi (TOFU), A (Authentication), J (TOTP)  
+
+
+NOTE: WE ARE USING LIBSODIUM AS OUR CRYPTOGRAPHIC LIBRARY
+NOTE: WE ARE USING LIBSODIUM AS OUR CRYPTOGRAPHIC LIBRARY
+NOTE: WE ARE USING LIBSODIUM AS OUR CRYPTOGRAPHIC LIBRARY
+## Functional Requirements
+
+
+### FR1: File Encryption and Decryption
+- **Requirement**: All files must be encrypted client-side using AES-256-GCM before upload
+- **Details**: Each file gets unique DEK (Data Encryption Key), never reused
+- **Security**: IND-CCA2 security, authenticated encryption
+
+### FR2: File Upload and Storage
+- **Requirement**: Encrypted files stored on server with UUID-based naming
+- **Details**: Server never sees plaintext files or DEKs
+- **Metadata**: Encrypted filename, size, MIME type
+
+### FR3: File Sharing via Envelope Encryption
+- **Requirement**: Share files securely without server decryption capability
+- **Details**: DEK encrypted separately for each recipient using their public key
+- **Trust**: Integration with TOFU system for recipient verification
+
+### FR4: File Download and Verification
+- **Requirement**: Download, decrypt, and verify file integrity
+- **Details**: Cryptographic verification of file authenticity
+- **Access Control**: Verify user has permission to access file
+
+## Technical Architecture
+
+### Core Components
+
+```mermaid
+graph TB
+    subgraph "File Management Core"
+        A[File Encryption Engine]
+        B[DEK Manager]
+        C[Upload/Download Handler]
+        D[Share Manager]
+        E[Integrity Verifier]
+    end
+    
+    subgraph "External Interfaces"
+        F[Authentication System]
+        G[TOFU Verification]
+        H[Server API]
+        I[Local Storage]
+    end
+    
+    A --> B
+    B --> D
+    C --> H
+    D --> G
+    E --> A
+    F --> C
+    F --> D
+```
+
+## Data Models
+
+### API Request/Response Models
+```cpp
+// These match the FastAPI server schemas exactly
+
+struct RegisterRequest {
+    std::string username;
+    std::string auth_salt;               // Base64 encoded
+    std::string enc_salt;                // Base64 encoded  
+    std::string auth_key;                // Derived authentication key
+    std::string encrypted_mek;           // MEK encrypted with derived key
+    std::string totp_secret;             // TOTP secret for 2FA
+    nlohmann::json public_key;           // RSA public key for envelope encryption
+    std::string user_data_hmac;          // Integrity protection
+};
+
+struct FileShareRequest {
+    std::string file_id;                 // UUID
+    std::string recipient_username;
+    std::vector<uint8_t> encrypted_data_key; // DEK encrypted for recipient  
+    std::optional<uint64_t> expires_at;  // Optional expiration timestamp
+    std::string share_grant_hmac;        // HMAC for share integrity (64 hex chars)
+    std::string share_chain_hmac;        // HMAC for share chain integrity (64 hex chars)
+};
+
+struct FileUploadRequest {
+    std::vector<uint8_t> file;           // Encrypted file data (multipart)
+    std::string file_id;                 // Optional UUID (server generates if empty)
+    std::string filename_encrypted;      // Base64 encrypted filename
+    std::string file_size_encrypted;     // Base64 encrypted file size
+    std::string file_data_hmac;          // HMAC for file integrity
+};
+```
+
+### Internal Encryption Models
+```cpp
+struct FileEncryptionContext {
+    std::vector<uint8_t> dek;            // 256-bit AES key
+    std::vector<uint8_t> iv;             // 96-bit GCM IV
+    std::vector<uint8_t> auth_tag;       // 128-bit authentication tag
+    std::string file_id;                 // UUID
+    size_t original_size;
+    std::string hmac;                    // HMAC of encrypted file
+};
+
+struct UserCryptoContext {
+    std::vector<uint8_t> mek;            // Master Encryption Key (decrypted)
+    std::vector<uint8_t> private_key;    // RSA private key for envelope decryption
+    nlohmann::json public_key;           // RSA public key for envelope encryption
+    std::string session_token;           // JWT session token
+    uint64_t session_expires_at;         // Session expiration
+};
+
+struct ShareCryptoContext {
+    std::vector<uint8_t> dek;            // Decrypted DEK for shared file
+    std::string share_id;                // UUID
+    std::string owner_username;
+    bool has_expired;
+    bool is_revoked;
+};
+```
+
+## Interface Specifications
+
+### REST API Endpoints
+
+#### Authentication Endpoints
+```cpp
+// POST /api/auth/register
+struct RegisterRequest {
+    std::string username;
+    std::string auth_salt;           // Base64 encoded
+    std::string enc_salt;            // Base64 encoded  
+    std::string auth_key;            // Derived authentication key
+    std::string encrypted_mek;       // MEK encrypted with derived key
+    std::string totp_secret;         // TOTP secret for 2FA
+    nlohmann::json public_key;       // RSA public key for envelope encryption
+    std::string user_data_hmac;      // Integrity protection
+};
+
+// POST /api/auth/login  
+struct LoginRequest {
+    std::string username;
+    std::string auth_key;            // Derived from password + auth_salt
+};
+
+// POST /api/auth/totp
+struct TOTPRequest {
+    std::string username;
+    std::string totp_code;           // 6-digit TOTP code
+};
+
+struct TOTPResponse {
+    std::string session_token;       // JWT token for authenticated sessions
+    std::string encrypted_mek;       // User's encrypted MEK
+    uint64_t expires_at;            // Session expiration timestamp
+};
+
+// POST /api/auth/logout
+// Requires: Authorization header with Bearer token
+
+// POST /api/auth/change_password
+struct ChangePasswordRequest {
+    std::string username;
+    std::string old_auth_key;
+    std::string new_auth_key;
+    std::string new_encrypted_mek;
+    std::string totp_code;
+};
+
+// GET /api/user/{username}/salts
+struct UserSaltsResponse {
+    std::string auth_salt;           // For auth key derivation
+    std::string enc_salt;            // For encryption key derivation
+};
+```
+
+#### File Management Endpoints
+```cpp
+// POST /api/files/upload
+struct FileUploadRequest {
+    // multipart/form-data:
+    std::vector<uint8_t> file;              // Encrypted file data
+    std::string file_id;                    // Optional UUID (server generates if empty)
+    std::string filename_encrypted;         // Base64 encrypted filename
+    std::string file_size_encrypted;        // Base64 encrypted file size
+    std::string file_data_hmac;            // HMAC for file integrity
+};
+
+struct FileUploadResponse {
+    std::string file_id;                    // UUID
+    std::string server_storage_path;        // Server file location
+    uint64_t upload_timestamp;
+};
+
+// GET /api/files/{file_id}/download
+struct FileDownloadResponse {
+    std::vector<uint8_t> file_data;         // Encrypted file content
+    std::string filename_encrypted;
+    std::string file_size_encrypted;
+    std::string file_data_hmac;
+};
+
+// GET /api/files/{file_id}/metadata
+struct FileMetadataResponse {
+    std::string file_id;
+    std::string filename_encrypted;
+    std::string file_size_encrypted;
+    uint64_t upload_timestamp;
+    std::string file_data_hmac;
+    std::string server_storage_path;
+};
+
+// POST /api/files/share
+struct FileShareRequest {
+    std::string file_id;                    // UUID
+    std::string recipient_username;
+    std::vector<uint8_t> encrypted_data_key; // DEK encrypted for recipient
+    std::optional<uint64_t> expires_at;     // Optional expiration
+    std::string share_grant_hmac;           // HMAC for share integrity
+    std::string share_chain_hmac;           // HMAC for share chain integrity
+};
+
+struct FileShareResponse {
+    std::string share_id;                   // UUID
+    uint64_t granted_at;
+};
+
+// DELETE /api/files/share/{share_id}
+struct ShareRevokeResponse {
+    bool success;
+    uint64_t revoked_at;
+};
+
+// GET /api/files/
+struct UserFilesResponse {
+    std::vector<FileResponse> owned_files;
+    std::vector<SharedFileResponse> shared_files;
+};
+
+struct FileResponse {
+    std::string file_id;
+    std::string filename_encrypted;
+    std::string file_size_encrypted;
+    uint64_t upload_timestamp;
+    std::string file_data_hmac;
+    std::string server_storage_path;
+};
+
+struct SharedFileResponse {
+    std::string file_id;
+    std::string filename_encrypted;
+    std::string file_size_encrypted;
+    uint64_t upload_timestamp;
+    std::string file_data_hmac;
+    std::string share_id;
+};
+
+// GET /api/files/{file_id}/shares
+struct ShareResponse {
+    std::string share_id;
+    std::string file_id;
+    std::string recipient_id;
+    uint64_t granted_at;
+    std::optional<uint64_t> expires_at;
+    std::optional<uint64_t> revoked_at;
+};
+
+// GET /api/files/shares/received
+// Returns: std::vector<SharedFileResponse>
+
+// GET /api/files/{file_id}/audit
+struct AuditLogResponse {
+    std::string log_id;
+    std::string action;                     // "upload", "download", "share", "revoke"
+    uint64_t timestamp;
+    std::string client_ip_hash;            // Hashed IP for privacy
+};
+
+// DELETE /api/files/delete
+struct FileDeleteRequest {
+    std::string file_id;
+};
+```
+
+### Interface with Person 1 (TOFU System)
+
+```cpp
+// Request identity verification for sharing
+struct IdentityVerificationRequest {
+    std::string recipient_username;          // Changed from user_id to username
+    std::vector<uint8_t> recipient_public_key;
+    std::string sharing_context;            // "file_share"
+};
+
+struct IdentityVerificationResponse {
+    bool is_trusted;
+    std::string trust_level;                // "tofu", "oob_verified", "untrusted"
+    std::vector<uint8_t> verified_public_key;
+    uint64_t verification_timestamp;
+};
+
+// Function signatures for Person 1 to implement
+class TOFUInterface {
+public:
+    virtual IdentityVerificationResponse verify_recipient_identity(
+        const IdentityVerificationRequest& request) = 0;
+    
+    virtual bool is_certificate_trusted(
+        const std::string& username,        // Changed from user_id
+        const std::vector<uint8_t>& certificate_hash) = 0;
+    
+    virtual void notify_sharing_event(
+        const std::string& recipient_username,  // Changed from recipient_id
+        const std::string& file_id) = 0;
+};
+```
+
+### Interface with Person 3 (Authentication System)
+
+```cpp
+// Updated to match actual authentication flow
+struct AuthSessionRequest {
+    std::string username;
+    std::string auth_key;                   // Derived from password + auth_salt
+};
+
+struct AuthSessionResponse {
+    bool login_success;
+    std::string totp_challenge_token;       // If TOTP required
+    std::string session_token;              // If login successful
+};
+
+struct MEKRequest {
+    std::string username;
+    std::string totp_code;                  // 6-digit TOTP code
+};
+
+struct MEKResponse {
+    bool success;
+    std::string session_token;              // JWT session token
+    std::string encrypted_mek;              // User's encrypted MEK
+    uint64_t expires_at;                    // Session expiration
+};
+
+struct UserKeyInfo {
+    std::string username;                   // Changed from user_id
+    nlohmann::json public_key;              // RSA public key for envelope encryption
+    bool is_active;
+};
+
+// Function signatures for Person 3 to implement
+class AuthenticationInterface {
+public:
+    virtual AuthSessionResponse authenticate_user(const AuthSessionRequest& request) = 0;
+    
+    virtual MEKResponse verify_totp_and_get_mek(const MEKRequest& request) = 0;
+    
+    virtual UserKeyInfo get_user_public_key(const std::string& username) = 0;
+    
+    virtual bool validate_session(const std::string& session_token) = 0;
+    
+    virtual std::string get_current_username(const std::string& session_token) = 0;
+    
+    virtual UserSaltsResponse get_user_salts(const std::string& username) = 0;
+};
+```
+
+**Note**: TOTP verification is integrated directly into the authentication flow via the `/api/auth/totp` endpoint. No separate TOTP interface is needed as it's handled by Person 3's authentication system.
+
+## Core Function Signatures
+
+### HTTP Client Manager
+```cpp
+class HTTPClient {
+public:
+    // Authentication operations
+    AuthSessionResponse register_user(const RegisterRequest& request);
+    AuthSessionResponse login(const LoginRequest& request);
+    MEKResponse verify_totp(const TOTPRequest& request);
+    bool logout(const std::string& session_token);
+    bool change_password(const ChangePasswordRequest& request);
+    UserSaltsResponse get_user_salts(const std::string& username);
+    
+    // File operations
+    FileUploadResponse upload_file(
+        const std::vector<uint8_t>& encrypted_file_data,
+        const FileUploadRequest& metadata,
+        const std::string& session_token);
+    
+    FileDownloadResponse download_file(
+        const std::string& file_id,
+        const std::string& session_token);
+    
+    FileMetadataResponse get_file_metadata(
+        const std::string& file_id,
+        const std::string& session_token);
+    
+    UserFilesResponse list_files(
+        const std::string& session_token,
+        int limit = 50,
+        int offset = 0);
+    
+    bool delete_file(
+        const FileDeleteRequest& request,
+        const std::string& session_token);
+    
+    // Sharing operations
+    FileShareResponse share_file(
+        const FileShareRequest& request,
+        const std::string& session_token);
+    
+    bool revoke_share(
+        const std::string& share_id,
+        const std::string& session_token);
+    
+    std::vector<ShareResponse> list_file_shares(
+        const std::string& file_id,
+        const std::string& session_token);
+    
+    std::vector<SharedFileResponse> list_received_shares(
+        const std::string& session_token,
+        int limit = 50,
+        int offset = 0);
+    
+    // Audit operations
+    std::vector<AuditLogResponse> get_file_audit_logs(
+        const std::string& file_id,
+        const std::string& session_token,
+        int limit = 50,
+        int offset = 0);
+};
+```
+
+### File Encryption Engine
+```cpp
+class FileEncryptionEngine {
+public:
+    // Core encryption/decryption
+    FileEncryptionContext encrypt_file(
+        const std::vector<uint8_t>& file_data,
+        const std::vector<uint8_t>& mek);
+    
+    std::vector<uint8_t> decrypt_file(
+        const std::vector<uint8_t>& encrypted_data,
+        const FileEncryptionContext& context);
+    
+    // Integrity verification using HMAC
+    std::string calculate_file_hmac(
+        const std::vector<uint8_t>& file_data,
+        const std::vector<uint8_t>& mek);
+    
+    bool verify_file_integrity(
+        const std::vector<uint8_t>& file_data,
+        const std::string& expected_hmac,
+        const std::vector<uint8_t>& mek);
+    
+    // DEK management
+    std::vector<uint8_t> generate_dek();
+    std::vector<uint8_t> encrypt_dek_for_recipient(
+        const std::vector<uint8_t>& dek,
+        const nlohmann::json& recipient_public_key);
+    std::vector<uint8_t> decrypt_dek_from_share(
+        const std::vector<uint8_t>& encrypted_dek,
+        const std::vector<uint8_t>& private_key);
+    
+    // Metadata encryption
+    std::string encrypt_metadata(
+        const std::string& data,
+        const std::vector<uint8_t>& mek);
+    std::string decrypt_metadata(
+        const std::string& encrypted_data,
+        const std::vector<uint8_t>& mek);
+    
+    // HMAC generation for sharing
+    std::string generate_share_grant_hmac(
+        const FileShareRequest& request,
+        const std::vector<uint8_t>& mek);
+    std::string generate_share_chain_hmac(
+        const std::string& file_id,
+        const std::string& recipient_username,
+        const std::vector<uint8_t>& mek);
+};
+```
+
+### File Manager (High-level interface)
+```cpp
+class FileManager {
+public:
+    // Constructor takes HTTP client and encryption engine
+    FileManager(std::shared_ptr<HTTPClient> client, 
+                std::shared_ptr<FileEncryptionEngine> encryption,
+                std::shared_ptr<TOFUInterface> tofu);
+    
+    // File operations
+    std::string upload_file(
+        const std::string& local_filepath,
+        const std::string& session_token);
+    
+    bool download_file(
+        const std::string& file_id,
+        const std::string& local_output_path,
+        const std::string& session_token);
+    
+    std::vector<FileInfo> list_user_files(
+        const std::string& session_token);
+    
+    std::vector<SharedFileInfo> list_shared_files(
+        const std::string& session_token);
+    
+    // File metadata (decrypted for user)
+    FileInfo get_file_info(
+        const std::string& file_id,
+        const std::string& session_token);
+    
+    bool delete_file(
+        const std::string& file_id,
+        const std::string& session_token);
+    
+    // Sharing operations with TOFU verification
+    std::string share_file_with_verification(
+        const std::string& file_id,
+        const std::string& recipient_username,
+        const std::string& session_token,
+        std::optional<uint64_t> expires_at = std::nullopt);
+    
+    bool revoke_file_share(
+        const std::string& share_id,
+        const std::string& session_token);
+    
+    std::vector<ShareInfo> list_file_shares(
+        const std::string& file_id,
+        const std::string& session_token);
+    
+    std::vector<AuditInfo> get_file_audit_trail(
+        const std::string& file_id,
+        const std::string& session_token);
+};
+```
+
+### Helper Data Structures for User Interface
+```cpp
+struct FileInfo {
+    std::string file_id;
+    std::string filename;                    // Decrypted
+    size_t file_size;                       // Decrypted
+    uint64_t upload_timestamp;
+    bool integrity_verified;
+};
+
+struct SharedFileInfo : public FileInfo {
+    std::string share_id;
+    std::string owner_username;
+    uint64_t shared_at;
+    std::optional<uint64_t> expires_at;
+};
+
+struct ShareInfo {
+    std::string share_id;
+    std::string recipient_username;
+    uint64_t granted_at;
+    std::optional<uint64_t> expires_at;
+    std::optional<uint64_t> revoked_at;
+    bool is_active;
+};
+
+struct AuditInfo {
+    std::string action;
+    uint64_t timestamp;
+    std::string client_ip_hash;
+};
+```
+
+## Error Handling
+
+### Error Types
+```cpp
+enum class FileError {
+    ENCRYPTION_FAILED,
+    DECRYPTION_FAILED,
+    INVALID_DEK,
+    INTEGRITY_VERIFICATION_FAILED,
+    UNAUTHORIZED_ACCESS,
+    FILE_NOT_FOUND,
+    RECIPIENT_NOT_TRUSTED,
+    SHARE_CREATION_FAILED,
+    INVALID_SESSION,
+    SERVER_COMMUNICATION_ERROR
+};
+
+class FileException : public std::exception {
+private:
+    FileError error_type;
+    std::string message;
+public:
+    FileException(FileError type, const std::string& msg);
+    const char* what() const noexcept override;
+    FileError get_error_type() const;
+};
+```
+
+## Security Requirements
+
+### Cryptographic Requirements
+1. **AES-256-GCM**: All file encryption with authenticated encryption
+2. **Random DEK Generation**: Each file gets cryptographically secure random DEK
+3. **RSA-OAEP or ECIES**: Envelope encryption for DEK sharing
+4. **Ed25519 Signatures**: File metadata and share record signatures
+5. **Secure Memory**: Zero out sensitive keys after use
+
+### Access Control
+1. **Session Validation**: All operations require valid session token
+2. **Permission Checking**: Verify user permissions before file access
+3. **Owner Verification**: Only file owners can create shares
+4. **TOFU Integration**: Verify recipient identity before sharing
+
+### Data Protection
+1. **No Plaintext Storage**: Server never sees unencrypted files or DEKs
+2. **Metadata Encryption**: Filenames, sizes, MIME types encrypted
+3. **Integrity Protection**: Cryptographic signatures on all metadata
+4. **Secure Deletion**: Proper cleanup of temporary decrypted data
+
+## Testing Requirements
+
+### Unit Tests
+- File encryption/decryption with various file sizes
+- DEK generation and envelope encryption
+- Metadata signature verification
+- Error handling for corrupted data
+
+### Integration Tests
+- Full file upload/share/download flow
+- Cross-user file sharing scenarios
+- Session expiration handling
+- TOFU integration testing
+
+### Security Tests
+- Attempt to access files without permission
+- Verify server cannot decrypt files
+- Test integrity verification with tampered data
+- Validate proper key cleanup
+
+## Performance Requirements
+
+### File Size Support
+- **Small files** (< 1MB): < 100ms encryption/decryption
+- **Medium files** (1-100MB): < 5s encryption/decryption
+- **Large files** (100MB-1GB): Progress indication, streaming support
+
+### Concurrency
+- Support multiple simultaneous file operations
+- Thread-safe DEK generation and management
+- Efficient memory usage for large files
+
+## Implementation Priorities
+
+### Phase 1 (Days 1-2): Core Encryption
+- File encryption/decryption engine
+- DEK generation and management
+- Basic file upload/download without sharing
+
+### Phase 2 (Days 3-4): Sharing System
+- Envelope encryption implementation
+- Share record management
+- Integration with Authentication system
+
+### Phase 3 (Days 5-6): TOFU Integration
+- Recipient identity verification
+- Trust level handling
+- Complete sharing workflow
+
+### Phase 7 (Day 7): Polish and Testing
+- Error handling refinement
+- Performance optimization
+- Security testing
+
+## Addendum: Possible Improvements
+
+### Short-term Enhancements (Post-MVP)
+1. **File Versioning**: Track multiple versions of shared files
+2. **Chunked Upload**: Support for large file uploads with resumption
+3. **Compressed Encryption**: Compress before encryption for efficiency
+4. **Batch Operations**: Upload/download multiple files simultaneously
+
+### Medium-term Features
+1. **Folder Sharing**: Encrypt and share entire directory structures
+2. **Access Logs**: Detailed audit trail of file access patterns
+3. **Expiring Shares**: Time-limited file access with automatic revocation
+4. **Permission Inheritance**: Hierarchical permission models
+
+### Advanced Security Features
+1. **Forward Secrecy**: Rotate DEKs periodically for long-term shared files
+2. **Key Escrow**: Optional corporate key recovery mechanisms
+3. **Hardware Security**: Integration with HSMs or secure enclaves
+4. **Post-Quantum Cryptography**: Future-proof encryption algorithms
+
+### Scalability Improvements
+1. **Distributed Storage**: Multi-server file distribution
+2. **CDN Integration**: Geographic file distribution for performance
+3. **Deduplication**: Secure deduplication while maintaining encryption
+4. **Streaming Encryption**: Real-time encryption for live data streams
+
+### User Experience Enhancements
+1. **Drag-and-Drop Interface**: Intuitive file upload mechanism
+2. **Share Links**: Generate secure URLs for file sharing
+3. **Mobile Optimization**: Touch-friendly interface for mobile devices
+4. **Offline Access**: Cached encrypted files for offline viewing

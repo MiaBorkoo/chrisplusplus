@@ -34,6 +34,7 @@ elseif(WIN32)
 else()
     # Linux: Standard paths
     set(CMAKE_PREFIX_PATH 
+        "/home/ruan/Qt/6.9.0/gcc_64"
         "/opt/Qt/6.7.0/gcc_64"
         "/usr/lib/x86_64-linux-gnu/cmake/Qt6"
         ${CMAKE_PREFIX_PATH}
@@ -44,6 +45,10 @@ endif()
 # Find required packages
 find_package(Qt6 6.5.0 REQUIRED COMPONENTS Core Widgets Network Test)
 find_package(OpenSSL REQUIRED)
+# Add package for file management system
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBSODIUM REQUIRED libsodium)
+find_package(nlohmann_json REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -56,6 +61,7 @@ qt_standard_project_setup()
 add_subdirectory(sockets)    # SSL/TLS layer (shared by both systems)
 add_subdirectory(httpC)      # HTTP protocol layer (YOUR addition)
 add_subdirectory(fileIO)     # File transfer layer (YOUR addition)
+add_subdirectory(services/files)  # File Management and Sharing system
 
 # Main application with authentication
 qt_add_executable(ChrisPlusPlus
