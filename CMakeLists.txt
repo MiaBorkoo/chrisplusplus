@@ -43,7 +43,7 @@ endif()
 
 # Find required packages
 find_package(Qt6 6.5.0 REQUIRED COMPONENTS Core Widgets Network Test)
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -71,6 +71,7 @@ qt_add_executable(ChrisPlusPlus
     network/Client.cpp
     services/auth/IAuthService.cpp
     services/auth/AuthService.cpp
+    services/auth/otp/TOTP.cpp
 )
 
 target_link_libraries(ChrisPlusPlus
@@ -129,6 +130,7 @@ target_link_libraries(testNetworkSystemComplete PRIVATE
     http_layer 
     sockets
 )
+
 
 # ============================================================================
 # INSTALLATION (updated for ChrisPlusPlus)

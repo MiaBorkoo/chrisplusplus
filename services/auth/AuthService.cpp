@@ -1,5 +1,8 @@
 #include "AuthService.h"
+#include "otp/TOTP.h"          // NEW
 #include <QJsonObject>
+#include <QSettings>           // ← NEW, used for secure storage
+
 
 /**
  * @class AuthService
@@ -10,7 +13,7 @@
  */
 
 AuthService::AuthService(Client* client, QObject* parent)
-    : IAuthService(parent), m_client(client) 
+    : IAuthService(parent), m_client(client), m_settings(new QSettings(this))  
 {
     // SIGNAL/SLOT (avoids Qt template issues)
     connect(m_client, SIGNAL(responseReceived(int, QJsonObject)), 
@@ -24,6 +27,13 @@ void AuthService::login(const QString& username, const QString& authKey) {
     QJsonObject payload;
     payload["username"] = username;
     payload["auth_key"] = authKey;
+    
+    const QString secretB32 = m_settings->value("totp/secret").toString();
+    if (!secretB32.isEmpty()) {                 // user has enrolled
+        const QString otp =
+            QString::fromStdString(TOTP(secretB32.toStdString()).generate());
+        payload["otp"] = otp;                   // add 6-digit code
+    }
     m_client->sendRequest("/login", "POST", payload);
 }
 

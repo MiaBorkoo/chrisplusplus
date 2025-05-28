@@ -10,16 +10,16 @@
  * This class handles user login and registration operations.
  */
 
-LoginModel::LoginModel(IAuthService* authDb, QObject* parent)
-    : QObject(parent), m_authDb(authDb) 
-{
-    // OLD-STYLE SIGNAL/SLOT 
-    connect(m_authDb, SIGNAL(loginCompleted(bool, QString)),
-            this, SLOT(handleLoginCompleted(bool, QString)));
+// LoginModel::LoginModel(IAuthService* authDb, QObject* parent)
+//     : QObject(parent), m_authDb(authDb) 
+// {
+//     // OLD-STYLE SIGNAL/SLOT 
+//     connect(m_authDb, SIGNAL(loginCompleted(bool, QString)),
+//             this, SLOT(handleLoginCompleted(bool, QString)));
             
-    connect(m_authDb, SIGNAL(registrationCompleted(bool)),
-            this, SLOT(handleRegistrationCompleted(bool)));
-}
+//     connect(m_authDb, SIGNAL(registrationCompleted(bool)),
+//             this, SLOT(handleRegistrationCompleted(bool)));
+// }
 
 void LoginModel::handleLoginCompleted(bool success, const QString& token) {
     if (success) {
