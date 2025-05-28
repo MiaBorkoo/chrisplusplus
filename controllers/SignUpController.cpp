@@ -38,19 +38,34 @@ void SignUpController::onSignUpClicked(const QString &username, const QString &p
         return;
     }
 
-    if (!isPasswordValid(password)) {
-        view->showError("Password must be at least 12 characters, contain letters and numbers, and not be a common password.");
+   // Check if passwords match
+    if (password != confirmPassword) {
+        view->showError("Passwords do not match.");
         return;
     }
 
+    // Validate password and get specific error message
+    QString errorMessage;
+    if (!isPasswordValid(password, errorMessage)) {
+        view->showError(errorMessage);
+        return;
+    }
     view->clearFields();
     view->showError("Sign up successful!"); // we will remove this later when it switches to the new page,no message needed
 }
 
-bool SignUpController::isPasswordValid(const QString &password) {
-    if (password.length() < 12) return false;
-    if (!password.contains(QRegularExpression("[A-Za-z]"))) return false;
-    if (!password.contains(QRegularExpression("[0-9]"))) return false;
-    if (commonPasswords.contains(password)) return false;
+bool SignUpController::isPasswordValid(const QString &password, QString &errorMessage) {
+    if (password.length() < 12) {
+        errorMessage = "Password must be at least 12 characters.";
+        return false;
+    }
+    if (!password.contains(QRegularExpression("[A-Za-z]")) || !password.contains(QRegularExpression("[0-9]"))) {
+        errorMessage = "Password must contain both letters and numbers.";
+        return false;
+    }
+    if (commonPasswords.contains(password)) {
+        errorMessage = "Password is too common. Please choose a less common password.";
+        return false;
+    }
     return true;
 }

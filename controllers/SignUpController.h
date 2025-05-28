@@ -17,7 +17,7 @@ public slots:
 
 private:
     SignUpView *view;
-    bool isPasswordValid(const QString &password);
+    bool isPasswordValid(const QString &password, QString &errorMessage);
     QSet<QString> commonPasswords;
 };
 

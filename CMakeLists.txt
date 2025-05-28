@@ -43,6 +43,14 @@ qt_add_executable(LoginForm
     views/SideNavWidget.h
     views/FilesDashView.cpp
     views/FilesDashView.h
+    controllers/FileDashController.cpp
+    controllers/FileDashController.h
+    views/SharedDashView.cpp
+    views/SharedDashView.h
+    controllers/SideNavController.cpp
+    controllers/SideNavController.h
+    controllers/SharedDashController.cpp
+    controllers/SharedDashController.h
     ${RESOURCE_FILES}
 )
 

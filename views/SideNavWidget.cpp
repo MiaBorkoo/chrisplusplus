@@ -24,14 +24,9 @@ SideNavWidget::SideNavWidget(QWidget *parent) : QWidget(parent) {
         {" Inbox", ":/assets/inbox.svg"}
     };
 
-    for (const auto &item : navItems) {
-        QPushButton *btn = new QPushButton(item.text);
-        btn->setIcon(QIcon(item.iconPath));
-        btn->setIconSize(QSize(22, 22));
-        btn->setFlat(true);
-        btn->setCursor(Qt::PointingHandCursor);
-        btn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-        layout->addWidget(btn);
+    for (const NavItem &item : navItems) {
+        QPushButton *button = createNavButton(item.text, item.iconPath);
+        layout->addWidget(button);
     }
 
     layout->addStretch();
@@ -45,4 +40,25 @@ SideNavWidget::SideNavWidget(QWidget *parent) : QWidget(parent) {
     layout->addWidget(logoutBtn);
 
     setLayout(layout);
+}
+
+QPushButton* SideNavWidget::createNavButton(const QString &text, const QString &iconPath) {
+    QPushButton *button = new QPushButton(text, this);
+    button->setIcon(QIcon(iconPath));
+    button->setIconSize(QSize(20, 20));
+    button->setCheckable(true);
+    return button;
+}
+
+void SideNavWidget::setActiveTab(const QString &tabName) {
+    // Find and activate the button with matching text
+    for (QPushButton *button : findChildren<QPushButton*>()) {
+        if (button->text() == tabName) {
+            button->setProperty("active", true);
+            button->setStyleSheet(button->styleSheet()); // Force style update
+        } else {
+            button->setProperty("active", false);
+            button->setStyleSheet(button->styleSheet()); // Force style update
+        }
+    }
 }
