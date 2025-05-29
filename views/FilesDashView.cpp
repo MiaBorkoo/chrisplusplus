@@ -26,7 +26,6 @@ FilesDashView::FilesDashView(QWidget *parent) : QWidget(parent) {
     // Search bar
     searchBar = new QLineEdit(mainContent);
     searchBar->setObjectName("searchBar");
-    // Placeholder text is a UX feature, keep it
     searchBar->setPlaceholderText("Search files...");
     topLayout->addWidget(searchBar, 1);
 
@@ -50,18 +49,6 @@ FilesDashView::FilesDashView(QWidget *parent) : QWidget(parent) {
     fileTable->horizontalHeader()->setStretchLastSection(true);
     fileTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     mainContentLayout->addWidget(fileTable);
-
-    // Placeholder table with sample data -> remove this later
-    QStringList files = {"ProjectPlan.docx", "Budget2025.xlsx", "MeetingNotes.pdf", "DesignMockup.png"};
-    fileTable->setRowCount(files.size());
-    for (int i = 0; i < files.size(); ++i) {
-        QTableWidgetItem *nameItem = new QTableWidgetItem(files[i]);
-        QTableWidgetItem *sizeItem = new QTableWidgetItem("1.2 MB");
-        QTableWidgetItem *dateItem = new QTableWidgetItem("2025-05-27");
-        fileTable->setItem(i, 0, nameItem);
-        fileTable->setItem(i, 1, sizeItem);
-        fileTable->setItem(i, 2, dateItem);
-    }
 
     // Connect double-click to emit fileOpenRequested
     connect(fileTable, &QTableWidget::cellDoubleClicked, this, [this](int row, int column) {
@@ -87,6 +74,14 @@ FilesDashView::FilesDashView(QWidget *parent) : QWidget(parent) {
     vLayout->addLayout(hLayout, 1);
 
     setLayout(vLayout);
+}
+
+void FilesDashView::addFileRow(const QString &name, const QString &size, const QString &date) {
+    int row = fileTable->rowCount();
+    fileTable->insertRow(row);
+    fileTable->setItem(row, 0, new QTableWidgetItem(name));
+    fileTable->setItem(row, 1, new QTableWidgetItem(size));
+    fileTable->setItem(row, 2, new QTableWidgetItem(date));
 }
 
 QLineEdit* FilesDashView::getSearchBar() const { return searchBar; }

@@ -1,9 +1,24 @@
 #include "FileDashController.h"
 #include <QLineEdit>
 #include <QTableWidget>
+#include "../views/FilesDashView.h"
 
 FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileTable, QObject *parent)
     : QObject(parent), searchBar(searchBar), fileTable(fileTable) {
+    // Placeholder data for files
+    struct FileRow { QString name; QString size; QString date; };
+    QList<FileRow> files = {
+        {"ProjectPlan.docx", "1.2 MB", "2025-05-27"},
+        {"Budget2025.xlsx", "1.2 MB", "2025-05-27"},
+        {"MeetingNotes.pdf", "1.2 MB", "2025-05-27"},
+        {"DesignMockup.png", "1.2 MB", "2025-05-27"}
+    };
+    FilesDashView *view = qobject_cast<FilesDashView*>(fileTable->parent()->parent());
+    if (view) {
+        for (const auto &file : files) {
+            view->addFileRow(file.name, file.size, file.date);
+        }
+    }
     connectSignals();
 }
 

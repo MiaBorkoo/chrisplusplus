@@ -14,6 +14,7 @@ public:
     QLineEdit* getSearchBar() const;
     QTableWidget* getFileTable() const;
     SideNavWidget* getSideNav() const;
+    void addFileRow(const QString &name, const QString &size, const QString &date);
 
 private:
     HeaderWidget *header;
