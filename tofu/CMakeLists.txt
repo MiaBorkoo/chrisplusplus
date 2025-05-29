@@ -7,6 +7,8 @@ add_library(tofu
     DeviceCertificate.cpp
     TrustStoreEntry.h
     TrustStoreEntry.cpp
+    TOFUPromptManager.h
+    TOFUPromptManager.cpp
 )
 
 # Link dependencies
