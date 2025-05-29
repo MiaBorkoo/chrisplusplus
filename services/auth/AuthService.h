@@ -2,6 +2,7 @@
 #include "IAuthService.h"
 #include "../../network/Client.h"
 #include <QJsonObject>
+#include <QSettings>   
 
 class AuthService : public IAuthService {
     Q_OBJECT
@@ -33,6 +34,7 @@ private slots:
 private:
     Client* m_client;
     QString m_sessionToken;
+    QScopedPointer<QSettings> m_settings;
     
     void handleLoginResponse(int status, const QJsonObject& data);
     void handleRegisterResponse(int status, const QJsonObject& data);
