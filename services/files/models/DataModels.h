@@ -6,6 +6,12 @@
 #include <cstdint>
 #include <nlohmann/json.hpp>
 
+// Forward declaration for content types
+enum class ContentTypeEnum {
+    FILE,
+    FOLDER
+};
+
 // API Request/Response Models
 struct RegisterRequest {
     std::string username;
@@ -146,7 +152,10 @@ struct FileEncryptionContext {
     std::vector<uint8_t> auth_tag;
     std::string file_id;
     size_t original_size;
+    size_t compressed_size;
     std::string hmac;
+    ContentTypeEnum content_type;
+    bool is_compressed;
 };
 
 struct UserCryptoContext {

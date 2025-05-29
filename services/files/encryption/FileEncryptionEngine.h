@@ -2,8 +2,35 @@
 
 #include "../models/DataModels.h"
 #include "../exceptions/Exceptions.h"
+#include "../compression/CompressionEngine.h"
+#include "../serialization/SerializationEngine.h"
 #include <vector>
 #include <string>
+#include <map>
+#include <memory>
+
+// Content type enumeration for template specialization
+enum class ContentTypeEnum {
+    FILE,
+    FOLDER
+};
+
+// Content data structures for template functions
+struct FileContent {
+    std::string filename;
+    std::vector<uint8_t> file_data;
+    std::map<std::string, std::string> metadata;
+    size_t original_size;
+};
+
+struct FolderContent {
+    std::string folder_name;
+    std::map<std::string, FileContent> files;  // relative_path -> FileContent
+    std::map<std::string, FolderContent> subfolders;  // subfolder_name -> FolderContent
+    std::map<std::string, std::string> metadata;
+    size_t total_size;
+    size_t file_count;
+};
 
 class FileEncryptionEngine {
 public:
@@ -16,6 +43,18 @@ public:
         const std::vector<uint8_t>& mek);
     
     std::vector<uint8_t> decrypt_file(
+        const std::vector<uint8_t>& encrypted_data,
+        const FileEncryptionContext& context);
+    
+    // Template-based content encryption/decryption with compression
+    template<typename ContentType>
+    FileEncryptionContext encrypt_content(
+        const ContentType& content_data,
+        const std::vector<uint8_t>& mek,
+        ContentTypeEnum content_type);
+    
+    template<typename ContentType>
+    ContentType decrypt_content(
         const std::vector<uint8_t>& encrypted_data,
         const FileEncryptionContext& context);
     
@@ -56,7 +95,11 @@ public:
         const std::vector<uint8_t>& mek);
 
 private:
-    // Helper methods for libsodium operations
+    // Engine dependencies
+    std::unique_ptr<CompressionEngine> compression_engine_;
+    std::unique_ptr<SerializationEngine> serialization_engine_;
+    
+    // Helper methods for OpenSSL operations
     std::vector<uint8_t> generate_random_bytes(size_t length);
     void secure_zero_memory(std::vector<uint8_t>& data);
 }; 
