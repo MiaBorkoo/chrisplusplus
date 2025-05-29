@@ -9,6 +9,9 @@ class SharedDashController : public QObject {
 public:
     explicit SharedDashController(SharedDashView *view, QObject *parent = nullptr);
 
+signals:
+    void downloadRequested(const QString &fileName);
+
 private:
     SharedDashView *view;
     void connectSignals();

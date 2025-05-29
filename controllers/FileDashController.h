@@ -22,6 +22,8 @@ private slots:
 private:
     QLineEdit *searchBar;
     QTableWidget *fileTable;
+    void connectSignals();
+    
 };
 
 #endif // FILEDASHCONTROLLER_Hv

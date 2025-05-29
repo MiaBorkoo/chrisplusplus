@@ -1,8 +1,19 @@
 #include "FileDashController.h"
+#include <QLineEdit>
+#include <QTableWidget>
 
 FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileTable, QObject *parent)
     : QObject(parent), searchBar(searchBar), fileTable(fileTable) {
-    connect(searchBar, &QLineEdit::textChanged, this, &FileDashController::handleSearchInput);
+    connectSignals();
+}
+
+void FileDashController::connectSignals() {
+    connect(searchBar, &QLineEdit::textChanged, this, [this](const QString &query) {
+        for (int i = 0; i < fileTable->rowCount(); ++i) {
+            bool match = fileTable->item(i, 0)->text().contains(query, Qt::CaseInsensitive);
+            fileTable->setRowHidden(i, !match);
+        }
+    });
     connect(fileTable, &QTableWidget::cellClicked, this, &FileDashController::handleFileSelection);
 }
 

@@ -42,7 +42,6 @@ FilesDashView::FilesDashView(QWidget *parent) : QWidget(parent) {
     fileTable = new QTableWidget(mainContent);
     fileTable->setObjectName("fileTable");
     fileTable->setAlternatingRowColors(true);
-    // Only keep logic, remove visual styling (alternating row colors, grid, etc.)
     fileTable->setColumnCount(3);
     fileTable->setHorizontalHeaderLabels({"Name", "Size", "Date Uploaded"});
     fileTable->verticalHeader()->setVisible(false);

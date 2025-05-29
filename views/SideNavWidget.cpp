@@ -3,6 +3,7 @@
 #include <QPushButton>
 #include <QIcon>
 #include <QSizePolicy>
+#include <QStyle>
 
 SideNavWidget::SideNavWidget(QWidget *parent) : QWidget(parent) {
     setAttribute(Qt::WA_StyledBackground, true);
@@ -24,9 +25,12 @@ SideNavWidget::SideNavWidget(QWidget *parent) : QWidget(parent) {
         {" Inbox", ":/assets/inbox.svg"}
     };
 
-    for (const NavItem &item : navItems) {
-        QPushButton *button = createNavButton(item.text, item.iconPath);
+    for (int i = 0; i < navItems.size(); ++i) {
+        QPushButton *button = createNavButton(navItems[i].text, navItems[i].iconPath);
         layout->addWidget(button);
+        if (i < navItems.size() - 1) {
+            layout->addSpacing(20);
+        }
     }
 
     layout->addStretch();
@@ -51,14 +55,14 @@ QPushButton* SideNavWidget::createNavButton(const QString &text, const QString &
 }
 
 void SideNavWidget::setActiveTab(const QString &tabName) {
-    // Find and activate the button with matching text
     for (QPushButton *button : findChildren<QPushButton*>()) {
         if (button->text() == tabName) {
             button->setProperty("active", true);
-            button->setStyleSheet(button->styleSheet()); // Force style update
         } else {
             button->setProperty("active", false);
-            button->setStyleSheet(button->styleSheet()); // Force style update
         }
+        button->style()->unpolish(button);
+        button->style()->polish(button);
+        button->update();
     }
 }

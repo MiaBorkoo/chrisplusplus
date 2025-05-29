@@ -131,7 +131,7 @@ SideNavWidget QPushButton:pressed {
 }
 
 SideNavWidget QPushButton[active="true"] {
-    background: #2C2F33;
+    background: #000000;
     color: #FFFFFF;
     font-weight: bold;
 }
@@ -225,16 +225,6 @@ HeaderWidget QPushButton:pressed {
     height: 0;
 }
 
-/* File List Item Styles */
-#fileList QWidget {
-    background-color: #252525;
-    border-radius: 4px;
-    padding: 8px;
-}
-#fileList QWidget:hover {
-    background-color: #2F2F2F;
-}
-
 /* Search Bar Styles */
 #searchBar {
     border: 1px solid #3C4043;
@@ -304,24 +294,16 @@ HeaderWidget QPushButton:pressed {
     color: #B0BEC5;
     font-size: 12px;
 }
+#sharedFileWidget {
+    background-color: #252525 !important;
+    border-radius: 4px;
+    padding: 6px;
+}
 #downloadButton {
-    background-color: #1E88E5;
-    color: #FFFFFF;
+    background-color: #1E88E5 !important;
+    color: #FFFFFF !important;
     font-size: 12px;
     padding: 4px 8px;
     border: none;
     border-radius: 4px;
-}
-#downloadButton:hover {
-    background-color: #1565C0;
-}
-#downloadButton:pressed {
-    background-color: #0D47A1;
-}
-#sharedFileWidget {
-    background-color: #252525;
-    border-radius: 4px;
-}
-#sharedFileWidget:hover {
-    background-color: #2F2F2F;
 }

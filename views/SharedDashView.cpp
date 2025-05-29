@@ -10,11 +10,12 @@
 #include <QLineEdit>
 
 SharedDashView::SharedDashView(QWidget *parent) : QWidget(parent) {
-    // Initialize header and side navigation
+    //initialising header and side navigation
     header = new HeaderWidget(this);
     sideNav = new SideNavWidget(this);
+    sideNav->setActiveTab("Shared With Me"); 
 
-    // Main content widget
+    // This is our main content widget
     QWidget *mainContent = new QWidget(this);
     mainContent->setObjectName("mainContent");
 
@@ -22,56 +23,20 @@ SharedDashView::SharedDashView(QWidget *parent) : QWidget(parent) {
     mainContentLayout->setContentsMargins(16, 16, 16, 16);
     mainContentLayout->setSpacing(12);
 
-    // Create search bar
+    //making the search bar
     searchBar = new QLineEdit(mainContent);
     searchBar->setObjectName("searchBar");
     searchBar->setPlaceholderText("Search shared files...");
     mainContentLayout->addWidget(searchBar);
 
-    // File list
+    //list that will contain the shared files
     fileList = new QListWidget(mainContent);
     fileList->setObjectName("fileList");
     fileList->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     fileList->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     fileList->setSpacing(8);
-    fileList->setStyleSheet("QListWidget { background-color: transparent; border: none; }");
-
-    // Placeholder data for shared files
-    QStringList sharedFiles = {
-        "ProjectPlan.docx (from user1@example.com)",
-        "Budget2025.xlsx (from user2@example.com)",
-        "MeetingNotes.pdf (from user3@example.com)",
-        "DesignMockup.png (from user1@example.com)"
-    };
-    for (const QString &file : sharedFiles) {
-        QListWidgetItem *item = new QListWidgetItem(fileList);
-        QWidget *fileWidget = new QWidget(fileList);
-        fileWidget->setObjectName("sharedFileWidget");
-        QHBoxLayout *layout = new QHBoxLayout(fileWidget);
-        layout->setContentsMargins(12, 8, 12, 8);
-        layout->setSpacing(8);
-
-        QLabel *fileLabel = new QLabel(file.split(" (from ").first(), fileWidget);
-        fileLabel->setObjectName("sharedFileLabel");
-        QLabel *sharedByLabel = new QLabel("Shared by: " + file.split(" (from ").last().chopped(1), fileWidget);
-        sharedByLabel->setObjectName("sharedByLabel");
-
-        QPushButton *openButton = new QPushButton("Download", fileWidget);
-        openButton->setObjectName("downloadButton");
-        connect(openButton, &QPushButton::clicked, this, [this, file]() {
-            emit fileOpenRequested(file.split(" (from ").first());
-        });
-
-        layout->addWidget(fileLabel);
-        layout->addStretch();
-        layout->addWidget(sharedByLabel);
-        layout->addWidget(openButton);
-
-        fileWidget->setFixedHeight(60);
-        item->setSizeHint(fileWidget->sizeHint());
-        fileList->setItemWidget(item, fileWidget);
-    }
-
+    fileList->setSelectionMode(QAbstractItemView::NoSelection);
+    
     mainContentLayout->addWidget(fileList);
 
     // Horizontal layout for side nav + main content
@@ -89,6 +54,42 @@ SharedDashView::SharedDashView(QWidget *parent) : QWidget(parent) {
     vLayout->addLayout(hLayout, 1);
 
     setLayout(vLayout);
+}
+
+void SharedDashView::addSharedFile(const QString &fileName, const QString &sharedBy) {
+    QListWidgetItem *item = new QListWidgetItem(fileList);
+    QWidget *fileWidget = new QWidget(fileList);
+    fileWidget->setObjectName("sharedFileWidget");
+    QHBoxLayout *layout = new QHBoxLayout(fileWidget);
+    layout->setContentsMargins(12, 8, 12, 8);
+    layout->setSpacing(8);
+    
+
+    QLabel *fileLabel = new QLabel(fileName, fileWidget);
+    fileLabel->setObjectName("sharedFileLabel");
+    QLabel *sharedByLabel = new QLabel("Shared by: " + sharedBy, fileWidget);
+    sharedByLabel->setObjectName("sharedByLabel");
+
+    QPushButton *openButton = new QPushButton("Download", fileWidget);
+    openButton->setObjectName("downloadButton");
+
+
+    layout->addWidget(fileLabel);
+    layout->addStretch();
+    layout->addWidget(sharedByLabel);
+    layout->addWidget(openButton);
+
+    fileWidget->setFixedHeight(60);
+    item->setSizeHint(fileWidget->sizeHint());
+    fileList->setItemWidget(item, fileWidget);
+}
+
+QPushButton* SharedDashView::getDownloadButtonForRow(int row) const {
+    if (row < 0 || row >= fileList->count()) return nullptr;
+    QListWidgetItem *item = fileList->item(row);
+    QWidget *fileWidget = fileList->itemWidget(item);
+    if (!fileWidget) return nullptr;
+    return fileWidget->findChild<QPushButton*>("downloadButton");
 }
 
 QListWidget* SharedDashView::getFileList() const { return fileList; }

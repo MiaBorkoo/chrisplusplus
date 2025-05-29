@@ -65,21 +65,14 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
         QMessageBox::information(this, "Open File", "You opened: " + fileName);
     });
 
-    connect(m_fileDashController, &FileDashController::searchRequested, this, [this](const QString &query) {
-        QTableWidget *table = m_filesDashView->getFileTable();
-        for (int i = 0; i < table->rowCount(); ++i) {
-            bool match = table->item(i, 0)->text().contains(query, Qt::CaseInsensitive);
-            table->setRowHidden(i, !match);
-        }
-    });
-
+   
     // Connect upload signal
     connect(m_filesDashView, &FilesDashView::uploadRequested, this, []() {
         qDebug() << "Upload requested";
         QMessageBox::information(nullptr, "Upload", "Would open file dialog to upload a file.\nWaiting for model.");
     });
 
-    connect(m_sharedDashView, &SharedDashView::fileOpenRequested, this, [this](const QString &fileName) {
+    connect(m_sharedDashController, &SharedDashController::downloadRequested, this, [this](const QString &fileName) {
         qDebug() << "Attempting to open shared file:" << fileName;
         QMessageBox::information(this, "File Opening", QString("Would open shared file: %1\nWaiting for model.").arg(fileName));
     });
@@ -96,7 +89,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     });
 
     connect(m_sideNavController, &SideNavController::inboxRequested, this, [this]() {
-        // TODO: Implement inbox view
+        // TODO: Implement inbox view -> this depeneds on if we want to keep it
         QMessageBox::information(this, "Inbox", "Inbox view coming soon!");
     });
 

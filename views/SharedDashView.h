@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QListWidget>
 #include <QLineEdit>
+#include <QPushButton>
 #include "HeaderWidget.h"
 #include "SideNavWidget.h"
 
@@ -15,9 +16,11 @@ public:
     QListWidget* getFileList() const;
     SideNavWidget* getSideNav() const;
     QLineEdit* getSearchBar() const;
+    void addSharedFile(const QString &fileName, const QString &sharedBy);
+    QPushButton* getDownloadButtonForRow(int row) const;
 
 signals:
-    void fileOpenRequested(const QString &fileName);
+    void downloadRequested(const QString &fileName);
 
 private:
     HeaderWidget *header;
