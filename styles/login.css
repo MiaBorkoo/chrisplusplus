@@ -1,0 +1,309 @@
+/* Input Fields */
+QLineEdit {
+    border: 1px solid #3C4043;
+    background-color: #212121;
+    font-size: 14px;
+    color: #E0E0E0;
+    padding: 12px;
+}
+
+QLineEdit:focus {
+    border: 1px solid #1E88E5;
+    outline: none;
+}
+
+QLineEdit:invalid {
+    border: 1px solid #D32F2F;
+}
+
+/* Login Button */
+#loginButton {
+    background-color: #1E88E5;
+    color: #FFFFFF;
+    padding: 12px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+#loginButton:hover {
+    background-color: #1565C0;
+}
+
+/* Sign Up Button */
+#signUpButton {
+    background-color: #1E88E5;
+    color: #FFFFFF;
+    padding: 12px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+#signUpButton:hover {
+    background-color: #1565C0;
+}
+
+/* Sign Up Panel */
+#signUpPanel {
+    background: #1C2526;
+    padding: 40px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Sign Up Heading */
+#signUpHeading {
+    color: #FFFFFF;
+    font-size: 28px;
+    font-weight: 600;
+}
+
+/* Sign Up Labels */
+#signUpUsernameLabel, #signUpPasswordLabel, #signUpConfirmLabel {
+    color: #B0BEC5;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Error Label */
+#errorLabel {
+    color: #D32F2F;
+    font-size: 12px;
+}
+
+/* Login Link */
+#loginLink {
+    color: #B0BEC5;
+    font-size: 14px;
+}
+#loginLink a {
+    color: #1E88E5;
+    text-decoration: none;
+}
+#loginLink a:hover {
+    text-decoration: underline;
+}
+
+/* Labels */
+#loginHeading, #newHereLabel {
+    color: #FFFFFF;
+}
+
+#usernameLabel, #passwordLabel {
+    color: #B0BEC5;
+}
+
+/* Panels */
+#leftPanel {
+    background-color: #121212;
+}
+
+#rightPanel {
+    background-color: transparent;
+}
+
+/* SideNavWidget Styles */
+SideNavWidget {
+    background-color: #222222;
+    color: #E0E0E0;
+    border-right: 1px solid #2C2F33;
+}
+
+SideNavWidget QPushButton {
+    color: #E0E0E0;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin: 0 8px;
+}
+
+SideNavWidget QPushButton:hover {
+    background: #2C2F33;
+    color: #FFFFFF;
+}
+
+SideNavWidget QPushButton:pressed {
+    background: #3A3D41;
+    color: #FFFFFF;
+}
+
+SideNavWidget QPushButton[active="true"] {
+    background: #000000;
+    color: #FFFFFF;
+    font-weight: bold;
+}
+
+/* Style for Logout Button */
+SideNavWidget QPushButton[text="Logout"] {
+    color: #E0E0E0;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin: 0 8px;
+}
+
+SideNavWidget QPushButton[text="Logout"]:hover {
+    background: #2C2F33;
+    color: #D32F2F;
+}
+
+SideNavWidget QPushButton[text="Logout"]:pressed {
+    background: #3A3D41;
+    color: #D32F2F;
+}
+
+/* HeaderWidget Styles */
+HeaderWidget {
+    background-color: #222222;
+    color: #FFFFFF;
+    border-bottom: 1px solid #2C2F33;
+}
+
+HeaderWidget QLabel {
+    font-size: 20px;
+    font-weight: 600;
+    color: #FFFFFF;
+    padding-left: 16px;
+}
+
+HeaderWidget QPushButton {
+    color: #E0E0E0;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 4px;
+}
+
+HeaderWidget QPushButton:hover {
+    background: #2C2F33;
+    color: #FFFFFF;
+}
+
+HeaderWidget QPushButton:pressed {
+    background: #3A3D41;
+    color: #FFFFFF;
+}
+
+/* Main Content Area */
+#mainContent {
+    background-color: #121212;
+    border: none;
+}
+
+#mainContent QLabel {
+    color: #E0E0E0;
+    font-size: 16px;
+    font-weight: 500;
+    padding: 16px;
+}
+
+/* File List Styles */
+#fileList {
+    background-color: #1E1E1E;
+    color: #D3D3D3;
+    border: none;
+}
+#fileList QScrollBar:vertical {
+    border: none;
+    background: #1E1E1E;
+    width: 8px;
+    margin: 0;
+}
+#fileList QScrollBar::handle:vertical {
+    background: #2C2F33;
+    min-height: 20px;
+    border-radius: 4px;
+}
+#fileList QScrollBar::add-line:vertical, #fileList QScrollBar::sub-line:vertical {
+    height: 0;
+}
+
+/* Search Bar Styles */
+#searchBar {
+    border: 1px solid #3C4043;
+    background-color: #212121;
+    font-size: 14px;
+    color: #E0E0E0;
+    padding: 10px 12px;
+    border-radius: 4px;
+}
+#searchBar:focus {
+    border: 1px solid #1E88E5;
+}
+
+/* Upload Button Styles */
+#uploadButton {
+    background-color: #1E88E5;
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 4px;
+    margin-left: 8px;
+}
+#uploadButton:hover {
+    background-color: #1565C0;
+}
+#uploadButton:pressed {
+    background-color: #0D47A1;
+}
+
+/* File Table Styles */
+#fileTable {
+    background-color: #1E1E1E;
+    color: #D3D3D3;
+    border: none;
+    gridline-color: transparent;
+    selection-background-color: #23272A;
+    selection-color: #FFFFFF;
+    font-size: 14px;
+    alternate-background-color: #252525;
+}
+
+#fileTable QHeaderView::section {
+    background-color: #222222;
+    color: #D3D3D3;
+    font-weight: 600;
+    border: none;
+    padding: 8px 0;
+}
+
+#fileTable QTableCornerButton::section {
+    background-color: #222222;
+    border: none;
+}
+
+#fileTable QTableWidgetItem {
+    border: none;
+    padding: 8px;
+}
+
+#sharedFileLabel {
+    color: #D3D3D3;
+    font-size: 14px;
+}
+#sharedByLabel {
+    color: #B0BEC5;
+    font-size: 12px;
+}
+#sharedFileWidget {
+    background-color: #252525 !important;
+    border-radius: 4px;
+    padding: 6px;
+}
+#downloadButton {
+    background-color: #1E88E5 !important;
+    color: #FFFFFF !important;
+    font-size: 12px;
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+}

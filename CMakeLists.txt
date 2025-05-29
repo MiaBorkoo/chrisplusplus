@@ -4,6 +4,10 @@ project(ChrisPlusPlus LANGUAGES CXX)
 # Disable warnings as errors
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
 
+set(CMAKE_AUTOMOC ON) #handles qts meta object compiler
+set(CMAKE_AUTORCC ON) #handles QT resources files
+set(CMAKE_AUTOUIC ON) #handles QT UI files
+
 if(APPLE)
     # macOS: Use Homebrew Qt (team-friendly!)
     execute_process(
@@ -43,10 +47,14 @@ endif()
 
 # Find required packages
 find_package(Qt6 6.5.0 REQUIRED COMPONENTS Core Widgets Network Test)
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(RESOURCE_FILES
+    resources.qrc
+)
 
 qt_standard_project_setup()
 
@@ -60,17 +68,39 @@ add_subdirectory(fileIO)     # File transfer layer (YOUR addition)
 # Main application with authentication
 qt_add_executable(ChrisPlusPlus
     WIN32 MACOSX_BUNDLE
-    # Main application entry point
     main.cpp
     mainwindow.cpp
     mainwindow.h
-    mainwindow.ui
+    views/LoginView.cpp
+    views/LoginView.h
+    views/SignUpView.cpp
+    views/SignUpView.h
+    controllers/LoginController.cpp
+    controllers/LoginController.h
+    controllers/SignUpController.cpp
+    controllers/SignUpController.h
+    views/HeaderWidget.cpp
+    views/HeaderWidget.h
+    views/SideNavWidget.cpp
+    views/SideNavWidget.h
+    views/FilesDashView.cpp
+    views/FilesDashView.h
+    controllers/FileDashController.cpp
+    controllers/FileDashController.h
+    views/SharedDashView.cpp
+    views/SharedDashView.h
+    controllers/SideNavController.cpp
+    controllers/SideNavController.h
+    controllers/SharedDashController.cpp
+    controllers/SharedDashController.h
+    ${RESOURCE_FILES}
     
     # ✅ ADD: Authentication system
     models/LoginModel.cpp
     network/Client.cpp
     services/auth/IAuthService.cpp
     services/auth/AuthService.cpp
+    services/auth/otp/TOTP.cpp
 )
 
 target_link_libraries(ChrisPlusPlus
@@ -90,6 +120,8 @@ target_link_libraries(ChrisPlusPlus
 target_include_directories(ChrisPlusPlus
     PRIVATE
         ${CMAKE_SOURCE_DIR}/models
+        ${CMAKE_SOURCE_DIR}/views
+        ${CMAKE_SOURCE_DIR}/controllers
         ${CMAKE_SOURCE_DIR}/services
         ${CMAKE_SOURCE_DIR}/services/auth
         ${CMAKE_SOURCE_DIR}/network
@@ -129,6 +161,7 @@ target_link_libraries(testNetworkSystemComplete PRIVATE
     http_layer 
     sockets
 )
+
 
 # ============================================================================
 # INSTALLATION (updated for ChrisPlusPlus)
