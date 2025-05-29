@@ -61,7 +61,7 @@ void SharedDashView::addSharedFile(const QString &fileName, const QString &share
     QWidget *fileWidget = new QWidget(fileList);
     fileWidget->setObjectName("sharedFileWidget");
     QHBoxLayout *layout = new QHBoxLayout(fileWidget);
-    layout->setContentsMargins(12, 8, 12, 8);
+    layout->setContentsMargins(12, 4, 12, 4);
     layout->setSpacing(8);
     
 
