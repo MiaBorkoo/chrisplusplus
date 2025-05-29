@@ -19,11 +19,11 @@ FilesDashView::FilesDashView(QWidget *parent) : QWidget(parent) {
     mainContentLayout->setContentsMargins(16, 16, 16, 16);
     mainContentLayout->setSpacing(12);
 
-    // Horizontal layout for search bar and upload button
+    //horizontal layout for search bar and upload button
     QHBoxLayout *topLayout = new QHBoxLayout();
     topLayout->setSpacing(8);
 
-    // Search bar
+    
     searchBar = new QLineEdit(mainContent);
     searchBar->setObjectName("searchBar");
     searchBar->setPlaceholderText("Search files...");
@@ -50,7 +50,7 @@ FilesDashView::FilesDashView(QWidget *parent) : QWidget(parent) {
     fileTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     mainContentLayout->addWidget(fileTable);
 
-    // Connect double-click to emit fileOpenRequested
+    //this connects double-click to emit fileOpenRequested -> this will change when we add a model
     connect(fileTable, &QTableWidget::cellDoubleClicked, this, [this](int row, int column) {
         QTableWidgetItem *item = fileTable->item(row, 0);
         if (item) {
