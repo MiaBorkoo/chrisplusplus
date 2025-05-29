@@ -45,9 +45,6 @@ endif()
 # Find required packages
 find_package(Qt6 6.5.0 REQUIRED COMPONENTS Core Widgets Network Test)
 find_package(OpenSSL REQUIRED)
-# Add package for file management system
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(LIBSODIUM REQUIRED libsodium)
 find_package(nlohmann_json REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)

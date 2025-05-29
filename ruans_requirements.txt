@@ -6,16 +6,33 @@
 **Dependencies**: Mi (TOFU), A (Authentication), J (TOTP)  
 
 
-NOTE: WE ARE USING LIBSODIUM AS OUR CRYPTOGRAPHIC LIBRARY
-NOTE: WE ARE USING LIBSODIUM AS OUR CRYPTOGRAPHIC LIBRARY
-NOTE: WE ARE USING LIBSODIUM AS OUR CRYPTOGRAPHIC LIBRARY
+NOTE: WE ARE USING OPENSSL AS OUR CRYPTOGRAPHIC LIBRARY
+NOTE: WE ARE USING OPENSSL AS OUR CRYPTOGRAPHIC LIBRARY
+NOTE: WE ARE USING OPENSSL AS OUR CRYPTOGRAPHIC LIBRARY
 ## Functional Requirements
 
 
-### FR1: File Encryption and Decryption
-- **Requirement**: All files must be encrypted client-side using AES-256-GCM before upload
-- **Details**: Each file gets unique DEK (Data Encryption Key), never reused
-- **Security**: IND-CCA2 security, authenticated encryption
+### FR1: File and Folder Encryption with Compression
+- **Requirement**: All files and folders must be encrypted client-side using AES-256-GCM before upload
+- **Details**: Each file/folder gets unique DEK (Data Encryption Key), never reused
+- **Compression**: All content compressed using zlib before encryption for efficiency
+- **Content Type Detection**: Automatic detection between file and folder uploads
+- **Template Support**: C++ template-based architecture for unified file/folder handling
+- **Security**: IND-CCA2 security, authenticated encryption with compression integrity
+
+### FR1.1: Content Type Support
+- **File Upload**: Single file encryption with metadata preservation
+- **Folder Upload**: Recursive folder structure compression and encryption
+- **Template Architecture**: Generic `encrypt_content<T>()` and `decrypt_content<T>()` functions
+- **Type Safety**: Compile-time type checking for content operations
+- **Serialization**: Efficient binary serialization of folder structures
+
+### FR1.2: Compression Integration
+- **Compression Library**: zlib with optimal compression level
+- **Pre-Encryption**: Always compress before encryption for size reduction
+- **Integrity**: Compression integrity verified during decompression
+- **Metadata**: Store both original and compressed sizes
+- **Error Handling**: Robust compression/decompression error recovery
 
 ### FR2: File Upload and Storage
 - **Requirement**: Encrypted files stored on server with UUID-based naming
@@ -88,12 +105,32 @@ struct FileShareRequest {
     std::string share_chain_hmac;        // HMAC for share chain integrity (64 hex chars)
 };
 
+struct ContentUploadRequest {
+    std::vector<uint8_t> content;           // Encrypted and compressed content data
+    std::string content_id;                 // Optional UUID (server generates if empty)
+    std::string content_type;               // "file" or "folder"
+    std::string content_name_encrypted;     // Base64 encrypted filename/foldername
+    std::string content_size_encrypted;     // Base64 encrypted original size
+    std::string compressed_size_encrypted;  // Base64 encrypted compressed size
+    std::string content_data_hmac;          // HMAC for content integrity
+    bool is_compressed;                     // Always true for new uploads
+};
+
+struct FolderStructureMetadata {
+    std::string folder_name;
+    std::vector<std::string> file_paths;    // Relative paths within folder
+    std::vector<std::string> subfolder_paths; // Relative subfolder paths
+    size_t total_files;
+    size_t total_size;
+};
+
+// Legacy FileUploadRequest maintained for backward compatibility
 struct FileUploadRequest {
-    std::vector<uint8_t> file;           // Encrypted file data (multipart)
-    std::string file_id;                 // Optional UUID (server generates if empty)
-    std::string filename_encrypted;      // Base64 encrypted filename
-    std::string file_size_encrypted;     // Base64 encrypted file size
-    std::string file_data_hmac;          // HMAC for file integrity
+    std::vector<uint8_t> file;              // Encrypted file data (multipart)
+    std::string file_id;                    // Optional UUID (server generates if empty)
+    std::string filename_encrypted;         // Base64 encrypted filename
+    std::string file_size_encrypted;        // Base64 encrypted file size
+    std::string file_data_hmac;            // HMAC for file integrity
 };
 ```
 
@@ -105,7 +142,27 @@ struct FileEncryptionContext {
     std::vector<uint8_t> auth_tag;       // 128-bit authentication tag
     std::string file_id;                 // UUID
     size_t original_size;
-    std::string hmac;                    // HMAC of encrypted file
+    size_t compressed_size;              // Size after compression
+    std::string hmac;                    // HMAC of encrypted content
+    ContentTypeEnum content_type;        // FILE or FOLDER
+    bool is_compressed;                  // Compression flag
+};
+
+// Content data structures for template functions
+struct FileContent {
+    std::string filename;
+    std::vector<uint8_t> file_data;
+    std::map<std::string, std::string> metadata;
+    size_t original_size;
+};
+
+struct FolderContent {
+    std::string folder_name;
+    std::map<std::string, FileContent> files;  // relative_path -> FileContent
+    std::map<std::string, FolderContent> subfolders;  // subfolder_name -> FolderContent
+    std::map<std::string, std::string> metadata;
+    size_t total_size;
+    size_t file_count;
 };
 
 struct UserCryptoContext {
@@ -441,7 +498,7 @@ public:
 ```cpp
 class FileEncryptionEngine {
 public:
-    // Core encryption/decryption
+    // Core encryption/decryption (legacy for backward compatibility)
     FileEncryptionContext encrypt_file(
         const std::vector<uint8_t>& file_data,
         const std::vector<uint8_t>& mek);
@@ -449,6 +506,28 @@ public:
     std::vector<uint8_t> decrypt_file(
         const std::vector<uint8_t>& encrypted_data,
         const FileEncryptionContext& context);
+    
+    // Template-based content encryption/decryption with compression
+    template<typename ContentType>
+    FileEncryptionContext encrypt_content(
+        const ContentType& content_data,
+        const std::vector<uint8_t>& mek,
+        ContentTypeEnum content_type);
+    
+    template<typename ContentType>
+    ContentType decrypt_content(
+        const std::vector<uint8_t>& encrypted_data,
+        const FileEncryptionContext& context);
+    
+    // Compression/decompression using zlib
+    std::vector<uint8_t> compress_data(const std::vector<uint8_t>& data);
+    std::vector<uint8_t> decompress_data(const std::vector<uint8_t>& compressed_data);
+    
+    // Content serialization/deserialization
+    std::vector<uint8_t> serialize_file_content(const FileContent& file_content);
+    FileContent deserialize_file_content(const std::vector<uint8_t>& serialized_data);
+    std::vector<uint8_t> serialize_folder_content(const FolderContent& folder_content);
+    FolderContent deserialize_folder_content(const std::vector<uint8_t>& serialized_data);
     
     // Integrity verification using HMAC
     std::string calculate_file_hmac(
@@ -497,7 +576,39 @@ public:
                 std::shared_ptr<FileEncryptionEngine> encryption,
                 std::shared_ptr<TOFUInterface> tofu);
     
-    // File operations
+    // Template-based content operations
+    template<typename ContentType>
+    std::string upload_content(
+        const ContentType& content,
+        const std::string& session_token,
+        ContentTypeEnum content_type);
+    
+    template<typename ContentType>
+    ContentType download_content(
+        const std::string& content_id,
+        const std::string& session_token,
+        ContentTypeEnum expected_type);
+    
+    // Convenience functions for specific content types
+    std::string upload_file_content(
+        const std::string& local_filepath,
+        const std::string& session_token);
+    
+    std::string upload_folder_content(
+        const std::string& local_folder_path,
+        const std::string& session_token);
+    
+    bool download_file_content(
+        const std::string& file_id,
+        const std::string& local_output_path,
+        const std::string& session_token);
+    
+    bool download_folder_content(
+        const std::string& folder_id,
+        const std::string& local_output_directory,
+        const std::string& session_token);
+    
+    // Legacy file operations (maintained for backward compatibility)
     std::string upload_file(
         const std::string& local_filepath,
         const std::string& session_token);
@@ -513,9 +624,17 @@ public:
     std::vector<SharedFileInfo> list_shared_files(
         const std::string& session_token);
     
-    // File metadata (decrypted for user)
+    // Content metadata (decrypted for user)
+    ContentInfo get_content_info(
+        const std::string& content_id,
+        const std::string& session_token);
+    
     FileInfo get_file_info(
         const std::string& file_id,
+        const std::string& session_token);
+    
+    bool delete_content(
+        const std::string& content_id,
         const std::string& session_token);
     
     bool delete_file(
@@ -523,6 +642,12 @@ public:
         const std::string& session_token);
     
     // Sharing operations with TOFU verification
+    std::string share_content_with_verification(
+        const std::string& content_id,
+        const std::string& recipient_username,
+        const std::string& session_token,
+        std::optional<uint64_t> expires_at = std::nullopt);
+    
     std::string share_file_with_verification(
         const std::string& file_id,
         const std::string& recipient_username,
@@ -545,6 +670,21 @@ public:
 
 ### Helper Data Structures for User Interface
 ```cpp
+struct ContentInfo {
+    std::string content_id;
+    std::string content_name;                // Decrypted filename or foldername
+    ContentTypeEnum content_type;            // FILE or FOLDER
+    size_t original_size;                    // Decrypted original size
+    size_t compressed_size;                  // Decrypted compressed size
+    uint64_t upload_timestamp;
+    bool integrity_verified;
+    bool is_compressed;
+    
+    // Folder-specific metadata (only populated for folders)
+    std::optional<size_t> file_count;
+    std::optional<std::vector<std::string>> file_list;
+};
+
 struct FileInfo {
     std::string file_id;
     std::string filename;                    // Decrypted
@@ -590,7 +730,13 @@ enum class FileError {
     RECIPIENT_NOT_TRUSTED,
     SHARE_CREATION_FAILED,
     INVALID_SESSION,
-    SERVER_COMMUNICATION_ERROR
+    SERVER_COMMUNICATION_ERROR,
+    COMPRESSION_FAILED,
+    DECOMPRESSION_FAILED,
+    SERIALIZATION_FAILED,
+    DESERIALIZATION_FAILED,
+    INVALID_CONTENT_TYPE,
+    FOLDER_PROCESSING_FAILED
 };
 
 class FileException : public std::exception {
@@ -710,3 +856,75 @@ public:
 2. **Share Links**: Generate secure URLs for file sharing
 3. **Mobile Optimization**: Touch-friendly interface for mobile devices
 4. **Offline Access**: Cached encrypted files for offline viewing
+
+## Template Architecture Requirements
+
+### Template Function Design
+1. **Generic Content Handling**: `encrypt_content<T>()` and `decrypt_content<T>()` for unified processing
+2. **Type Safety**: Compile-time type checking prevents content type mismatches
+3. **Explicit Instantiation**: Template instantiation for `FileContent` and `FolderContent`
+4. **Template Specialization**: Future support for additional content types via specialization
+
+### Compression Pipeline
+1. **Pre-Encryption Compression**: Always compress before encryption for optimal size reduction
+2. **zlib Integration**: Use zlib with optimal compression level (6-9) for best size/speed balance
+3. **Compression Metadata**: Store both original and compressed sizes in encryption context
+4. **Error Recovery**: Graceful fallback when compression fails (store uncompressed with flag)
+
+### Content Serialization
+1. **Binary Format**: Efficient binary serialization for folder structures
+2. **Hierarchy Preservation**: Maintain complete folder structure including empty directories
+3. **Metadata Inclusion**: Store file permissions, timestamps, and attributes
+4. **Platform Independence**: Serialization format works across different operating systems
+
+## Refactored Modular Architecture
+
+### Module Separation
+The FileEncryptionEngine has been refactored into separate, focused modules for better maintainability:
+
+#### 1. CompressionEngine (`services/files/compression/`)
+- **Purpose**: Handles all compression and decompression operations using zlib
+- **Location**: `services/files/compression/CompressionEngine.{h,cpp}`
+- **Responsibilities**:
+  - Data compression with configurable compression levels (0-9)
+  - Data decompression with error handling
+  - Compression ratio calculation and estimation
+  - Magic byte detection for compressed data
+  - Memory-efficient streaming compression for large files
+
+#### 2. SerializationEngine (`services/files/serialization/`)
+- **Purpose**: Handles binary serialization of FileContent and FolderContent structures
+- **Location**: `services/files/serialization/SerializationEngine.{h,cpp}`
+- **Responsibilities**:
+  - Platform-independent binary serialization format
+  - Recursive folder structure serialization
+  - Magic headers and versioning for format compatibility
+  - Metadata preservation (permissions, timestamps, attributes)
+  - Integrity checking with embedded checksums
+
+#### 3. FileEncryptionEngine (Refactored)
+- **Purpose**: Core encryption operations and orchestration
+- **Dependencies**: CompressionEngine, SerializationEngine
+- **Responsibilities**:
+  - AES-256-GCM encryption/decryption
+  - Template-based content processing
+  - DEK management and envelope encryption
+  - HMAC calculation for integrity verification
+  - Coordination between compression, serialization, and encryption
+
+### Dependency Architecture
+```
+FileEncryptionEngine
+├── CompressionEngine (zlib)
+├── SerializationEngine (binary format)
+├── OpenSSL (crypto operations)
+└── Content Templates (FileContent, FolderContent)
+```
+
+### Benefits of Refactoring
+1. **Separation of Concerns**: Each module has a single, well-defined responsibility
+2. **Testability**: Each engine can be unit tested independently
+3. **Maintainability**: Changes to compression logic don't affect encryption code
+4. **Reusability**: CompressionEngine and SerializationEngine can be used in other contexts
+5. **Performance**: Dedicated engines can be optimized for their specific tasks
+6. **Memory Management**: Better control over resource allocation and cleanup

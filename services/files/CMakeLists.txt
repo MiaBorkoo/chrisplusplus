@@ -1,41 +1,47 @@
 # File Management and Sharing System
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.15)
+project(FileManagementSystem)
 
-# Find required packages for file management
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Find required packages
+find_package(OpenSSL REQUIRED)
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(LIBSODIUM REQUIRED libsodium)
-find_package(nlohmann_json REQUIRED)
+pkg_check_modules(ZLIB REQUIRED zlib)
 
-# File Management System Sources
-set(FILE_MANAGEMENT_SOURCES
-    exceptions/Exceptions.cpp
-    network/HTTPClient.cpp
+# Include directories
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+# Compression Engine
+add_library(CompressionEngine
+    compression/CompressionEngine.cpp
+    compression/CompressionEngine.h
+)
+target_link_libraries(CompressionEngine ${ZLIB_LIBRARIES})
+
+# Serialization Engine  
+add_library(SerializationEngine
+    serialization/SerializationEngine.cpp
+    serialization/SerializationEngine.h
+)
+
+# File Encryption Engine
+add_library(FileEncryptionEngine
     encryption/FileEncryptionEngine.cpp
-    FileManager.cpp
+    encryption/FileEncryptionEngine.h
+    models/DataModels.h
+    exceptions/Exceptions.h
+)
+target_link_libraries(FileEncryptionEngine 
+    OpenSSL::SSL 
+    OpenSSL::Crypto
+    CompressionEngine
+    SerializationEngine
 )
 
-# Create File Management library
-add_library(FileManagement ${FILE_MANAGEMENT_SOURCES})
-
-# Include directories for the library
-target_include_directories(FileManagement 
-    PUBLIC 
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/models
-        ${CMAKE_CURRENT_SOURCE_DIR}/network
-        ${CMAKE_CURRENT_SOURCE_DIR}/encryption
-        ${CMAKE_CURRENT_SOURCE_DIR}/interfaces
-        ${CMAKE_CURRENT_SOURCE_DIR}/exceptions
+# Main file management library
+add_library(FileManagement
+    # Add other source files here as they're created
 )
-
-# Link required libraries
-target_link_libraries(FileManagement
-    PUBLIC
-        ${LIBSODIUM_LIBRARIES}
-        nlohmann_json::nlohmann_json
-        curl
-)
-
-# Compiler options
-target_compile_options(FileManagement PRIVATE ${LIBSODIUM_CFLAGS_OTHER})
-target_include_directories(FileManagement PRIVATE ${LIBSODIUM_INCLUDE_DIRS}) 
+target_link_libraries(FileManagement FileEncryptionEngine)
