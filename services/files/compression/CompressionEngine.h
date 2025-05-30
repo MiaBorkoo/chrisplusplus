@@ -21,9 +21,11 @@ public:
     bool is_compressed(const std::vector<uint8_t>& data);
     size_t estimate_compressed_size(size_t original_size);
     double get_compression_ratio(size_t original_size, size_t compressed_size);
+    
+    // Validation function (moved to public for testing)
+    bool validate_compression_level(int level);
 
 private:
     // Internal zlib helpers
-    bool validate_compression_level(int level);
     void cleanup_zlib_stream(void* stream);
 }; 
