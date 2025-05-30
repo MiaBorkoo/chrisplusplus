@@ -9,12 +9,6 @@
 #include <map>
 #include <memory>
 
-// Content type enumeration for template specialization
-enum class ContentTypeEnum {
-    FILE,
-    FOLDER
-};
-
 // Content data structures for template functions
 struct FileContent {
     std::string filename;
@@ -94,12 +88,12 @@ public:
         const std::string& recipient_username,
         const std::vector<uint8_t>& mek);
 
+    // Helper methods (moved to public for testing)
+    std::vector<uint8_t> generate_random_bytes(size_t length);
+    void secure_zero_memory(std::vector<uint8_t>& data);
+
 private:
     // Engine dependencies
     std::unique_ptr<CompressionEngine> compression_engine_;
     std::unique_ptr<SerializationEngine> serialization_engine_;
-    
-    // Helper methods for OpenSSL operations
-    std::vector<uint8_t> generate_random_bytes(size_t length);
-    void secure_zero_memory(std::vector<uint8_t>& data);
 }; 
