@@ -20,6 +20,9 @@ public:
                        const QString& oldAuthKey,
                        const QString& newAuthKey,
                        const QString& newEncryptedMEK) override;
+    bool isInitialized() const override {
+        return m_client != nullptr;
+    }
 
     QString sessionToken() const { return m_sessionToken; }
     bool hasActiveSession() const { return !m_sessionToken.isEmpty(); }

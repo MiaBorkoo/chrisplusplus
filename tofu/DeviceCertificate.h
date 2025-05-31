@@ -57,21 +57,22 @@ private:
 class DeviceCertificate {
 public:
     DeviceCertificate();
+    // Copy constructor - deep copy, pass by value
+    DeviceCertificate(const DeviceCertificate& other);
     ~DeviceCertificate();
 
-    // Copy semantics
-    DeviceCertificate(const DeviceCertificate&) = default;
-    DeviceCertificate& operator=(const DeviceCertificate&) = default;
+    // Assignment operator with explicit control
+    DeviceCertificate& operator=(const DeviceCertificate& other);
 
-    // Getters
-    QString userId() const { return userId_; }
-    QString deviceId() const { return deviceId_; }
-    QByteArray identityPublicKey() const { return identityPublicKey_; }
-    QDateTime createdAt() const { return createdAt_; }
-    QDateTime expiresAt() const { return expiresAt_; }
-    QByteArray selfSignature() const { return selfSignature_; }
-    CertError lastError() const { return lastError_; }
-    QString errorString() const { return errorString_; }
+    // Inline getters to improve performance 
+    inline QString userId() const { return userId_; }
+    inline QString deviceId() const { return deviceId_; }
+    inline QByteArray identityPublicKey() const { return identityPublicKey_; }
+    inline QDateTime createdAt() const { return createdAt_; }
+    inline QDateTime expiresAt() const { return expiresAt_; }
+    inline QByteArray selfSignature() const { return selfSignature_; }
+    inline CertError lastError() const { return lastError_; }
+    inline QString errorString() const { return errorString_; }
 
     // Setters with validation
     bool setUserId(const QString& userId);
@@ -99,6 +100,11 @@ public:
     // Serialization
     QByteArray serialize() const;
     static DeviceCertificate deserialize(const QByteArray& data);
+
+    // Copy Constructor usage
+    DeviceCertificate createCopy() const {
+        return DeviceCertificate(*this); //returns by value
+    }
 
 private:
     QString userId_;

@@ -64,7 +64,7 @@ void AuthService::handleResponseReceived(int status, const QJsonObject& data) {
 }
 
 void AuthService::handleNetworkError(const QString& error) {
-    emit errorOccurred(error);
+    reportError(error);
 }
 
 void AuthService::handleLoginResponse(int status, const QJsonObject& data) {
@@ -75,7 +75,7 @@ void AuthService::handleLoginResponse(int status, const QJsonObject& data) {
     if (success) {
         m_sessionToken = token;
     } else {
-        emit errorOccurred(data.value("error").toString("Login failed. Please try again."));
+        reportError(data.value("error").toString("Login failed. Please try again."));
     }
 }
 
@@ -83,7 +83,7 @@ void AuthService::handleRegisterResponse(int status, const QJsonObject& data) {
     const bool success = (status == 200 && data.value("success").toBool());
     emit registrationCompleted(success);
     if (!success) {
-        emit errorOccurred(data.value("error").toString("Registration failed. Please try again."));
+        reportError(data.value("error").toString("Registration failed. Please try again."));
     }
 }
 
@@ -93,7 +93,7 @@ void AuthService::handleChangePasswordResponse(int status, const QJsonObject& da
     if (success) {
         invalidateSession(); 
     } else {
-        emit errorOccurred(data.value("error").toString("Password change failed. Please try again."));
+        reportError(data.value("error").toString("Password change failed. Please try again."));
     }
 }
 

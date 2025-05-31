@@ -20,6 +20,19 @@ DeviceCertificate::DeviceCertificate()
     expiresAt_ = createdAt_.addYears(1);
 }
 
+DeviceCertificate::DeviceCertificate(const DeviceCertificate& other)
+    : userId_(other.userId_)
+    , deviceId_(other.deviceId_)
+    , identityPublicKey_(other.identityPublicKey_)
+    , createdAt_(other.createdAt_)
+    , expiresAt_(other.expiresAt_)
+    , selfSignature_(other.selfSignature_)
+    , lastError_(other.lastError_)
+    , errorString_(other.errorString_)
+{
+    // Deep copy completed 
+}
+
 DeviceCertificate::~DeviceCertificate() = default;
 
 bool DeviceCertificate::setUserId(const QString& userId) {
@@ -366,4 +379,18 @@ bool DeviceCertificate::operator==(const DeviceCertificate& other) const {
            createdAt_ == other.createdAt_ &&
            expiresAt_ == other.expiresAt_ &&
            selfSignature_ == other.selfSignature_;
+}
+
+DeviceCertificate& DeviceCertificate::operator=(const DeviceCertificate& other) {
+    if (this != &other) {  // This prevents self-assignment
+        userId_ = other.userId_;
+        deviceId_ = other.deviceId_;
+        identityPublicKey_ = other.identityPublicKey_;
+        createdAt_ = other.createdAt_;
+        expiresAt_ = other.expiresAt_;
+        selfSignature_ = other.selfSignature_;
+        lastError_ = other.lastError_;
+        errorString_ = other.errorString_;
+    }
+    return *this;  // Return reference to this object
 } 
