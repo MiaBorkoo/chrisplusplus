@@ -66,35 +66,43 @@ void DeviceCertificate::setSelfSignature(const QByteArray& signature) {
 bool DeviceCertificate::verify() const {
     clearError();
     
+    // Validate all certificate fields before signature verification
+    // This ensures we don't waste time verifying signatures of invalid certificates
     if (!validateFields()) {
         return false;
     }
 
-    // Create and load public key
+    // Create and load Ed25519 public key using OpenSSL
+    // The key is stored in raw format and needs to be converted to an EVP_PKEY
     ScopedEVP_PKEY pkey(EVP_PKEY_new_raw_public_key(EVP_PKEY_ED25519, nullptr,
         reinterpret_cast<const unsigned char*>(identityPublicKey_.constData()),
         identityPublicKey_.size()));
     
     if (!pkey) {
-        setError(CertError::ValidationError, "Failed to load public key");
+        setError(CertError::ValidationError, "Failed to load Ed25519 public key");
         return false;
     }
 
-    // Get data to verify
+    // Get certificate data for verification
+    // This includes all fields except the signature itself
     QByteArray data = computeCertificateData();
 
-    // Verify signature
+    // Create message digest context for signature verification
     ScopedEVP_MD_CTX md_ctx;
     if (!md_ctx) {
         setError(CertError::ValidationError, "Failed to create signature context");
         return false;
     }
 
+    // Initialize signature verification with Ed25519
+    // Note: Ed25519 doesn't use a separate digest algorithm
     if (EVP_DigestVerifyInit(md_ctx.get(), nullptr, nullptr, nullptr, pkey.get()) != 1) {
-        setError(CertError::ValidationError, "Failed to initialize signature verification");
+        setError(CertError::ValidationError, "Failed to initialize Ed25519 verification");
         return false;
     }
 
+    // Verify the signature against the certificate data
+    // EVP_DigestVerify returns 1 for success, 0 for failure, -1 for error
     int result = EVP_DigestVerify(md_ctx.get(),
         reinterpret_cast<const unsigned char*>(selfSignature_.constData()),
         selfSignature_.size(),
@@ -102,7 +110,7 @@ bool DeviceCertificate::verify() const {
         data.size());
 
     if (result != 1) {
-        setError(CertError::InvalidSignature, "Signature verification failed");
+        setError(CertError::InvalidSignature, "Ed25519 signature verification failed");
         return false;
     }
 
@@ -170,33 +178,43 @@ QByteArray DeviceCertificate::sign(const QByteArray& privateKey) {
 }
 
 bool DeviceCertificate::validateFields() const {
+    // Validate user ID length and format
+    // The maximum length is defined in the header to prevent DoS attacks
     if (userId_.length() > MAX_USER_ID_LENGTH || userId_.isEmpty()) {
-        setError(CertError::InvalidUserId, "Invalid user ID");
+        setError(CertError::InvalidUserId, "User ID length must be between 1 and 128 characters");
         return false;
     }
 
+    // Validate device ID length and format
+    // Device IDs are used to distinguish between multiple devices for the same user
     if (deviceId_.length() > MAX_DEVICE_ID_LENGTH || deviceId_.isEmpty()) {
-        setError(CertError::InvalidDeviceId, "Invalid device ID");
+        setError(CertError::InvalidDeviceId, "Device ID length must be between 1 and 64 characters");
         return false;
     }
 
+    // Validate Ed25519 public key size
+    // Ed25519 keys must be exactly 32 bytes
     if (identityPublicKey_.size() != ED25519_KEY_SIZE) {
-        setError(CertError::InvalidPublicKey, "Invalid public key size");
+        setError(CertError::InvalidPublicKey, "Ed25519 public key must be exactly 32 bytes");
         return false;
     }
 
+    // Validate signature if present
+    // The signature might be empty during certificate creation
     if (!selfSignature_.isEmpty() && selfSignature_.size() != ED25519_SIG_SIZE) {
-        setError(CertError::InvalidSignature, "Invalid signature size");
+        setError(CertError::InvalidSignature, "Ed25519 signature must be exactly 64 bytes");
         return false;
     }
 
+    // Validate certificate timestamps
+    // Both creation and expiration times must be valid and logically ordered
     if (!createdAt_.isValid() || !expiresAt_.isValid()) {
-        setError(CertError::ValidationError, "Invalid timestamps");
+        setError(CertError::ValidationError, "Certificate timestamps must be valid");
         return false;
     }
 
     if (createdAt_ > expiresAt_) {
-        setError(CertError::ValidationError, "Creation time after expiration");
+        setError(CertError::ValidationError, "Certificate creation time cannot be after expiration");
         return false;
     }
 
