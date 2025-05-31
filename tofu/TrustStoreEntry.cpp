@@ -97,7 +97,7 @@ void TrustStoreEntry::addVerificationEvent(const VerificationEvent& event) {
     // Update trust level based on verification method
     if (event.success) {
         if (event.method == "qr_code" || event.method == "voice") {
-            trustLevel_ = TrustLevel::OOBVerified;
+            setTrustLevel(TrustLevel::OOBVerified);
         }
     }
 }
