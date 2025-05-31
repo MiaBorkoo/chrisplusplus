@@ -37,7 +37,7 @@ bool TrustStoreEntry::addDeviceCertificate(const DeviceCertificate& cert) {
         // Record the TOFU event
         VerificationEvent event;
         event.timestamp = trustedAt_;
-        event.method = "tofu";
+        event.method = VerificationMethod::TOFU;
         event.deviceId = cert.deviceId();
         event.success = true;
         event.details = "Initial device trust";
@@ -51,6 +51,22 @@ bool TrustStoreEntry::removeDeviceCertificate(const QString& deviceId) {
     for (int i = 0; i < deviceCertificates_.size(); ++i) {
         if (deviceCertificates_[i].deviceId() == deviceId) {
             deviceCertificates_.removeAt(i);
+            
+            // Resets trust
+            if (deviceCertificates_.isEmpty()) {
+                trustLevel_ = TrustLevel::Untrusted;
+                trustedAt_ = QDateTime(); 
+                
+                // Record the event
+                VerificationEvent event;
+                event.timestamp = QDateTime::currentDateTimeUtc();
+                event.method = VerificationMethod::TOFU_DECISION;
+                event.deviceId = deviceId;
+                event.success = false;
+                event.details = "Last device removed - trust reset";
+                verificationHistory_.append(event);
+            }
+            
             return true;
         }
     }
@@ -69,7 +85,7 @@ bool TrustStoreEntry::updateDeviceCertificate(const DeviceCertificate& cert) {
             // Record the update event
             VerificationEvent event;
             event.timestamp = QDateTime::currentDateTimeUtc();
-            event.method = "update";
+            event.method = VerificationMethod::UPDATE;
             event.deviceId = cert.deviceId();
             event.success = true;
             event.details = "Certificate updated";
@@ -96,8 +112,13 @@ void TrustStoreEntry::addVerificationEvent(const VerificationEvent& event) {
 
     // Update trust level based on verification method
     if (event.success) {
-        if (event.method == "qr_code" || event.method == "voice") {
+        if (event.method == VerificationMethod::QR_CODE || 
+            event.method == VerificationMethod::VOICE) {
             trustLevel_ = TrustLevel::OOBVerified;
+        } else if (event.method == VerificationMethod::TOFU) {
+            if (trustLevel_ == TrustLevel::Untrusted) {
+                trustLevel_ = TrustLevel::TOFU;
+            }
         }
     }
 }

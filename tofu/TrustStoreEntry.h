@@ -7,6 +7,15 @@
 // Forward declaration
 class DeviceCertificate;
 
+// Constants for verification methods
+namespace VerificationMethod {
+    static const QString TOFU = "tofu";
+    static const QString QR_CODE = "qr_code";
+    static const QString VOICE = "voice";
+    static const QString UPDATE = "update";
+    static const QString TOFU_DECISION = "tofu_decision";
+}
+
 enum class TrustLevel {
     Untrusted,
     TOFU,           // Trusted on first use

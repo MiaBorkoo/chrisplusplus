@@ -41,26 +41,32 @@ bool TOFUPromptManager::handleTOFUPrompt(const QString& recipientUserId,
         return false;
     }
     
-    // Create or update trust store entry for this user
-    // This is triggered on first interaction or when new devices are detected
-    if (!hasTrustStoreEntry(recipientUserId)) {
-        TrustStoreEntry entry(recipientUserId);
-        for (const auto& cert : certificates) {
-            // Add each device certificate to the trust store
-            // This maintains a record of all known devices for the user
-            entry.addDeviceCertificate(cert);
+    // Get or create trust store entry
+    TrustStoreEntry entry = hasTrustStoreEntry(recipientUserId) ? 
+        getTrustStoreEntry(recipientUserId) : TrustStoreEntry(recipientUserId);
+    
+    bool hasNewDevices = false;
+    
+    // Add any new devices to the trust store
+    for (const auto& cert : certificates) {
+        if (!entry.hasDevice(cert.deviceId())) {
+            if (entry.addDeviceCertificate(cert)) {
+                hasNewDevices = true;
+            }
         }
+    }
+    
+    // Update trust store if we have new devices
+    if (hasNewDevices) {
         addTrustStoreEntry(entry);
     }
     
-    // Emit signal for UI to show trust prompt
-    // The UI should display the certificates and allow the user to:
-    // 1. Accept the device (TOFU trust)
-    // 2. Initiate out-of-band verification
-    // 3. Reject the device
-    emit trustPromptRequired(recipientUserId, certificates);
+    if (hasNewDevices || entry.requiresVerification()) {
+        emit trustPromptRequired(recipientUserId, certificates);
+        return true;
+    }
     
-    return true;
+    return false;
 }
 
 QByteArray TOFUPromptManager::generateQRCode(const QString& userId) {
@@ -208,7 +214,8 @@ void TOFUPromptManager::updateTrustStore(const QString& userId, bool accepted,
     // This maintains an audit trail of all trust-related decisions
     VerificationEvent event;
     event.timestamp = QDateTime::currentDateTimeUtc();
-    event.method = verificationMethod.isEmpty() ? "tofu_decision" : verificationMethod;
+    event.method = verificationMethod.isEmpty() ? 
+        VerificationMethod::TOFU_DECISION : verificationMethod;
     event.success = accepted;
     event.details = accepted ? "Trust accepted" : "Trust rejected";
     
@@ -220,7 +227,8 @@ void TOFUPromptManager::updateTrustStore(const QString& userId, bool accepted,
         // Out-of-band verification methods provide stronger trust guarantees
         // - QR code verification: User physically scanned device's QR code
         // - Voice verification: User confirmed identity through voice channel
-        if (verificationMethod == "qr_code" || verificationMethod == "voice") {
+        if (verificationMethod == VerificationMethod::QR_CODE || 
+            verificationMethod == VerificationMethod::VOICE) {
             entry.setTrustLevel(TrustLevel::OOBVerified);
         } else {
             // Standard TOFU acceptance without additional verification
