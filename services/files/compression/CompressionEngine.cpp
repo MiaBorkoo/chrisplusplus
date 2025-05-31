@@ -1,12 +1,308 @@
 #include "CompressionEngine.h"
 #include "../exceptions/Exceptions.h"
+#include <zip.h>
 #include <zlib.h>
 #include <stdexcept>
 #include <algorithm>
+#include <fstream>
+#include <filesystem>
+#include <cstring>
 
 CompressionEngine::CompressionEngine() {
-    // Initialize zlib if needed
+    // Initialize libzip and zlib if needed
 }
+
+// ZIP archive operations using libzip
+
+std::vector<uint8_t> CompressionEngine::create_zip_archive(const FolderContent& folder_content) {
+    try {
+        // Create in-memory ZIP archive
+        zip_error_t error;
+        zip_source_t* source = zip_source_buffer_create(nullptr, 0, 0, &error);
+        if (!source) {
+            throw std::runtime_error("Failed to create ZIP source");
+        }
+        
+        zip_t* zip_archive = zip_open_from_source(source, ZIP_CREATE, &error);
+        if (!zip_archive) {
+            zip_source_free(source);
+            throw std::runtime_error("Failed to create ZIP archive");
+        }
+        
+        // Add folder contents recursively
+        add_folder_to_zip(zip_archive, "", folder_content);
+        
+        // Write ZIP to memory buffer
+        zip_source_t* final_source = zip_source_zip(zip_archive, zip_archive, 0, 0, -1);
+        if (!final_source) {
+            zip_close(zip_archive);
+            throw std::runtime_error("Failed to create final ZIP source");
+        }
+        
+        // Get buffer size and allocate
+        zip_stat_t stat;
+        if (zip_source_stat(final_source, &stat) != 0) {
+            zip_source_free(final_source);
+            zip_close(zip_archive);
+            throw std::runtime_error("Failed to get ZIP size");
+        }
+        
+        std::vector<uint8_t> zip_data(stat.size);
+        
+        // Read ZIP data
+        if (zip_source_open(final_source) != 0) {
+            zip_source_free(final_source);
+            zip_close(zip_archive);
+            throw std::runtime_error("Failed to open ZIP source for reading");
+        }
+        
+        zip_int64_t bytes_read = zip_source_read(final_source, zip_data.data(), zip_data.size());
+        zip_source_close(final_source);
+        zip_source_free(final_source);
+        zip_close(zip_archive);
+        
+        if (bytes_read != static_cast<zip_int64_t>(zip_data.size())) {
+            throw std::runtime_error("Failed to read complete ZIP data");
+        }
+        
+        return zip_data;
+        
+    } catch (const std::exception& e) {
+        throw FileException(FileError::COMPRESSION_FAILED,
+                          std::string("ZIP creation failed: ") + e.what());
+    }
+}
+
+FolderContent CompressionEngine::extract_zip_archive(const std::vector<uint8_t>& zip_data) {
+    try {
+        zip_error_t error;
+        zip_source_t* source = zip_source_buffer_create(zip_data.data(), zip_data.size(), 0, &error);
+        if (!source) {
+            throw std::runtime_error("Failed to create ZIP source from buffer");
+        }
+        
+        zip_t* zip_archive = zip_open_from_source(source, ZIP_RDONLY, &error);
+        if (!zip_archive) {
+            zip_source_free(source);
+            throw std::runtime_error("Failed to open ZIP archive");
+        }
+        
+        FolderContent root_folder;
+        zip_int64_t num_entries = zip_get_num_entries(zip_archive, 0);
+        
+        for (zip_int64_t i = 0; i < num_entries; i++) {
+            const char* name = zip_get_name(zip_archive, i, 0);
+            if (!name) continue;
+            
+            std::string path(name);
+            
+            // Skip directories (they end with '/')
+            if (path.back() == '/') {
+                continue;
+            }
+            
+            // Extract file
+            FileContent file = extract_file_from_zip(zip_archive, path);
+            
+            // Add to appropriate location in folder structure
+            std::filesystem::path file_path(path);
+            if (file_path.has_parent_path()) {
+                // TODO: Handle nested folder structure
+                // For now, add all files to root
+                root_folder.files[path] = file;
+            } else {
+                root_folder.files[path] = file;
+            }
+        }
+        
+        zip_close(zip_archive);
+        
+        // Calculate totals
+        root_folder.total_size = 0;
+        root_folder.file_count = root_folder.files.size();
+        for (const auto& [path, file] : root_folder.files) {
+            root_folder.total_size += file.original_size;
+        }
+        
+        return root_folder;
+        
+    } catch (const std::exception& e) {
+        throw FileException(FileError::DECOMPRESSION_FAILED,
+                          std::string("ZIP extraction failed: ") + e.what());
+    }
+}
+
+// File system I/O helpers
+
+FileContent CompressionEngine::load_file_content(const std::string& filepath) {
+    FileContent file_content;
+    
+    std::filesystem::path path(filepath);
+    file_content.filename = path.filename().string();
+    
+    std::ifstream file(filepath, std::ios::binary);
+    if (!file) {
+        throw FileException(FileError::FILE_NOT_FOUND, "Could not open file: " + filepath);
+    }
+    
+    // Get file size
+    file.seekg(0, std::ios::end);
+    size_t file_size = file.tellg();
+    file.seekg(0, std::ios::beg);
+    
+    // Read file data
+    file_content.file_data.resize(file_size);
+    file.read(reinterpret_cast<char*>(file_content.file_data.data()), file_size);
+    file_content.original_size = file_size;
+    
+    return file_content;
+}
+
+FolderContent CompressionEngine::load_folder_content(const std::string& folder_path) {
+    FolderContent folder_content;
+    
+    std::filesystem::path path(folder_path);
+    folder_content.folder_name = path.filename().string();
+    folder_content.total_size = 0;
+    folder_content.file_count = 0;
+    
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(folder_path)) {
+        if (entry.is_regular_file()) {
+            std::string relative_path = std::filesystem::relative(entry.path(), folder_path).string();
+            
+            // Normalize path separators to forward slashes for ZIP compatibility
+            std::replace(relative_path.begin(), relative_path.end(), '\\', '/');
+            
+            FileContent file = load_file_content(entry.path().string());
+            folder_content.files[relative_path] = file;
+            folder_content.total_size += file.original_size;
+            folder_content.file_count++;
+        }
+    }
+    
+    return folder_content;
+}
+
+void CompressionEngine::save_file_content(const FileContent& file_content, const std::string& output_path) {
+    std::ofstream file(output_path, std::ios::binary);
+    if (!file) {
+        throw FileException(FileError::INVALID_SESSION, "Could not create output file: " + output_path);
+    }
+    
+    file.write(reinterpret_cast<const char*>(file_content.file_data.data()), file_content.file_data.size());
+}
+
+void CompressionEngine::save_folder_content(const FolderContent& folder_content, const std::string& output_directory) {
+    std::filesystem::create_directories(output_directory);
+    
+    for (const auto& [relative_path, file] : folder_content.files) {
+        std::filesystem::path output_file_path = std::filesystem::path(output_directory) / relative_path;
+        
+        // Create parent directories if needed
+        std::filesystem::create_directories(output_file_path.parent_path());
+        
+        save_file_content(file, output_file_path.string());
+    }
+}
+
+// Format detection functions
+
+bool CompressionEngine::is_zip_archive(const std::vector<uint8_t>& data) {
+    if (data.size() < 4) {
+        return false;
+    }
+    
+    // Check for ZIP magic bytes (PK\x03\x04 or PK\x05\x06)
+    return (data[0] == 0x50 && data[1] == 0x4B &&
+            ((data[2] == 0x03 && data[3] == 0x04) ||
+             (data[2] == 0x05 && data[3] == 0x06)));
+}
+
+size_t CompressionEngine::estimate_zip_size(const FolderContent& folder_content) {
+    size_t estimated_size = 100; // ZIP headers and central directory
+    
+    for (const auto& [path, file] : folder_content.files) {
+        estimated_size += path.length() + 50; // File entry headers
+        estimated_size += file.original_size * 0.7; // Assume 30% compression
+    }
+    
+    return estimated_size;
+}
+
+// Internal libzip helpers
+
+void CompressionEngine::add_file_to_zip(void* zip_archive, const std::string& path, const FileContent& file) {
+    zip_t* archive = static_cast<zip_t*>(zip_archive);
+    
+    zip_source_t* source = zip_source_buffer(archive, file.file_data.data(), file.file_data.size(), 0);
+    if (!source) {
+        throw std::runtime_error("Failed to create file source for: " + path);
+    }
+    
+    std::string normalized_path = normalize_zip_path(path);
+    zip_int64_t index = zip_file_add(archive, normalized_path.c_str(), source, ZIP_FL_OVERWRITE);
+    if (index < 0) {
+        zip_source_free(source);
+        throw std::runtime_error("Failed to add file to ZIP: " + path);
+    }
+}
+
+void CompressionEngine::add_folder_to_zip(void* zip_archive, const std::string& base_path, const FolderContent& folder) {
+    for (const auto& [relative_path, file] : folder.files) {
+        std::string full_path = base_path.empty() ? relative_path : base_path + "/" + relative_path;
+        add_file_to_zip(zip_archive, full_path, file);
+    }
+    
+    for (const auto& [subfolder_name, subfolder] : folder.subfolders) {
+        std::string subfolder_path = base_path.empty() ? subfolder_name : base_path + "/" + subfolder_name;
+        add_folder_to_zip(zip_archive, subfolder_path, subfolder);
+    }
+}
+
+FileContent CompressionEngine::extract_file_from_zip(void* zip_archive, const std::string& path) {
+    zip_t* archive = static_cast<zip_t*>(zip_archive);
+    
+    zip_file_t* file = zip_fopen(archive, path.c_str(), 0);
+    if (!file) {
+        throw std::runtime_error("Failed to open file in ZIP: " + path);
+    }
+    
+    zip_stat_t stat;
+    if (zip_stat(archive, path.c_str(), 0, &stat) != 0) {
+        zip_fclose(file);
+        throw std::runtime_error("Failed to get file stats: " + path);
+    }
+    
+    FileContent file_content;
+    file_content.filename = std::filesystem::path(path).filename().string();
+    file_content.original_size = stat.size;
+    file_content.file_data.resize(stat.size);
+    
+    zip_int64_t bytes_read = zip_fread(file, file_content.file_data.data(), stat.size);
+    zip_fclose(file);
+    
+    if (bytes_read != static_cast<zip_int64_t>(stat.size)) {
+        throw std::runtime_error("Failed to read complete file from ZIP: " + path);
+    }
+    
+    return file_content;
+}
+
+std::string CompressionEngine::normalize_zip_path(const std::string& path) {
+    std::string normalized = path;
+    
+    // Replace backslashes with forward slashes
+    std::replace(normalized.begin(), normalized.end(), '\\', '/');
+    
+    // Remove leading slash if present
+    if (!normalized.empty() && normalized[0] == '/') {
+        normalized = normalized.substr(1);
+    }
+    
+    return normalized;
+}
+
+// Existing zlib compression functions remain unchanged
 
 std::vector<uint8_t> CompressionEngine::compress_data(
     const std::vector<uint8_t>& data,
