@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.19)
 project(tofu LANGUAGES CXX)
 
+# Find qrencode package
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(QRENCODE REQUIRED libqrencode)
+
 # Create the TOFU library
 add_library(tofu
     DeviceCertificate.h
@@ -9,6 +13,8 @@ add_library(tofu
     TrustStoreEntry.cpp
     TOFUPromptManager.h
     TOFUPromptManager.cpp
+    QRVerification.h
+    QRVerification.cpp
 )
 
 # Link dependencies
@@ -17,10 +23,12 @@ target_link_libraries(tofu
         Qt6::Core
         OpenSSL::SSL
         OpenSSL::Crypto
+        ${QRENCODE_LIBRARIES}
 )
 
 # Include directories
 target_include_directories(tofu
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${QRENCODE_INCLUDE_DIRS}
 ) 

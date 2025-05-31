@@ -4,7 +4,13 @@ TOFUPromptManager::TOFUPromptManager(QObject* parent)
     : QObject(parent)
     , require2FA_(false)
     , decisionHandler_(nullptr)
+    , qrVerification_(this)
 {
+    // Connect QR verification signals
+    connect(&qrVerification_, &QRVerification::verificationSucceeded,
+            this, &TOFUPromptManager::handleQRVerificationSuccess);
+    connect(&qrVerification_, &QRVerification::verificationFailed,
+            this, &TOFUPromptManager::handleQRVerificationFailure);
 }
 
 TrustCheckResult TOFUPromptManager::checkRecipientTrust(const QString& recipientUserId) {
@@ -47,10 +53,51 @@ bool TOFUPromptManager::handleTOFUPrompt(const QString& recipientUserId,
     // Emit signal for UI to show trust prompt
     emit trustPromptRequired(recipientUserId, certificates);
     
-    // Note: Actual trust decision will be handled asynchronously through
-    // acceptTrust() or rejectTrust() slots when user makes a decision
-    
     return true;
+}
+
+QByteArray TOFUPromptManager::generateQRCode(const QString& userId) {
+    if (!hasTrustStoreEntry(userId)) {
+        return QByteArray();
+    }
+    
+    TrustStoreEntry entry = getTrustStoreEntry(userId);
+    if (entry.deviceCertificates().isEmpty()) {
+        return QByteArray();
+    }
+    
+    // Use the first certificate for QR code generation
+    const DeviceCertificate& cert = entry.deviceCertificates().first();
+    QRVerificationData data = qrVerification_.generateVerificationData(cert);
+    return qrVerification_.generateQRCode(data);
+}
+
+bool TOFUPromptManager::verifyQRCode(const QByteArray& qrData, const QString& userId) {
+    if (!hasTrustStoreEntry(userId)) {
+        emit qrVerificationFailed(userId, "No trust store entry found");
+        return false;
+    }
+    
+    TrustStoreEntry entry = getTrustStoreEntry(userId);
+    if (entry.deviceCertificates().isEmpty()) {
+        emit qrVerificationFailed(userId, "No certificates found");
+        return false;
+    }
+    
+    // Decode QR code and verify
+    QRVerificationData received = qrVerification_.decodeQRCode(qrData);
+    const DeviceCertificate& localCert = entry.deviceCertificates().first();
+    return qrVerification_.verifyReceivedData(received, localCert);
+}
+
+void TOFUPromptManager::handleQRVerificationSuccess(const QString& userId, const QString& deviceId) {
+    // Update trust store with successful QR verification
+    updateTrustStore(userId, true, "qr_code");
+    emit qrVerificationSucceeded(userId, deviceId);
+}
+
+void TOFUPromptManager::handleQRVerificationFailure(const QString& userId, const QString& error) {
+    emit qrVerificationFailed(userId, error);
 }
 
 void TOFUPromptManager::setDecisionHandler(TOFUDecisionHandler* handler) {

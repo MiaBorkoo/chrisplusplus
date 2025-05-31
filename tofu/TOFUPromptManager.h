@@ -6,6 +6,7 @@
 #include <QMap>
 #include "TrustStoreEntry.h"
 #include "DeviceCertificate.h"
+#include "QRVerification.h"
 
 // Forward declaration
 class TOFUPromptManager;
@@ -22,6 +23,7 @@ class TOFUPromptManager : public QObject {
 public:
     explicit TOFUPromptManager(QObject* parent = nullptr);
     
+    // Main interface methods
     TrustCheckResult checkRecipientTrust(const QString& recipientUserId);
     bool handleTOFUPrompt(const QString& recipientUserId, 
                          const QVector<DeviceCertificate>& certificates);
@@ -35,6 +37,10 @@ public:
     TrustStoreEntry getTrustStoreEntry(const QString& userId) const;
     bool hasTrustStoreEntry(const QString& userId) const;
     
+    // QR verification methods
+    QByteArray generateQRCode(const QString& userId);
+    bool verifyQRCode(const QByteArray& qrData, const QString& userId);
+    
     // Record successful interactions
     void recordSuccessfulInteraction(const QString& recipientUserId,
                                    const QString& interactionType);
@@ -44,6 +50,8 @@ signals:
     void trustPromptRequired(const QString& userId, const QVector<DeviceCertificate>& certs);
     void verificationRequired(const QString& userId, const QString& method);
     void trustDecisionRecorded(const QString& userId, bool accepted);
+    void qrVerificationSucceeded(const QString& userId, const QString& deviceId);
+    void qrVerificationFailed(const QString& userId, const QString& error);
 
 public slots:
     // Handle user decisions
@@ -54,6 +62,7 @@ private:
     bool require2FA_;
     TOFUDecisionHandler* decisionHandler_;
     QMap<QString, TrustStoreEntry> trustStore_;  // userId -> TrustStoreEntry
+    QRVerification qrVerification_;
     
     // Helper methods
     bool verify2FAIfRequired(const QString& operation);
@@ -61,4 +70,8 @@ private:
                              const QString& verificationMethod);
     void updateTrustStore(const QString& userId, bool accepted,
                          const QString& verificationMethod);
+                         
+private slots:
+    void handleQRVerificationSuccess(const QString& userId, const QString& deviceId);
+    void handleQRVerificationFailure(const QString& userId, const QString& error);
 }; 
