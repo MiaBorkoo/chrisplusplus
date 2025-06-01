@@ -300,14 +300,22 @@ HeaderWidget QPushButton:pressed {
     padding: 6px;
 }
 #downloadButton {
-    background-color: #1E88E5 !important;
-    color: #FFFFFF !important;
+    background-color: #43A047; /* Green */
+    color: #FFFFFF;
     font-size: 12px;
-    padding: 4px 8px;
+    font-weight: 500;
+    padding: 4px 12px 4px 8px; /* Extra left padding for icon */
     border: none;
     border-radius: 4px;
+    qproperty-icon: url(:/assets/arrow.svg);
+    qproperty-iconSize: 16px 16px;
 }
-
+#downloadButton:hover {
+    background-color: #388E3C;
+}
+#downloadButton:pressed {
+    background-color: #1B5E20;
+}
 
 /* Access Button Styles */
 #accessButton {

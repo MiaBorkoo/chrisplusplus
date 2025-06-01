@@ -7,6 +7,7 @@
 #include <QHeaderView>
 #include <QPushButton>
 #include <QIcon>
+#include <QMessageBox>
 
 FilesDashView::FilesDashView(QWidget *parent) : QWidget(parent) {
     header = new HeaderWidget(this);
@@ -51,15 +52,6 @@ FilesDashView::FilesDashView(QWidget *parent) : QWidget(parent) {
     fileTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     mainContentLayout->addWidget(fileTable);
 
-    //this connects double-click to emit fileOpenRequested -> this will change when we add a model
-    connect(fileTable, &QTableWidget::cellDoubleClicked, this, [this](int row, int column) {
-        QTableWidgetItem *item = fileTable->item(row, 0);
-        if (item) {
-            QString fileName = item->text();
-            emit fileOpenRequested(fileName);
-        }
-    });
-
     // Horizontal layout for side nav + main content
     QHBoxLayout *hLayout = new QHBoxLayout();
     hLayout->setContentsMargins(0, 0, 0, 0);
@@ -84,11 +76,21 @@ void FilesDashView::addFileRow(const QString &name, const QString &size, const Q
     fileTable->setItem(row, 1, new QTableWidgetItem(size));
     fileTable->setItem(row, 2, new QTableWidgetItem(date));
 
-    // Create actions widget (access + delete)
+    // Create actions widget (download + access + delete)
     QWidget *actionsWidget = new QWidget();
     QHBoxLayout *actionsLayout = new QHBoxLayout(actionsWidget);
     actionsLayout->setContentsMargins(0, 0, 0, 0);
     actionsLayout->setSpacing(6);
+
+    // Download button
+    QPushButton *downloadButton = new QPushButton("Download");
+    downloadButton->setObjectName("downloadButton");
+    downloadButton->setIcon(QIcon(":/assets/arrow.svg"));
+    downloadButton->setIconSize(QSize(16, 16));
+    connect(downloadButton, &QPushButton::clicked, this, [this, name]() {
+        emit downloadRequested(name);
+    });
+    actionsLayout->addWidget(downloadButton);
 
     // Access button (with text)
     QPushButton *accessButton = new QPushButton("Access");
@@ -98,11 +100,13 @@ void FilesDashView::addFileRow(const QString &name, const QString &size, const Q
     });
     actionsLayout->addWidget(accessButton);
 
+    actionsLayout->addStretch();
+
     // Delete button (red trash icon)
     QPushButton *deleteButton = new QPushButton();
     deleteButton->setToolTip("Delete File");
-    deleteButton->setFixedSize(28, 28); 
-    deleteButton->setIcon(QIcon(":/assets/trash.svg")); 
+    deleteButton->setFixedSize(28, 28);
+    deleteButton->setIcon(QIcon(":/assets/trash.svg"));
     deleteButton->setIconSize(QSize(18, 18));
     deleteButton->setObjectName("deleteButton");
     connect(deleteButton, &QPushButton::clicked, this, [this, name]() {
@@ -110,8 +114,11 @@ void FilesDashView::addFileRow(const QString &name, const QString &size, const Q
     });
     actionsLayout->addWidget(deleteButton);
 
-    actionsLayout->addStretch();
     fileTable->setCellWidget(row, 3, actionsWidget);
+}
+
+void FilesDashView::clearTable() {
+    fileTable->setRowCount(0);
 }
 
 QLineEdit* FilesDashView::getSearchBar() const { return searchBar; }

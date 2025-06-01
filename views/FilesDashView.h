@@ -15,6 +15,7 @@ public:
     QTableWidget* getFileTable() const;
     SideNavWidget* getSideNav() const;
     void addFileRow(const QString &name, const QString &size, const QString &date);
+    void clearTable();
 
 private:
     HeaderWidget *header;
@@ -27,6 +28,7 @@ signals:
     void uploadRequested();
     void accessRequested(const QString &fileName);
     void deleteRequested(const QString &fileName);
+    void downloadRequested(const QString &fileName);
 
 };
 

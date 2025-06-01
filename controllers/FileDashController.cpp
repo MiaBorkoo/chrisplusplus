@@ -4,12 +4,12 @@
 #include "../views/FilesDashView.h"
 #include "AccessDialog.h"
 #include "AccessController.h"
+#include <QMessageBox>
 
 FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileTable, QObject *parent)
     : QObject(parent), m_searchBar(searchBar), m_fileTable(fileTable), m_view(nullptr) {
     // Placeholder data for files
-    struct FileRow { QString name; QString size; QString date; };
-    QList<FileRow> files = {
+    m_files = {
         {"ProjectPlan.docx", "1.2 MB", "2025-05-27"},
         {"Budget2025.xlsx", "1.2 MB", "2025-05-27"},
         {"MeetingNotes.pdf", "1.2 MB", "2025-05-27"},
@@ -17,9 +17,7 @@ FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileT
     };
     m_view = qobject_cast<FilesDashView*>(m_fileTable->parent()->parent());
     if (m_view) {
-        for (const auto &file : files) {
-            m_view->addFileRow(file.name, file.size, file.date);
-        }
+        connect(m_view, &FilesDashView::deleteRequested, this, &FileDashController::onDeleteFileRequested);
     }
     // Connect signals
     connect(m_searchBar, &QLineEdit::textChanged, this, [this](const QString &query) {
@@ -32,6 +30,7 @@ FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileT
     if (m_view) {
         connect(m_view, &FilesDashView::accessRequested, this, &FileDashController::showAccessDialogForFile);
     }
+    repopulateTable();
 }
 
 void FileDashController::handleSearch(const QString &text) {
@@ -53,4 +52,31 @@ void FileDashController::showAccessDialogForFile(const QString &fileName) {
     dialog->exec();
     // After dialog closes, update m_fileAccess with any changes
     m_fileAccess[fileName] = accessController->getUsers();
+}
+
+void FileDashController::onDeleteFileRequested(const QString &fileName) {
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        m_view,
+        "Delete File",
+        "Are you sure you want to delete this file?",
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::Yes
+    );
+    if (reply == QMessageBox::Yes) {
+        // Remove from m_files
+        auto it = std::remove_if(m_files.begin(), m_files.end(), [&](const FileRow &row) {
+            return row.name == fileName;
+        });
+        m_files.erase(it, m_files.end());
+        repopulateTable();
+    }
+}
+
+void FileDashController::repopulateTable() {
+    if (m_view) m_view->clearTable();
+    for (const auto &file : m_files) {
+        if (m_view) {
+            m_view->addFileRow(file.name, file.size, file.date);
+        }
+    }
 }
