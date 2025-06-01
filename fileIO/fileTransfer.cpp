@@ -179,7 +179,7 @@ QString FileTransfer::sanitizePath(const QString& path) {
     return QDir::cleanPath(absolutePath);
 }
 
-bool isPathSafe(const QString& basePath, const QString& targetPath) {
+bool FileTransfer::isPathSafe(const QString& basePath, const QString& targetPath) {
     QString cleanBase = QDir::cleanPath(QDir(basePath).absolutePath());
     QString cleanTarget = QDir::cleanPath(QDir(targetPath).absolutePath());
     return cleanTarget.startsWith(cleanBase);
