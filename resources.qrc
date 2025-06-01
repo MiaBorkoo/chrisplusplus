@@ -1,7 +1,7 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
     <qresource prefix="/">
-        <file>styles/login.css</file>
+        <file>styles/styles.css</file>
         <file>assets/logo.png</file>
         <file>assets/folder.svg</file>
         <file>assets/shared.svg</file>

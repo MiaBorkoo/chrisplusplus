@@ -9,9 +9,16 @@
 #include <QStackedWidget>
 #include <QMessageBox>
 #include <QDebug>
+#include <QFile>
 
 MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 {
+    // Load global stylesheet
+    QFile styleFile(":/styles/styles.css");
+    styleFile.open(QFile::ReadOnly);
+    QString styleSheet = QLatin1String(styleFile.readAll());
+    qApp->setStyleSheet(styleSheet);
+
     setWindowTitle("Login");
     QScreen *screen = QApplication::primaryScreen();
     QRect screenGeometry = screen->geometry();
