@@ -1,16 +1,74 @@
 #include "TOFUPromptManager.h"
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 
 TOFUPromptManager::TOFUPromptManager(QObject* parent)
     : QObject(parent)
     , require2FA_(false)
     , decisionHandler_(nullptr)
     , qrVerification_(this)
+    , httpClient_(nullptr)
 {
     // Connect QR verification signals
     connect(&qrVerification_, &QRVerification::verificationSucceeded,
             this, &TOFUPromptManager::handleQRVerificationSuccess);
     connect(&qrVerification_, &QRVerification::verificationFailed,
             this, &TOFUPromptManager::handleQRVerificationFailure);
+}
+
+QVector<DeviceCertificate> TOFUPromptManager::fetchCertificatesFromServer(const QString& userId) {
+    QVector<DeviceCertificate> certificates;
+    
+    if (!httpClient_) {
+        qWarning() << "HttpClient not set, cannot fetch certificates";
+        return certificates;
+    }
+    
+    try {
+        // Construct request to fetch certificates
+        HttpRequest req;
+        req.method = "GET";
+        req.path = "/api/tofu/devices/" + userId.toStdString();
+        req.headers["Accept"] = "application/json";
+        
+        // Send request and get response
+        HttpResponse resp = httpClient_->sendRequest(req);
+        
+        if (resp.statusCode != 200) {
+            qWarning() << "Failed to fetch certificates for user" << userId
+                      << "Status:" << resp.statusCode;
+            return certificates;
+        }
+        
+        // Parse JSON response
+        QJsonDocument doc = QJsonDocument::fromJson(QByteArray::fromStdString(resp.body));
+        if (!doc.isObject()) {
+            qWarning() << "Invalid JSON response when fetching certificates";
+            return certificates;
+        }
+        
+        QJsonObject root = doc.object();
+        QJsonArray deviceArray = root["devices"].toArray();
+        
+        // Convert each device entry to a DeviceCertificate
+        for (const QJsonValue& deviceVal : deviceArray) {
+            QJsonObject device = deviceVal.toObject();
+            
+            DeviceCertificate cert;
+            cert.setDeviceId(device["device_id"].toString());
+            cert.setIdentityPublicKey(QByteArray::fromBase64(device["public_key"].toString().toLatin1()));
+            cert.setSelfSignature(QByteArray::fromBase64(device["signature"].toString().toLatin1()));
+            cert.setCreatedAt(QDateTime::fromString(device["timestamp"].toString(), Qt::ISODate));
+            
+            certificates.append(cert);
+        }
+        
+    } catch (const std::exception& e) {
+        qWarning() << "Exception while fetching certificates:" << e.what();
+    }
+    
+    return certificates;
 }
 
 TrustCheckResult TOFUPromptManager::checkRecipientTrust(const QString& recipientUserId) {
@@ -26,10 +84,16 @@ TrustCheckResult TOFUPromptManager::checkRecipientTrust(const QString& recipient
         result.requires_tofu_prompt = (result.trust_level == TrustLevel::TOFU);
         result.certificates = entry.deviceCertificates();
     } else {
-        // TODO: Fetch certificates from server using Person 3's interface
-        // For now, simulate requiring TOFU
-        result.requires_tofu_prompt = true;
-        result.trust_level = TrustLevel::Untrusted;
+        // Fetch certificates from server
+        result.certificates = fetchCertificatesFromServer(recipientUserId);
+        
+        if (!result.certificates.isEmpty()) {
+            result.requires_tofu_prompt = true;
+            result.trust_level = TrustLevel::Untrusted;
+        } else {
+            qWarning() << "No certificates found for user" << recipientUserId;
+            result.trust_level = TrustLevel::Untrusted;
+        }
     }
     
     return result;

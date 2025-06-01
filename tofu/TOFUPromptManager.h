@@ -7,6 +7,7 @@
 #include "TrustStoreEntry.h"
 #include "DeviceCertificate.h"
 #include "QRVerification.h"
+#include "../httpC/HttpClient.h"
 
 // Forward declaration
 class TOFUPromptManager;
@@ -31,6 +32,7 @@ public:
     // Configuration
     void setDecisionHandler(TOFUDecisionHandler* handler);
     void setRequire2FA(bool require) { require2FA_ = require; }
+    void setHttpClient(HttpClient* client) { httpClient_ = client; }
     
     // Trust store management
     void addTrustStoreEntry(const TrustStoreEntry& entry);
@@ -63,6 +65,7 @@ private:
     TOFUDecisionHandler* decisionHandler_;
     QMap<QString, TrustStoreEntry> trustStore_;  // userId -> TrustStoreEntry
     QRVerification qrVerification_;
+    HttpClient* httpClient_;  // For fetching certificates
     
     // Helper methods
     bool verify2FAIfRequired(const QString& operation);
@@ -70,6 +73,7 @@ private:
                              const QString& verificationMethod);
     void updateTrustStore(const QString& userId, bool accepted,
                          const QString& verificationMethod);
+    QVector<DeviceCertificate> fetchCertificatesFromServer(const QString& userId);
                          
 private slots:
     void handleQRVerificationSuccess(const QString& userId, const QString& deviceId);
