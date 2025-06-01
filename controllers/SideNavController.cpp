@@ -1,13 +1,15 @@
 #include "SideNavController.h"
 #include <QPushButton>
+#include "../models/SideNavTabs.h"
 
 SideNavController::SideNavController(SideNavWidget *view, QObject *parent)
     : QObject(parent), view(view) {
     connectSignals();
 }
 
-void SideNavController::setActiveTab(const QString &tabName) {
-    view->setActiveTab(tabName);
+
+void SideNavController::setActiveTab(SideNavTab tab) {
+    view->setActiveTab(tab);
 }
 
 void SideNavController::setView(SideNavWidget *newView) {
@@ -18,19 +20,26 @@ void SideNavController::setView(SideNavWidget *newView) {
 }
 
 void SideNavController::connectSignals() {
-    // Find all navigation buttons and connect their clicked signals
-    for (QPushButton *button : view->findChildren<QPushButton*>()) {
-        if (button->text() == " Owned Files") {
-            connect(button, &QPushButton::clicked, this, &SideNavController::ownedFilesRequested);
-        }
-        else if (button->text() == " Shared With Me") {
-            connect(button, &QPushButton::clicked, this, &SideNavController::sharedFilesRequested);
-        }
-        else if (button->text() == " Inbox") {
-            connect(button, &QPushButton::clicked, this, &SideNavController::inboxRequested);
-        }
-        else if (button->text() == "Logout") {
-            connect(button, &QPushButton::clicked, this, &SideNavController::logoutRequested);
+    for (auto it = NavTabData.begin(); it != NavTabData.end(); ++it) {
+        SideNavTab tab = it.key();
+        const QString &objName = it.value().objectName;
+        QPushButton *button = view->findChild<QPushButton*>(objName);
+        if (!button) continue;
+        switch (tab) {
+            case SideNavTab::OwnedFiles:
+                connect(button, &QPushButton::clicked, this, &SideNavController::ownedFilesRequested);
+                break;
+            case SideNavTab::SharedWithMe:
+                connect(button, &QPushButton::clicked, this, &SideNavController::sharedFilesRequested);
+                break;
+            case SideNavTab::Inbox:
+                connect(button, &QPushButton::clicked, this, &SideNavController::inboxRequested);
+                break;
         }
     }
-} 
+    // Logout button
+    QPushButton *logoutBtn = view->findChild<QPushButton*>("logoutButton");
+    if (logoutBtn) {
+        connect(logoutBtn, &QPushButton::clicked, this, &SideNavController::logoutRequested);
+    }
+}

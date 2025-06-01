@@ -13,7 +13,7 @@ SharedDashView::SharedDashView(QWidget *parent) : QWidget(parent) {
     //initialising header and side navigation
     header = new HeaderWidget(this);
     sideNav = new SideNavWidget(this);
-    sideNav->setActiveTab("Shared With Me"); 
+    sideNav->setActiveTab(SideNavTab::SharedWithMe); 
 
     // This is our main content widget
     QWidget *mainContent = new QWidget(this);

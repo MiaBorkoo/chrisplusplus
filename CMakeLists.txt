@@ -97,6 +97,7 @@ qt_add_executable(ChrisPlusPlus
     views/AccessDialog.h
     controllers/AccessController.cpp
     controllers/AccessController.h
+    models/SideNavTabs.h
     ${RESOURCE_FILES}
     
     # ✅ ADD: Authentication system

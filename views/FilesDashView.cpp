@@ -92,7 +92,7 @@ void FilesDashView::addFileRow(const QString &name, const QString &size, const Q
     });
     actionsLayout->addWidget(downloadButton);
 
-    // Access button (with text)
+    //button to manage access
     QPushButton *accessButton = new QPushButton("Access");
     accessButton->setObjectName("accessButton");
     connect(accessButton, &QPushButton::clicked, this, [this, name]() {
@@ -102,7 +102,7 @@ void FilesDashView::addFileRow(const QString &name, const QString &size, const Q
 
     actionsLayout->addStretch();
 
-    // Delete button (red trash icon)
+    //delete file button
     QPushButton *deleteButton = new QPushButton();
     deleteButton->setToolTip("Delete File");
     deleteButton->setFixedSize(28, 28);
