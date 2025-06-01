@@ -30,6 +30,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
     m_filesDashView = new FilesDashView(this);
     m_fileDashController = new FileDashController(m_filesDashView->getSearchBar(), m_filesDashView->getFileTable(), this);
+   
 
     m_sharedDashView = new SharedDashView(this);
     m_sharedDashController = new SharedDashController(m_sharedDashView, this);
@@ -108,3 +109,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
    
 }   
+
+MainWindow::~MainWindow() {
+    
+}

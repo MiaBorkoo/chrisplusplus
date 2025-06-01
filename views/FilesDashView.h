@@ -25,6 +25,8 @@ private:
 signals:
     void fileOpenRequested(const QString &fileName);
     void uploadRequested();
+    void accessRequested(const QString &fileName);
+
 };
 
 #endif // FILESDASHVIEW_H

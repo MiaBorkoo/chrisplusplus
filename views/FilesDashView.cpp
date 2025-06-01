@@ -41,8 +41,8 @@ FilesDashView::FilesDashView(QWidget *parent) : QWidget(parent) {
     fileTable = new QTableWidget(mainContent);
     fileTable->setObjectName("fileTable");
     fileTable->setAlternatingRowColors(true);
-    fileTable->setColumnCount(3);
-    fileTable->setHorizontalHeaderLabels({"Name", "Size", "Date Uploaded"});
+    fileTable->setColumnCount(4);
+    fileTable->setHorizontalHeaderLabels({"Name", "Size", "Date Uploaded", "Access"});
     fileTable->verticalHeader()->setVisible(false);
     fileTable->setSelectionMode(QAbstractItemView::SingleSelection);
     fileTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -82,6 +82,13 @@ void FilesDashView::addFileRow(const QString &name, const QString &size, const Q
     fileTable->setItem(row, 0, new QTableWidgetItem(name));
     fileTable->setItem(row, 1, new QTableWidgetItem(size));
     fileTable->setItem(row, 2, new QTableWidgetItem(date));
+
+    QPushButton *accessButton = new QPushButton("Access");
+    accessButton->setObjectName("accessButton");
+    connect(accessButton, &QPushButton::clicked, this, [this, name]() {
+        emit accessRequested(name);
+    });
+    fileTable->setCellWidget(row, 3, accessButton);
 }
 
 QLineEdit* FilesDashView::getSearchBar() const { return searchBar; }
