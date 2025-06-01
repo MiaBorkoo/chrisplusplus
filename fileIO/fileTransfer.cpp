@@ -190,7 +190,7 @@ TransferResult FileTransfer::performDownloadWithRetry(const std::string& endpoin
                                                     const ProgressCallback& callback,
                                                     int maxRetries) {
     TransferResult lastResult;
-    QString sanitizedPath;  // Moved declaration outside try block
+    QString sanitizedPath;  
     
     for (int attempt = 1; attempt <= maxRetries; ++attempt) {
         std::cout << "Download attempt " << attempt << " of " << maxRetries << std::endl;
@@ -199,7 +199,7 @@ TransferResult FileTransfer::performDownloadWithRetry(const std::string& endpoin
             cancelRequested_ = false;
             
             // Sanitize and validate save path
-            sanitizedPath = sanitizePath(savePath);  // Just assignment now, not declaration
+            sanitizedPath = sanitizePath(savePath);  
             QString baseDir = QDir::cleanPath(QDir::currentPath());
             
             if (!isPathSafe(baseDir, sanitizedPath)) {
