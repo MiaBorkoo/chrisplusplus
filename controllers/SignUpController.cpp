@@ -105,7 +105,6 @@ bool SignUpController::isPasswordValid(const QString &password, QString &errorMe
     // Check for numbers
     if (!password.contains(QRegularExpression("[0-9]"))) {
         errorMessage = "Password must contain at least one number.";
-        return false;
     }
 
     // Check for special characters

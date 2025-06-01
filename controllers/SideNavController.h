@@ -2,14 +2,14 @@
 #define SIDENAVCONTROLLER_H
 
 #include <QObject>
-#include <QString>
 #include "../views/SideNavWidget.h"
+#include "../models/SideNavTabs.h"
 
 class SideNavController : public QObject {
     Q_OBJECT
 public:
     explicit SideNavController(SideNavWidget *view, QObject *parent = nullptr);
-    void setActiveTab(const QString &tabName);
+    void setActiveTab(SideNavTab tab);
     void setView(SideNavWidget *newView);
 
 signals:
