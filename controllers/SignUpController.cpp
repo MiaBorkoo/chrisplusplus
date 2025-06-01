@@ -55,8 +55,13 @@ void SignUpController::onSignUpClicked(const QString &username, const QString &p
 }
 
 bool SignUpController::isPasswordValid(const QString &password, QString &errorMessage) {
+    // Password must be between 12 and 128 characters
     if (password.length() < 12) {
         errorMessage = "Password must be at least 12 characters.";
+        return false;
+    }
+    if (password.length() > 128) {
+        errorMessage = "Password must not exceed 128 characters.";
         return false;
     }
     if (!password.contains(QRegularExpression("[A-Za-z]")) || !password.contains(QRegularExpression("[0-9]"))) {

@@ -33,12 +33,6 @@ protected:
 
 LoginView::LoginView(QWidget *parent) : QWidget(parent)
 {
-    //loads stylesheet
-    QFile styleFile(":/styles/login.css");
-    styleFile.open(QFile::ReadOnly);
-    QString styleSheet = QLatin1String(styleFile.readAll());
-    qApp->setStyleSheet(styleSheet);
-
     QFont headingFont("Helvetica Neue", 48, QFont::Bold);
     QFont labelFont("Arial", 12, QFont::Bold);
     QFont inputFont("Arial", 11);

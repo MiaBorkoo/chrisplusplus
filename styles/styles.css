@@ -300,10 +300,117 @@ HeaderWidget QPushButton:pressed {
     padding: 6px;
 }
 #downloadButton {
-    background-color: #1E88E5 !important;
-    color: #FFFFFF !important;
+    background-color: #43A047; /* Green */
+    color: #FFFFFF;
     font-size: 12px;
+    font-weight: 500;
+    padding: 4px 12px 4px 8px; /* Extra left padding for icon */
+    border: none;
+    border-radius: 4px;
+    qproperty-icon: url(:/assets/arrow.svg);
+    qproperty-iconSize: 16px 16px;
+}
+#downloadButton:hover {
+    background-color: #388E3C;
+}
+#downloadButton:pressed {
+    background-color: #1B5E20;
+}
+
+/* Access Button Styles */
+#accessButton {
+    background-color: #1E88E5;
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: 500;
     padding: 4px 8px;
     border: none;
     border-radius: 4px;
+}
+#accessButton:hover {
+    background-color: #1565C0;
+}
+#accessButton:pressed {
+    background-color: #0D47A1;
+}
+
+/* Delete Button Styles */
+#deleteButton {
+    background-color: #D32F2F;
+    border: none;
+    border-radius: 4px;
+}
+#deleteButton:hover {
+    background-color: #610A0A;
+}
+#deleteButton:pressed {
+    background-color: #B71C1C;
+}
+
+/* Access Dialog Styles */
+#accessDialog {
+    background-color: #1C2526;
+}
+
+/* Access Title Styles */
+#accessTitle {
+    color: #FFFFFF;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+/* Access Table Styles */
+#accessTable {
+    background-color: #1E1E1E;
+    color: #D3D3D3;
+    border: none;
+    gridline-color: transparent;
+    font-size: 14px;
+}
+
+#accessTable QHeaderView::section {
+    background-color: #222222;
+    color: #D3D3D3;
+    font-weight: 600;
+    border: none;
+    padding: 4px 0;
+}
+
+#accessTable QTableWidgetItem {
+    border: none;
+    padding: 4px;
+}
+
+/* Add User Button Styles */
+#addUserButton {
+    background-color: #1E88E5;
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+}
+#addUserButton:hover {
+    background-color: #1565C0;
+}
+#addUserButton:pressed {
+    background-color: #0D47A1;
+}
+
+
+/* Revoke Button Styles */
+#revokeButton {
+    background-color: #D32F2F;
+    color: #FFFFFF;
+    font-size: 12px;
+    padding: 2px 6px;
+    border: none;
+    border-radius: 4px;
+}
+#revokeButton:hover {
+    background-color: #B71C1C;
+}
+#revokeButton:pressed {
+    background-color: #7F0000;
 }
