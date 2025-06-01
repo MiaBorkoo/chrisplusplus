@@ -18,9 +18,13 @@ QStringList AccessController::getUsers() const {
     return m_users;
 }
 
-void AccessController::handleAddUser(const QString &fileName, const QString &userEmail) {
-    if (!m_users.contains(userEmail, Qt::CaseInsensitive)) {
-        m_users.append(userEmail);
+void AccessController::handleAddUser(const QString &fileName, const QString &userName) {
+    if (userName.isEmpty()) {
+        QMessageBox::warning(m_dialog, "Input Error", "Please enter a username.");
+        return;
+    }
+    if (!m_users.contains(userName, Qt::CaseInsensitive)) {
+        m_users.append(userName);
         if (m_dialog) m_dialog->updateUserList(m_users);
     } else {
         QMessageBox::information(m_dialog, "Already Exists", "User already has access.");

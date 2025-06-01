@@ -12,13 +12,8 @@ class AccessDialog : public QDialog {
 public:
     explicit AccessDialog(const QString &fileName, const QStringList &users, QWidget *parent = nullptr);
     
-    // Getters for UI elements
-    QTableWidget* getAccessTable() const;
-    QPushButton* getAddUserButton() const;
-    
-    // Public methods for controller to update the view
+    //methods for controller to update the view
     void updateUserList(const QStringList &users);
-    void clearUserList();
     QString getFileName() const;
 
 signals:
@@ -27,7 +22,6 @@ signals:
 
 private slots:
     void onAddUserClicked();
-    void onRevokeClicked();
 
 private:
     QString m_fileName;

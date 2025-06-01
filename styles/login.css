@@ -314,6 +314,7 @@ HeaderWidget QPushButton:pressed {
     background-color: #1E88E5;
     color: #FFFFFF;
     font-size: 12px;
+    font-weight: 500;
     padding: 4px 8px;
     border: none;
     border-radius: 4px;
@@ -323,6 +324,19 @@ HeaderWidget QPushButton:pressed {
 }
 #accessButton:pressed {
     background-color: #0D47A1;
+}
+
+/* Delete Button Styles */
+#deleteButton {
+    background-color: #D32F2F;
+    border: none;
+    border-radius: 4px;
+}
+#deleteButton:hover {
+    background-color: #610A0A;
+}
+#deleteButton:pressed {
+    background-color: #B71C1C;
 }
 
 /* Access Dialog Styles */

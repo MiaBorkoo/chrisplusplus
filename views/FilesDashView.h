@@ -26,6 +26,7 @@ signals:
     void fileOpenRequested(const QString &fileName);
     void uploadRequested();
     void accessRequested(const QString &fileName);
+    void deleteRequested(const QString &fileName);
 
 };
 

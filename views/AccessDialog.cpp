@@ -33,13 +33,12 @@ void AccessDialog::setupUI(const QStringList &users) {
     mainLayout->addLayout(addLayout);
 
     connect(m_addUserButton, &QPushButton::clicked, this, &AccessDialog::onAddUserClicked);
-    connect(m_userTable, &QTableWidget::cellClicked, this, &AccessDialog::onRevokeClicked);
 
     updateUserList(users);
 }
 
 void AccessDialog::updateUserList(const QStringList &users) {
-    // Remove all widgets from the table to prevent stacking
+    //remving all widgets from the table to prevent stacking
     for (int row = 0; row < m_userTable->rowCount(); ++row) {
         QWidget *w = m_userTable->cellWidget(row, 1);
         if (w) {
@@ -66,14 +65,7 @@ QString AccessDialog::getFileName() const {
 
 void AccessDialog::onAddUserClicked() {
     QString userName = m_emailInput->text().trimmed();
-    if (userName.isEmpty()) {
-        QMessageBox::warning(this, "Input Error", "Please enter a username.");
-        return;
-    }
     emit addUserRequested(m_fileName, userName);
     m_emailInput->clear();
 }
 
-void AccessDialog::onRevokeClicked() {
-    // Not used; handled by button lambda
-}

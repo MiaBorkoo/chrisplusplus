@@ -8,5 +8,6 @@
         <file>assets/inbox.svg</file>
         <file>assets/account.svg</file>
         <file>assets/logout.svg</file>
+        <file>assets/trash.svg</file>
     </qresource>
 </RCC>

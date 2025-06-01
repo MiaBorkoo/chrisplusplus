@@ -6,6 +6,7 @@
 #include <QTableWidget>
 #include <QHeaderView>
 #include <QPushButton>
+#include <QIcon>
 
 FilesDashView::FilesDashView(QWidget *parent) : QWidget(parent) {
     header = new HeaderWidget(this);
@@ -42,7 +43,7 @@ FilesDashView::FilesDashView(QWidget *parent) : QWidget(parent) {
     fileTable->setObjectName("fileTable");
     fileTable->setAlternatingRowColors(true);
     fileTable->setColumnCount(4);
-    fileTable->setHorizontalHeaderLabels({"Name", "Size", "Date Uploaded", "Access"});
+    fileTable->setHorizontalHeaderLabels({"Name", "Size", "Date Uploaded", "Actions"});
     fileTable->verticalHeader()->setVisible(false);
     fileTable->setSelectionMode(QAbstractItemView::SingleSelection);
     fileTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -83,12 +84,34 @@ void FilesDashView::addFileRow(const QString &name, const QString &size, const Q
     fileTable->setItem(row, 1, new QTableWidgetItem(size));
     fileTable->setItem(row, 2, new QTableWidgetItem(date));
 
+    // Create actions widget (access + delete)
+    QWidget *actionsWidget = new QWidget();
+    QHBoxLayout *actionsLayout = new QHBoxLayout(actionsWidget);
+    actionsLayout->setContentsMargins(0, 0, 0, 0);
+    actionsLayout->setSpacing(6);
+
+    // Access button (with text)
     QPushButton *accessButton = new QPushButton("Access");
     accessButton->setObjectName("accessButton");
     connect(accessButton, &QPushButton::clicked, this, [this, name]() {
         emit accessRequested(name);
     });
-    fileTable->setCellWidget(row, 3, accessButton);
+    actionsLayout->addWidget(accessButton);
+
+    // Delete button (red trash icon)
+    QPushButton *deleteButton = new QPushButton();
+    deleteButton->setToolTip("Delete File");
+    deleteButton->setFixedSize(28, 28); 
+    deleteButton->setIcon(QIcon(":/assets/trash.svg")); 
+    deleteButton->setIconSize(QSize(18, 18));
+    deleteButton->setObjectName("deleteButton");
+    connect(deleteButton, &QPushButton::clicked, this, [this, name]() {
+        emit deleteRequested(name);
+    });
+    actionsLayout->addWidget(deleteButton);
+
+    actionsLayout->addStretch();
+    fileTable->setCellWidget(row, 3, actionsWidget);
 }
 
 QLineEdit* FilesDashView::getSearchBar() const { return searchBar; }
