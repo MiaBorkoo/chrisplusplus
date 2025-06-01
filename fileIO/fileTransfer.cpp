@@ -51,6 +51,27 @@ void FileTransfer::setAuthToken(const QString& token) {
     authToken_ = token;
 }
 
+void FileTransfer::setAllowedMimeTypes(const QSet<QString>& mimeTypes) {
+    allowedMimeTypes_ = mimeTypes;
+}
+
+void FileTransfer::setMaxFileSize(qint64 maxSize) {
+    maxFileSize_ = maxSize;
+}
+
+bool FileTransfer::isFileTypeAllowed(const QString& filePath) const {
+    if (allowedMimeTypes_.isEmpty()) {
+        return true; // No restrictions if no mime types are set
+    }
+
+    QMimeType mimeType = mimeDb_.mimeTypeForFile(filePath);
+    return allowedMimeTypes_.contains(mimeType.name());
+}
+
+bool FileTransfer::isFileSizeAllowed(qint64 size) const {
+    return size <= maxFileSize_;
+}
+
 TransferResult FileTransfer::uploadFile(const QString& filePath,
                                       const std::string& uploadEndpoint,
                                       const ProgressCallback& progressCallback,
@@ -89,6 +110,18 @@ TransferResult FileTransfer::performUploadWithRetry(const QString& filePath,
         lastResult.errorMessage = "File not found: " + filePath;
         return lastResult;
     }
+
+    // Validate file size
+    if (!isFileSizeAllowed(fileInfo.size())) {
+        lastResult.errorMessage = QString("File size exceeds maximum allowed size of %1 bytes").arg(maxFileSize_);
+        return lastResult;
+    }
+
+    // Validate file type
+    if (!isFileTypeAllowed(filePath)) {
+        lastResult.errorMessage = "File type not allowed";
+        return lastResult;
+    }
     
     for (int attempt = 1; attempt <= maxRetries; ++attempt) {
         std::cout << "Upload attempt " << attempt << " of " << maxRetries << std::endl;
@@ -105,6 +138,10 @@ TransferResult FileTransfer::performUploadWithRetry(const QString& filePath,
             
             // Create request
             HttpRequest request = createUploadRequest(endpoint, fileInfo.fileName(), fileInfo.size());
+            
+            // Add MIME type header
+            QMimeType mimeType = mimeDb_.mimeTypeForFile(filePath);
+            request.headers["Content-Type"] = mimeType.name().toStdString();
             
             // Upload using your existing streaming method
             HttpResponse response = httpClient_->sendRequestWithStreamingBody(request, progressFile);
@@ -131,9 +168,21 @@ TransferResult FileTransfer::performUploadWithRetry(const QString& filePath,
         }
     }
     
-    // Simple string concatenation instead of .arg()
     lastResult.errorMessage = "Upload failed after " + QString::number(maxRetries) + " attempts: " + lastResult.errorMessage;
     return lastResult;
+}
+
+QString sanitizePath(const QString& path) {
+    // Convert to absolute and canonical path
+    QFileInfo fileInfo(path);
+    QString absolutePath = fileInfo.absoluteFilePath();
+    return QDir::cleanPath(absolutePath);
+}
+
+bool isPathSafe(const QString& basePath, const QString& targetPath) {
+    QString cleanBase = QDir::cleanPath(QDir(basePath).absolutePath());
+    QString cleanTarget = QDir::cleanPath(QDir(targetPath).absolutePath());
+    return cleanTarget.startsWith(cleanBase);
 }
 
 TransferResult FileTransfer::performDownloadWithRetry(const std::string& endpoint,
@@ -141,6 +190,7 @@ TransferResult FileTransfer::performDownloadWithRetry(const std::string& endpoin
                                                     const ProgressCallback& callback,
                                                     int maxRetries) {
     TransferResult lastResult;
+    QString sanitizedPath;  // Moved declaration outside try block
     
     for (int attempt = 1; attempt <= maxRetries; ++attempt) {
         std::cout << "Download attempt " << attempt << " of " << maxRetries << std::endl;
@@ -148,15 +198,27 @@ TransferResult FileTransfer::performDownloadWithRetry(const std::string& endpoin
         try {
             cancelRequested_ = false;
             
+            // Sanitize and validate save path
+            sanitizedPath = sanitizePath(savePath);  // Just assignment now, not declaration
+            QString baseDir = QDir::cleanPath(QDir::currentPath());
+            
+            if (!isPathSafe(baseDir, sanitizedPath)) {
+                lastResult.errorMessage = "Invalid save path: Path traversal detected";
+                return lastResult;
+            }
+            
             // Create directory if needed
-            QFileInfo saveInfo(savePath);
+            QFileInfo saveInfo(sanitizedPath);
             QDir saveDir = saveInfo.absoluteDir();
             if (!saveDir.exists()) {
-                saveDir.mkpath(".");
+                if (!saveDir.mkpath(".")) {
+                    lastResult.errorMessage = "Failed to create directory structure";
+                    return lastResult;
+                }
             }
             
             // Open file for writing
-            QFile file(savePath);
+            QFile file(sanitizedPath);
             if (!file.open(QIODevice::WriteOnly)) {
                 lastResult.errorMessage = "Cannot create file: " + file.errorString();
                 continue;
@@ -182,12 +244,12 @@ TransferResult FileTransfer::performDownloadWithRetry(const std::string& endpoin
                 lastResult.errorMessage = cancelRequested_ ? 
                     QString("Download cancelled") : 
                     QString("Download failed");
-                QFile::remove(savePath);
+                QFile::remove(sanitizedPath);
             }
             
         } catch (const std::exception& e) {
             lastResult.errorMessage = "Download error: " + QString::fromStdString(e.what());
-            QFile::remove(savePath);
+            QFile::remove(sanitizedPath);
         }
         
         if (attempt < maxRetries) {
@@ -196,7 +258,6 @@ TransferResult FileTransfer::performDownloadWithRetry(const std::string& endpoin
         }
     }
     
-    // Simple string concatenation
     lastResult.errorMessage = "Download failed after " + QString::number(maxRetries) + " attempts: " + lastResult.errorMessage;
     return lastResult;
 }
