@@ -68,7 +68,7 @@ add_subdirectory(fileIO)     # File transfer layer (YOUR addition)
 # Main application with authentication
 qt_add_executable(ChrisPlusPlus
     WIN32 MACOSX_BUNDLE
-    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+    main.cpp
     mainwindow.cpp
     mainwindow.h
     views/LoginView.cpp
@@ -105,7 +105,7 @@ qt_add_executable(ChrisPlusPlus
     network/Client.cpp
     services/auth/IAuthService.cpp
     services/auth/AuthService.cpp
-   # services/auth/otp/TOTP.cpp
+    services/auth/otp/TOTP.cpp
 )
 
 target_link_libraries(ChrisPlusPlus

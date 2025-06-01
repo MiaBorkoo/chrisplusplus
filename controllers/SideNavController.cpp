@@ -37,7 +37,7 @@ void SideNavController::connectSignals() {
                 break;
         }
     }
-    // Logout button
+    //logout button
     QPushButton *logoutBtn = view->findChild<QPushButton*>("logoutButton");
     if (logoutBtn) {
         connect(logoutBtn, &QPushButton::clicked, this, &SideNavController::logoutRequested);

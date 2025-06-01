@@ -13,7 +13,7 @@
 
 MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 {
-    // Load global stylesheet
+    //loading global stylesheet
     QFile styleFile(":/styles/styles.css");
     styleFile.open(QFile::ReadOnly);
     QString styleSheet = QLatin1String(styleFile.readAll());
