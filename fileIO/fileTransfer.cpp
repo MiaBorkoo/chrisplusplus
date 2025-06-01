@@ -172,7 +172,7 @@ TransferResult FileTransfer::performUploadWithRetry(const QString& filePath,
     return lastResult;
 }
 
-QString sanitizePath(const QString& path) {
+QString FileTransfer::sanitizePath(const QString& path) {
     // Convert to absolute and canonical path
     QFileInfo fileInfo(path);
     QString absolutePath = fileInfo.absoluteFilePath();
