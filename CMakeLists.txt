@@ -48,6 +48,7 @@ endif()
 # Find required packages
 find_package(Qt6 6.5.0 REQUIRED COMPONENTS Core Widgets Network Test)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
+find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -169,6 +170,7 @@ target_link_libraries(testNetworkSystemComplete PRIVATE
     http_layer 
     sockets
 )
+
 
 
 # ============================================================================

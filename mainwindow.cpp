@@ -125,6 +125,4 @@ MainWindow::~MainWindow()
     //destructor cause it wouldnt build without i
 }   
 
-MainWindow::~MainWindow() {
-    
-}
+
