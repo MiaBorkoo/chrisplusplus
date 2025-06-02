@@ -12,6 +12,7 @@ HttpClient::HttpClient(SSLContext& ctx,
   : ctx_(ctx), host_(host), port_(port)
 {}
 
+//Blocking synchronous HTTP request
 HttpResponse HttpClient::sendRequest(const HttpRequest& req) {
     // 1) Open TLS connection
     SSLConnection conn(ctx_, host_, port_);
@@ -25,6 +26,28 @@ HttpResponse HttpClient::sendRequest(const HttpRequest& req) {
     return receiveResponse(conn);
 }
 
+//Asynchronous HTTP request (non-blocking - GUI safe)
+void HttpClient::sendAsync(const HttpRequest&  req,
+                           std::function<void (const HttpResponse&)> onSuccess,
+                           std::function<void (const QString&     )> onError)
+{
+    // Keep this HttpClient alive for the life of the task (thread safe)
+    auto self = shared_from_this();            // keep *this alive
+    QtConcurrent::run([self, req, onSuccess, onError]{
+        try {
+            HttpResponse r = self->sendRequest(req);   // current blocking API
+            QMetaObject::invokeMethod(qApp, [onSuccess, r]{
+                onSuccess(r);                          // back on GUI thread
+            }, Qt::QueuedConnection);
+        } catch (const std::exception& ex) {
+            QMetaObject::invokeMethod(qApp, [onError, ex]{
+                onError(QString::fromUtf8(ex.what()));    // back on GUI thread
+            }, Qt::QueuedConnection);
+        }
+    });
+}
+
+//streaming upload (blocking)
 HttpResponse HttpClient::sendRequestWithStreamingBody(const HttpRequest& req, QIODevice& bodySource) {
     // 1) Open TLS connection
     SSLConnection conn(ctx_, host_, port_);
@@ -47,6 +70,7 @@ HttpResponse HttpClient::sendRequestWithStreamingBody(const HttpRequest& req, QI
     return receiveResponse(conn);
 }
 
+//streaming download (blocking)
 bool HttpClient::downloadToStream(const HttpRequest& req, QIODevice& destination) {
     // 1) Open TLS connection
     SSLConnection conn(ctx_, host_, port_);

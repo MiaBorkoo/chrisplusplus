@@ -3,19 +3,30 @@
 #include "HttpResponse.h"
 #include "../sockets/SSLContext.h"
 #include "../sockets/SSLConnection.h"
-
+#include <functional>
+#include <QtConcurrent>
 // Forward declaration instead of including QIODevice
 class QIODevice;
 
-//
-class HttpClient {
+/**
+ * Low-level HTTPS client (blocking + async)
+ * Thread-safe as long as each instance is used from one thread at a time.
+ */
+
+class HttpClient : public std::enable_shared_from_this<HttpClient> {
 public:
     HttpClient(SSLContext& ctx,
                const std::string& host,
                const std::string& port = "443");
 
-    HttpResponse sendRequest(const HttpRequest& req);
     
+    //Blocking synchronous HTTP request
+    HttpResponse sendRequest(const HttpRequest& req);
+
+    //Asynchronous HTTP request (non-blocking - GUI safe)
+    void sendAsync(const HttpRequest&  req,
+               std::function<void (const HttpResponse&)> onSuccess,
+               std::function<void (const QString&     )> onError);
     // Streaming methods
     HttpResponse sendRequestWithStreamingBody(const HttpRequest& req, QIODevice& bodySource);
     bool downloadToStream(const HttpRequest& req, QIODevice& destination);
