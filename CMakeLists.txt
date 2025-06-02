@@ -107,7 +107,8 @@ qt_add_executable(ChrisPlusPlus
     network/Client.cpp
     services/auth/IAuthService.cpp
     services/auth/AuthService.cpp
-    # services/auth/otp/TOTP.cpp #TODO: add this back in
+    services/ApiService.cpp
+    services/auth/otp/TOTP.cpp
 )
 
 target_link_libraries(ChrisPlusPlus

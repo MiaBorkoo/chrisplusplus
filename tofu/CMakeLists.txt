@@ -32,4 +32,9 @@ target_include_directories(tofu
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${QRENCODE_INCLUDE_DIRS}
-) 
+)
+
+# Add library directories for qrencode on macOS
+if(APPLE)
+    target_link_directories(tofu PUBLIC /opt/homebrew/lib)
+endif() 

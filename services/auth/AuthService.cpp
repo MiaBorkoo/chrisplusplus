@@ -30,8 +30,8 @@ void AuthService::login(const QString& username, const QString& authKey) {
     
     const QString secretB32 = m_settings->value("totp/secret").toString();
     if (!secretB32.isEmpty()) {                 // user has enrolled
-        const QString otp =
-            QString::fromStdString(TOTP(secretB32.toStdString()).generate());
+        TOTP totp(secretB32.toStdString());  // Convert QString to std::string
+        const QString otp = QString::fromStdString(totp.generate());  // Uses current time by default
         payload["otp"] = otp;                   // add 6-digit code
     }
     m_client->sendRequest("/login", "POST", payload);
