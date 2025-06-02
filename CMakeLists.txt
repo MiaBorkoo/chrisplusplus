@@ -195,6 +195,13 @@ target_include_directories(testKeyDerivation PRIVATE
     ${ARGON2_INCLUDE_DIR}
 )
 
+add_executable(testMEKGenerator
+    tests/testMEKGenerator.cpp
+    crypto/MEKGenerator.cpp
+)
+target_link_libraries(testMEKGenerator PRIVATE OpenSSL::Crypto)
+target_include_directories(testMEKGenerator PRIVATE ${CMAKE_SOURCE_DIR}/crypto)
+
 # ============================================================================
 # INSTALLATION (updated for ChrisPlusPlus)
 # ============================================================================

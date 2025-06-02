@@ -15,9 +15,9 @@ DerivedKeys KeyDerivation::deriveKeysFromPassword(
     }
 
     //Argon2id parameters
-    uint32_t time_cost = 4; // how many iterations (CPU time)
-    uint32_t memory_cost = 1 << 16; // how much memory to use (in KiB)
-    uint32_t parallelism = 4; // how many threads/cores to use
+    uint32_t time_cost = 2; // iterations(CPU time)
+    uint32_t memory_cost = 19 * 1024; // 19 MiB in KiB -> how much memory to use
+    uint32_t parallelism = 1; // degree of parallelism -> how many threads/cores to use
 
     //deriving Server Auth Key
     if (argon2id_hash_raw(time_cost, memory_cost, parallelism,
