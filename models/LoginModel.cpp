@@ -1,6 +1,9 @@
 #include "LoginModel.h"
 #include <QCryptographicHash>
 #include <QUuid>
+#include "../crypto/KeyDerivation.h"
+#include "../crypto/MEKGenerator.h"
+#include "../crypto/MEKWrapper.h"
 
 /**
  * @class LoginModel
@@ -63,19 +66,36 @@ void LoginModel::registerUser(const QString& username,
         emit authError("Fields cannot be empty");
         return;
     }
-    
     if (password != confirmPassword) {
         emit authError("Passwords don't match");
         return;
     }
-    
-    QString authSalt = QUuid::createUuid().toString();
-    QString encSalt = QUuid::createUuid().toString();
-    
-    QString authKey = hashPassword(password, authSalt);
-    QString encryptedMEK = "mock_encrypted_key"; 
-    
-    m_authDb->registerUser(username, authSalt, encSalt, authKey, encryptedMEK);
+
+    // 1. Generate salts
+    KeyDerivation kd;
+    std::vector<uint8_t> authSalt = kd.generateSalt();
+    std::vector<uint8_t> encSalt = kd.generateSalt();
+
+    // 2. Derive keys from password and salts
+    DerivedKeys keys = kd.deriveKeysFromPassword(password.toStdString(), authSalt, encSalt);
+
+    // 3. Generate a random MEK
+    std::vector<unsigned char> mek = generateMEK();
+
+    // 4. Encrypt the MEK with the MEK Wrapper Key
+    std::vector<uint8_t> mekWrapperKey(keys.mekWrapperKey.begin(), keys.mekWrapperKey.end());
+    EncryptedMEK encrypted = encryptMEKWithWrapperKey(mek, mekWrapperKey);
+
+    // 5. Prepare data to send to server (Base64 encode all binary fields)
+    QString authSaltB64 = QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(authSalt.data()), authSalt.size()).toBase64());
+    QString encSaltB64 = QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(encSalt.data()), encSalt.size()).toBase64());
+    QString authKeyB64 = QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(keys.serverAuthKey.data()), keys.serverAuthKey.size()).toBase64());
+    QString encryptedMEKB64 = QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(encrypted.ciphertext.data()), encrypted.ciphertext.size()).toBase64());
+    QString mekIVB64 = QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(encrypted.iv.data()), encrypted.iv.size()).toBase64());
+    QString mekTagB64 = QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(encrypted.tag.data()), encrypted.tag.size()).toBase64());
+
+    // 6. Call AuthService to register user
+    m_authDb->registerUser(username, authSaltB64, encSaltB64, authKeyB64, encryptedMEKB64 /*, mekIVB64, mekTagB64 if you extend the API */);
 }
 
 void LoginModel::changePassword(const QString& username,

@@ -38,12 +38,6 @@ void SignUpController::onSignUpClicked(const QString &username, const QString &p
         return;
     }
 
-   // Check if passwords match
-    if (password != confirmPassword) {
-        view->showError("Passwords do not match.");
-        return;
-    }
-
     // Validate password and get specific error message
     QString errorMessage;
     if (!isPasswordValid(password, errorMessage)) {
@@ -51,7 +45,7 @@ void SignUpController::onSignUpClicked(const QString &username, const QString &p
         return;
     }
     view->clearFields();
-    view->showError("Sign up successful!"); // we will remove this later when it switches to the new page,no message needed
+    view->showError("Sign up successful! (debug mode)"); 
 }
 
 bool SignUpController::isPasswordValid(const QString &password, QString &errorMessage) {
