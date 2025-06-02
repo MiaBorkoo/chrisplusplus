@@ -2,6 +2,8 @@
 
 #include "../httpC/HttpClient.h"
 #include "../sockets/SSLContext.h"
+#include <QObject>
+#include <QTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QString>
@@ -31,9 +33,12 @@ struct TransferResult {
     TransferResult() : success(false), bytesTransferred(0) {}
 };
 
-class FileTransfer {
+// CHANGE: Make it inherit from QObject
+class FileTransfer : public QObject {
+    Q_OBJECT
+    
 public:
-    explicit FileTransfer(SSLContext& sslContext);
+    explicit FileTransfer(SSLContext& sslContext, QObject* parent = nullptr);
     ~FileTransfer() = default;
 
     // Configure the transfer client
@@ -41,15 +46,15 @@ public:
     void setAuthToken(const QString& token);
     
     // Main operations (with built-in retry and error handling)
-    TransferResult uploadFile(const QString& filePath, 
-                            const std::string& uploadEndpoint,
-                            const ProgressCallback& progressCallback = nullptr,
-                            int maxRetries = 3);
+    void uploadFile(const QString& filePath, 
+                    const std::string& uploadEndpoint,
+                    const ProgressCallback& progressCallback = nullptr,
+                    int maxRetries = 3);
     
-    TransferResult downloadFile(const std::string& downloadEndpoint,
-                              const QString& savePath,
-                              const ProgressCallback& progressCallback = nullptr,
-                              int maxRetries = 3);
+    void downloadFile(const std::string& downloadEndpoint,
+                      const QString& savePath,
+                      const ProgressCallback& progressCallback = nullptr,
+                      int maxRetries = 3);
     
     // Cancel ongoing transfer
     void cancelTransfer();
@@ -59,9 +64,29 @@ public:
     void setOptimizedForLargeFiles(bool optimize); // Uses 256KB chunks
     void setOptimizedForNetwork(const std::string& connectionType); // "dialup", "broadband", "gigabit"
 
+    // REPLACE: Change to async API (void return)
+    void uploadFileAsync(const QString& filePath, 
+                        const std::string& uploadEndpoint,
+                        int maxRetries = 3);
+    
+    void downloadFileAsync(const std::string& downloadEndpoint,
+                          const QString& savePath,
+                          int maxRetries = 3);
+
+signals:
+    // NEW: Async results via signals
+    void uploadCompleted(bool success, const TransferResult& result);
+    void downloadCompleted(bool success, const TransferResult& result);
+    void progressUpdated(qint64 bytesTransferred, qint64 totalBytes);
+    void transferFailed(const QString& error);
+
+private slots:
+    void retryUpload();
+    void retryDownload();
+
 private:
     SSLContext& sslContext_;
-    std::unique_ptr<HttpClient> httpClient_;
+    std::shared_ptr<HttpClient> httpClient_;
     std::string serverHost_;
     std::string serverPort_;
     QString authToken_;
@@ -69,41 +94,21 @@ private:
     
     size_t chunkSize_{128 * 1024}; // Default 128KB
     
+    // NEW: For async retries
+    QTimer* retryTimer_;
+    int currentAttempt_;
+    int maxRetries_;
+    QString currentFilePath_;
+    std::string currentEndpoint_;
+    QString currentSavePath_;
+    
     // Helper methods
     HttpRequest createUploadRequest(const std::string& endpoint, const QString& filename, qint64 fileSize);
     HttpRequest createDownloadRequest(const std::string& endpoint);
-    TransferResult performUploadWithRetry(const QString& filePath, const std::string& endpoint, 
-                                        const ProgressCallback& callback, int maxRetries);
-    TransferResult performDownloadWithRetry(const std::string& endpoint, const QString& savePath,
-                                          const ProgressCallback& callback, int maxRetries);
     QString extractServerError(const HttpResponse& response);
+    
+    // NEW: Async implementations
+    void performUploadAsync(const QString& filePath, const std::string& endpoint);
+    void performDownloadAsync(const std::string& endpoint, const QString& savePath);
 };
 
-// Specialized transfer classes for different protocols
-class SecureFileUploader {
-public:
-    explicit SecureFileUploader(FileTransfer& transfer) : transfer_(transfer) {}
-    
-    // High-level upload with automatic retry and validation
-    TransferResult uploadWithRetry(const QString& filePath,
-                                 const std::string& endpoint,
-                                 int maxRetries = 3,
-                                 const ProgressCallback& callback = nullptr);
-
-private:
-    FileTransfer& transfer_;
-};
-
-class SecureFileDownloader {
-public:
-    explicit SecureFileDownloader(FileTransfer& transfer) : transfer_(transfer) {}
-    
-    // High-level download with automatic validation
-    TransferResult downloadWithValidation(const std::string& endpoint,
-                                        const QString& savePath,
-                                        const QString& expectedChecksum = "",
-                                        const ProgressCallback& callback = nullptr);
-
-private:
-    FileTransfer& transfer_;
-}; 
