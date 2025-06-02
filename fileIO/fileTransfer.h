@@ -7,6 +7,8 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QString>
+#include <QMimeDatabase>
+#include <QSet>
 #include <functional>
 #include <memory>
 
@@ -45,16 +47,16 @@ public:
     void setServer(const std::string& host, const std::string& port = "443");
     void setAuthToken(const QString& token);
     
-    // Main operations (with built-in retry and error handling)
-    void uploadFile(const QString& filePath, 
-                    const std::string& uploadEndpoint,
-                    const ProgressCallback& progressCallback = nullptr,
-                    int maxRetries = 3);
+    // File type validation
+    void setAllowedMimeTypes(const QSet<QString>& mimeTypes);
+    void setMaxFileSize(qint64 maxSize);
+    bool isFileTypeAllowed(const QString& filePath) const;
+    bool isFileSizeAllowed(qint64 size) const;
     
-    void downloadFile(const std::string& downloadEndpoint,
-                      const QString& savePath,
-                      const ProgressCallback& progressCallback = nullptr,
-                      int maxRetries = 3);
+    // Main operations (with built-in retry and error handling)
+    void uploadFileAsync(const QString& filePath, 
+                        const std::string& uploadEndpoint,
+                        int maxRetries = 3);
     
     // Cancel ongoing transfer
     void cancelTransfer();
@@ -64,10 +66,6 @@ public:
     void setOptimizedForLargeFiles(bool optimize); // Uses 256KB chunks
     void setOptimizedForNetwork(const std::string& connectionType); // "dialup", "broadband", "gigabit"
 
-    // REPLACE: Change to async API (void return)
-    void uploadFileAsync(const QString& filePath, 
-                        const std::string& uploadEndpoint,
-                        int maxRetries = 3);
     
     void downloadFileAsync(const std::string& downloadEndpoint,
                           const QString& savePath,
@@ -93,6 +91,9 @@ private:
     bool cancelRequested_;
     
     size_t chunkSize_{128 * 1024}; // Default 128KB
+    QSet<QString> allowedMimeTypes_;
+    qint64 maxFileSize_{100 * 1024 * 1024}; // Default 100MB
+    QMimeDatabase mimeDb_;
     
     // NEW: For async retries
     QTimer* retryTimer_;
@@ -106,6 +107,8 @@ private:
     HttpRequest createUploadRequest(const std::string& endpoint, const QString& filename, qint64 fileSize);
     HttpRequest createDownloadRequest(const std::string& endpoint);
     QString extractServerError(const HttpResponse& response);
+    QString sanitizePath(const QString& path) const;
+    bool isPathSafe(const QString& basePath, const QString& targetPath) const;
     
     // NEW: Async implementations
     void performUploadAsync(const QString& filePath, const std::string& endpoint);

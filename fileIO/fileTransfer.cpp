@@ -62,20 +62,25 @@ void FileTransfer::setAuthToken(const QString& token) {
     authToken_ = token;
 }
 
-void FileTransfer::uploadFile(const QString& filePath,
-                             const std::string& uploadEndpoint,
-                             const ProgressCallback& progressCallback,
-                             int maxRetries) {
-    qCWarning(fileTransfer) << "uploadFile() is deprecated, use uploadFileAsync()";
-    uploadFileAsync(filePath, uploadEndpoint, maxRetries);
+void FileTransfer::setAllowedMimeTypes(const QSet<QString>& mimeTypes) {
+    allowedMimeTypes_ = mimeTypes;
 }
 
-void FileTransfer::downloadFile(const std::string& downloadEndpoint,
-                               const QString& savePath,
-                               const ProgressCallback& progressCallback,
-                               int maxRetries) {
-    qCWarning(fileTransfer) << "downloadFile() is deprecated, use downloadFileAsync()";
-    downloadFileAsync(downloadEndpoint, savePath, maxRetries);
+void FileTransfer::setMaxFileSize(qint64 maxSize) {
+    maxFileSize_ = maxSize;
+}
+
+bool FileTransfer::isFileTypeAllowed(const QString& filePath) const {
+    if (allowedMimeTypes_.isEmpty()) {
+        return true; // No restrictions if no mime types are set
+    }
+
+    QMimeType mimeType = mimeDb_.mimeTypeForFile(filePath);
+    return allowedMimeTypes_.contains(mimeType.name());
+}
+
+bool FileTransfer::isFileSizeAllowed(qint64 size) const {
+    return size <= maxFileSize_;
 }
 
 void FileTransfer::uploadFileAsync(const QString& filePath, 
@@ -351,4 +356,16 @@ QString FileTransfer::extractServerError(const HttpResponse& response) {
     }
     
     return error;
+}
+
+QString FileTransfer::sanitizePath(const QString& path) const {
+    QFileInfo fileInfo(path);
+    QString absolutePath = fileInfo.absoluteFilePath();
+    return QDir::cleanPath(absolutePath);
+}
+
+bool FileTransfer::isPathSafe(const QString& basePath, const QString& targetPath) const {
+    QString cleanBase = QDir::cleanPath(QDir(basePath).absolutePath());
+    QString cleanTarget = QDir::cleanPath(QDir(targetPath).absolutePath());
+    return cleanTarget.startsWith(cleanBase);
 } 

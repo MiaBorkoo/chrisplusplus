@@ -158,15 +158,27 @@ QString LoginView::getPassword() const
 
 void LoginView::showError(const QString &message)
 {
-    if (message.contains("username", Qt::CaseInsensitive)) {
+    // Sanitize the message by escaping HTML special characters
+    QString sanitizedMessage = message;
+    sanitizedMessage.replace("<", "&lt;")
+                   .replace(">", "&gt;")
+                   .replace("\"", "&quot;")
+                   .replace("'", "&#39;")
+                   .replace("/", "&#x2F;");
+
+    if (sanitizedMessage.contains("username", Qt::CaseInsensitive)) {
         usernameEdit->setStyleSheet("border: 2px solid #ff4444; border-radius: 20px; background: white; color: black; padding: 10px; font-size: 11px;");
         usernameEdit->setPlaceholderText("Username is required");
     }
     
-    if (message.contains("password", Qt::CaseInsensitive)) {
+    if (sanitizedMessage.contains("password", Qt::CaseInsensitive)) {
         passwordEdit->setStyleSheet("border: 2px solid #ff4444; border-radius: 20px; background: white; color: black; padding: 10px; font-size: 11px;");
         passwordEdit->setPlaceholderText("Password is required");
     }
+
+    // Set the sanitized message to the error label
+    errorLabel->setText(sanitizedMessage);
+    errorLabel->setVisible(true);
 }
 
 void LoginView::clearFields()
