@@ -71,12 +71,6 @@ bool SignUpController::isUsernameValid(const QString &username, QString &errorMe
         return false;
     }
 
-    // Prevent username starting with special chars
-    if (username[0] == '.' || username[0] == '_' || username[0] == '-') {
-        errorMessage = "Username must start with a letter or number.";
-        return false;
-    }
-
     return true;
 }
 
@@ -106,13 +100,6 @@ bool SignUpController::isPasswordValid(const QString &password, QString &errorMe
     if (!password.contains(QRegularExpression("[0-9]"))) {
         errorMessage = "Password must contain at least one number.";
     }
-
-    // Check for special characters
-    if (!hasSpecialCharacters(password)) {
-        errorMessage = "Password must contain at least one special character (!@#$%^&*(),.?\":{}|<>).";
-        return false;
-    }
-
     // Check for common passwords
     if (isCommonPassword(password)) {
         errorMessage = "This password is too common. Please choose a stronger password.";
@@ -127,11 +114,6 @@ bool SignUpController::isPasswordValid(const QString &password, QString &errorMe
     }
 
     return true;
-}
-
-bool SignUpController::hasSpecialCharacters(const QString &str) const {
-    QRegularExpression specialChars("[!@#$%^&*(),.?\":{}|<>]");
-    return str.contains(specialChars);
 }
 
 bool SignUpController::isCommonPassword(const QString &password) const {

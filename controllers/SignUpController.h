@@ -19,7 +19,6 @@ private:
     SignUpView *view;
     bool isPasswordValid(const QString &password, QString &errorMessage);
     bool isUsernameValid(const QString &username, QString &errorMessage);
-    bool hasSpecialCharacters(const QString &str) const;
     bool isCommonPassword(const QString &password) const;
     
     QSet<QString> commonPasswords;
