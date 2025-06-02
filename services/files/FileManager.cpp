@@ -2,7 +2,7 @@
 #include <fstream>
 #include <filesystem>
 
-FileManager::FileManager(std::shared_ptr<HTTPClient> client, 
+FileManager::FileManager(std::shared_ptr<FileServiceClient> client, 
                          std::shared_ptr<FileEncryptionEngine> encryption,
                          std::shared_ptr<TOFUInterface> tofu)
     : http_client(client), encryption_engine(encryption), tofu_interface(tofu) {

@@ -1,5 +1,5 @@
 #include "services/files/FileManager.h"
-#include "services/files/network/HTTPClient.h"
+#include "services/files/network/FileServiceClient.h"
 #include "services/files/encryption/FileEncryptionEngine.h"
 #include "services/files/interfaces/Interfaces.h"
 #include <iostream>
@@ -36,7 +36,7 @@ public:
 int main() {
     try {
         // Create instances of required components
-        auto http_client = std::make_shared<HTTPClient>();
+        auto http_client = std::make_shared<FileServiceClient>();
         auto encryption_engine = std::make_shared<FileEncryptionEngine>();
         auto tofu_interface = std::make_shared<MockTOFUInterface>();
         

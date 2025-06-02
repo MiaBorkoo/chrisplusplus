@@ -33,7 +33,7 @@ std::vector<uint8_t> CompressionEngine::create_zip_archive(const FolderContent& 
         add_folder_to_zip(zip_archive, "", folder_content);
         
         // Write ZIP to memory buffer
-        zip_source_t* final_source = zip_source_zip(zip_archive, zip_archive, 0, 0, -1);
+        zip_source_t* final_source = zip_source_zip(zip_archive, zip_archive, 0, 0, 0, -1);
         if (!final_source) {
             zip_close(zip_archive);
             throw std::runtime_error("Failed to create final ZIP source");

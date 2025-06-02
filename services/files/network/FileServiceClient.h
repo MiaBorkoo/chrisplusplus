@@ -2,14 +2,31 @@
 
 #include "../models/DataModels.h"
 #include "../exceptions/Exceptions.h"
+#include "../../../sockets/SSLContext.h"
 #include <memory>
+#include <string>
 
-class HTTPClient {
+// Forward declarations of specialized clients
+class AuthServiceClient;
+class FileOperationsClient;
+class SharingServiceClient;
+class AuditServiceClient;
+
+/**
+ * Main file service client that aggregates functionality from specialized clients
+ * Renamed from HTTPClient to avoid confusion with httpC/HttpClient
+ */
+class FileServiceClient {
 public:
-    HTTPClient();
-    ~HTTPClient() = default;
+    FileServiceClient();
+    FileServiceClient(const std::string& base_url);
+    ~FileServiceClient(); // Declare but don't default - will be defined in .cpp
 
-    // Authentication operations
+    // Configuration
+    void set_server(const std::string& host, const std::string& port = "8000");
+    void set_base_url(const std::string& url);
+
+    // Authentication operations (delegated to AuthServiceClient)
     AuthSessionResponse register_user(const RegisterRequest& request);
     AuthSessionResponse login(const LoginRequest& request);
     MEKResponse verify_totp(const TOTPRequest& request);
@@ -17,7 +34,7 @@ public:
     bool change_password(const ChangePasswordRequest& request);
     UserSaltsResponse get_user_salts(const std::string& username);
     
-    // File operations
+    // File operations (delegated to FileOperationsClient)
     FileUploadResponse upload_file(
         const std::vector<uint8_t>& encrypted_file_data,
         const FileUploadRequest& metadata,
@@ -40,7 +57,7 @@ public:
         const FileDeleteRequest& request,
         const std::string& session_token);
     
-    // Sharing operations
+    // Sharing operations (delegated to SharingServiceClient)
     FileShareResponse share_file(
         const FileShareRequest& request,
         const std::string& session_token);
@@ -58,13 +75,31 @@ public:
         int limit = 50,
         int offset = 0);
     
-    // Audit operations
+    // Audit operations (delegated to AuditServiceClient)
     std::vector<AuditLogResponse> get_file_audit_logs(
         const std::string& file_id,
         const std::string& session_token,
         int limit = 50,
         int offset = 0);
 
+    // Access to specialized clients for advanced usage
+    AuthServiceClient& auth_client();
+    FileOperationsClient& file_client();
+    SharingServiceClient& sharing_client();
+    AuditServiceClient& audit_client();
+
 private:
     std::string base_url;
+    std::string server_host;
+    std::string server_port;
+    bool use_ssl;
+    std::unique_ptr<SSLContext> ssl_context;
+    
+    // Specialized clients
+    std::unique_ptr<AuthServiceClient> auth_client_;
+    std::unique_ptr<FileOperationsClient> file_client_;
+    std::unique_ptr<SharingServiceClient> sharing_client_;
+    std::unique_ptr<AuditServiceClient> audit_client_;
+    
+    void initialize_clients();
 }; 
