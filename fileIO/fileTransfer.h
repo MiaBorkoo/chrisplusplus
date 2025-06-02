@@ -33,8 +33,8 @@ struct TransferResult {
     TransferResult() : success(false), bytesTransferred(0) {}
 };
 
-// CHANGE: Make it inherit from QObject
-class FileTransfer : public QObject {
+// CHANGE: Make it inherit from QObject and std::enable_shared_from_this
+class FileTransfer : public QObject, public std::enable_shared_from_this<FileTransfer> {
     Q_OBJECT
     
 public:

@@ -144,36 +144,37 @@ target_include_directories(ChrisPlusPlus
 # TEST EXECUTABLES
 # ============================================================================
 
+# Quick command-line HTTP test
+add_executable(testHttpBasic
+    tests/testHttpBasic.cpp  # renamed from testComplete.cpp
+)
+target_link_libraries(testHttpBasic PRIVATE http_layer sockets)
+
+# Full GUI async test suite  
+add_executable(testNetworkSystemComplete
+    tests/testNetworkSystemComplete.cpp
+)
+target_link_libraries(testNetworkSystemComplete PRIVATE 
+    Qt6::Core Qt6::Widgets file_transfer http_layer sockets
+)
+
 # Original test from dev branch
 add_executable(testSSLforNow
     tests/testSSLforNow.cpp
 )
 target_link_libraries(testSSLforNow PRIVATE sockets http_layer)
 
-add_executable(testFileUploadSimple
-    tests/testFileUploadSimple.cpp
-)
-target_link_libraries(testFileUploadSimple PRIVATE 
-    Qt6::Core 
-    Qt6::Widgets 
-    Qt6::Concurrent
-    file_transfer 
-    http_layer 
-    sockets
-)
-
-add_executable(testNetworkSystemComplete
-    tests/testNetworkSystemComplete.cpp
-)
-target_link_libraries(testNetworkSystemComplete PRIVATE 
-    Qt6::Core 
-    Qt6::Widgets 
-    file_transfer 
-    http_layer 
-    sockets
-)
-
-
+# add_executable(testFileUploadSimple
+#     tests/testFileUploadSimple.cpp
+# )
+# target_link_libraries(testFileUploadSimple PRIVATE 
+#     Qt6::Core 
+#     Qt6::Widgets 
+#     Qt6::Concurrent
+#     file_transfer 
+#     http_layer 
+#     sockets
+# )
 
 # ============================================================================
 # INSTALLATION (updated for ChrisPlusPlus)

@@ -27,21 +27,20 @@ HttpResponse HttpClient::sendRequest(const HttpRequest& req) {
 }
 
 //Asynchronous HTTP request (non-blocking - GUI safe)
-void HttpClient::sendAsync(const HttpRequest&  req,
-                           std::function<void (const HttpResponse&)> onSuccess,
-                           std::function<void (const QString&     )> onError)
-{
-    // Keep this HttpClient alive for the life of the task (thread safe)
-    auto self = shared_from_this();            // keep *this alive
+void HttpClient::sendAsync(const HttpRequest& req,
+                          std::function<void(const HttpResponse&)> onSuccess,
+                          std::function<void(const QString&)> onError) {
+    // RESTORE: Your original ACTUALLY async code
+    auto self = shared_from_this();
     QtConcurrent::run([self, req, onSuccess, onError]{
         try {
-            HttpResponse r = self->sendRequest(req);   // current blocking API
+            HttpResponse r = self->sendRequest(req);
             QMetaObject::invokeMethod(qApp, [onSuccess, r]{
-                onSuccess(r);                          // back on GUI thread
+                onSuccess(r);
             }, Qt::QueuedConnection);
         } catch (const std::exception& ex) {
             QMetaObject::invokeMethod(qApp, [onError, ex]{
-                onError(QString::fromUtf8(ex.what()));    // back on GUI thread
+                onError(QString::fromUtf8(ex.what()));
             }, Qt::QueuedConnection);
         }
     });
@@ -341,4 +340,31 @@ bool HttpClient::receiveResponseToStream(SSLConnection& conn, QIODevice& destina
     }
     
     return true;
+}
+
+void HttpClient::downloadAsync(const HttpRequest& request,
+                              const QString& filePath,
+                              std::function<void(const HttpResponse&)> onSuccess,
+                              std::function<void(const QString&)> onError) {
+    try {
+        // Use existing download method (if it exists)
+        HttpResponse response = sendRequest(request);
+        
+        // Write to file
+        QFile file(filePath);
+        if (file.open(QIODevice::WriteOnly)) {
+            file.write(response.body.c_str(), response.body.size());
+            if (onSuccess) {
+                onSuccess(response);
+            }
+        } else {
+            if (onError) {
+                onError("Cannot create file: " + file.errorString());
+            }
+        }
+    } catch (const std::exception& e) {
+        if (onError) {
+            onError(QString::fromStdString(e.what()));
+        }
+    }
 }

@@ -35,6 +35,12 @@ public:
     void setChunkSize(size_t size) { chunkSize_ = size; }
     size_t getChunkSize() const { return chunkSize_; }
 
+    // NEW: Async methods for FileTransfer
+    void downloadAsync(const HttpRequest& request,
+                       const QString& filePath,
+                       std::function<void(const HttpResponse&)> onSuccess, 
+                       std::function<void(const QString&)> onError);
+
 private:
     SSLContext& ctx_;
     std::string host_, port_;
