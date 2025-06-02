@@ -1,7 +1,7 @@
 #pragma once
 
 #include "models/DataModels.h"
-#include "network/HTTPClient.h"
+#include "network/FileServiceClient.h"
 #include "encryption/FileEncryptionEngine.h"
 #include "interfaces/Interfaces.h"
 #include "exceptions/Exceptions.h"
@@ -12,7 +12,7 @@
 
 class FileManager {
 public:
-    FileManager(std::shared_ptr<HTTPClient> client, 
+    FileManager(std::shared_ptr<FileServiceClient> client, 
                 std::shared_ptr<FileEncryptionEngine> encryption,
                 std::shared_ptr<TOFUInterface> tofu);
     
@@ -63,7 +63,7 @@ public:
         const std::string& session_token);
 
 private:
-    std::shared_ptr<HTTPClient> http_client;
+    std::shared_ptr<FileServiceClient> http_client;
     std::shared_ptr<FileEncryptionEngine> encryption_engine;
     std::shared_ptr<TOFUInterface> tofu_interface;
     

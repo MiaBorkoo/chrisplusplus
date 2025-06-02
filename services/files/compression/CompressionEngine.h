@@ -1,27 +1,11 @@
 #pragma once
 
+#include "../models/DataModels.h"
 #include "../exceptions/Exceptions.h"
 #include <vector>
 #include <cstdint>
 #include <string>
 #include <map>
-
-// Forward declarations for content types
-struct FileContent {
-    std::string filename;
-    std::vector<uint8_t> file_data;
-    std::map<std::string, std::string> metadata;
-    size_t original_size;
-};
-
-struct FolderContent {
-    std::string folder_name;
-    std::map<std::string, FileContent> files;  // relative_path -> FileContent
-    std::map<std::string, FolderContent> subfolders;  // subfolder_name -> FolderContent
-    std::map<std::string, std::string> metadata;
-    size_t total_size;
-    size_t file_count;
-};
 
 class CompressionEngine {
 public:
