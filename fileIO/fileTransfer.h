@@ -5,6 +5,8 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QString>
+#include <QMimeDatabase>
+#include <QSet>
 #include <functional>
 #include <memory>
 
@@ -40,6 +42,12 @@ public:
     void setServer(const std::string& host, const std::string& port = "443");
     void setAuthToken(const QString& token);
     
+    // File type validation
+    void setAllowedMimeTypes(const QSet<QString>& mimeTypes);
+    void setMaxFileSize(qint64 maxSize);
+    bool isFileTypeAllowed(const QString& filePath) const;
+    bool isFileSizeAllowed(qint64 size) const;
+    
     // Main operations (with built-in retry and error handling)
     TransferResult uploadFile(const QString& filePath, 
                             const std::string& uploadEndpoint,
@@ -68,6 +76,9 @@ private:
     bool cancelRequested_;
     
     size_t chunkSize_{128 * 1024}; // Default 128KB
+    QSet<QString> allowedMimeTypes_;
+    qint64 maxFileSize_{100 * 1024 * 1024}; // Default 100MB
+    QMimeDatabase mimeDb_;
     
     // Helper methods
     HttpRequest createUploadRequest(const std::string& endpoint, const QString& filename, qint64 fileSize);
@@ -77,6 +88,8 @@ private:
     TransferResult performDownloadWithRetry(const std::string& endpoint, const QString& savePath,
                                           const ProgressCallback& callback, int maxRetries);
     QString extractServerError(const HttpResponse& response);
+    QString sanitizePath(const QString& path) const;
+    bool isPathSafe(const QString& basePath, const QString& targetPath) const;
 };
 
 // Specialized transfer classes for different protocols

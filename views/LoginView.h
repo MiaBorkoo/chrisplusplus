@@ -29,6 +29,7 @@ private slots:
 private:
     QLabel *usernameLabel;
     QLabel *passwordLabel;
+    QLabel *errorLabel;
     QLineEdit *usernameEdit;
     QLineEdit *passwordEdit;
     QPushButton *loginButton;
