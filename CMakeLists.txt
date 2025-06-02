@@ -202,6 +202,15 @@ add_executable(testMEKGenerator
 target_link_libraries(testMEKGenerator PRIVATE OpenSSL::Crypto)
 target_include_directories(testMEKGenerator PRIVATE ${CMAKE_SOURCE_DIR}/crypto)
 
+add_executable(testWrappedMEK
+    tests/testWrappedMEK.cpp
+    crypto/WrappedMEK.cpp
+)
+target_link_libraries(testWrappedMEK PRIVATE OpenSSL::Crypto)
+target_include_directories(testWrappedMEK PRIVATE
+    ${CMAKE_SOURCE_DIR}/crypto
+)
+
 # ============================================================================
 # INSTALLATION (updated for ChrisPlusPlus)
 # ============================================================================
