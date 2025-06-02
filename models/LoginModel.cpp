@@ -3,7 +3,8 @@
 #include <QUuid>
 #include "../crypto/KeyDerivation.h"
 #include "../crypto/MEKGenerator.h"
-#include "../crypto/MEKWrapper.h"
+#include "../crypto/WrappedMEK.h"
+#include <QDebug>
 
 /**
  * @class LoginModel
@@ -12,6 +13,15 @@
  *
  * This class handles user login and registration operations.
  */
+
+template <size_t N>
+QString toBase64String(const std::array<uint8_t, N>& data) {
+    return QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(data.data()), static_cast<int>(data.size())).toBase64());
+}
+
+QString toBase64String(const std::vector<uint8_t>& data) {
+    return QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(data.data()), static_cast<int>(data.size())).toBase64());
+}
 
 LoginModel::LoginModel(IAuthService* authDb, QObject* parent)
     : QObject(parent), m_authDb(authDb) 
@@ -40,12 +50,6 @@ void LoginModel::handleRegistrationCompleted(bool success) {
     }
 }
 
-QString LoginModel::hashPassword(const QString& password, const QString& salt) const {
-    return QCryptographicHash::hash(
-        (password + salt).toUtf8(), 
-        QCryptographicHash::Sha256
-    ).toHex();
-}
 
 void LoginModel::login(const QString& username, const QString& password) {
     if (username.isEmpty() || password.isEmpty()) {
@@ -53,10 +57,7 @@ void LoginModel::login(const QString& username, const QString& password) {
         return;
     }
     
-    QString tempSalt = "static_salt"; 
-    QString hashedPassword = hashPassword(password, tempSalt);
-    
-    m_authDb->login(username, hashedPassword);
+    emit authError("Login not implemented with new crypto flow");
 }
 
 void LoginModel::registerUser(const QString& username, 
@@ -87,32 +88,30 @@ void LoginModel::registerUser(const QString& username,
     EncryptedMEK encrypted = encryptMEKWithWrapperKey(mek, mekWrapperKey);
 
     // 5. Prepare data to send to server (Base64 encode all binary fields)
-    QString authSaltB64 = QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(authSalt.data()), authSalt.size()).toBase64());
-    QString encSaltB64 = QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(encSalt.data()), encSalt.size()).toBase64());
-    QString authKeyB64 = QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(keys.serverAuthKey.data()), keys.serverAuthKey.size()).toBase64());
-    QString encryptedMEKB64 = QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(encrypted.ciphertext.data()), encrypted.ciphertext.size()).toBase64());
-    QString mekIVB64 = QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(encrypted.iv.data()), encrypted.iv.size()).toBase64());
-    QString mekTagB64 = QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(encrypted.tag.data()), encrypted.tag.size()).toBase64());
+    QString authSaltB64 = toBase64String(authSalt);
+    QString encSaltB64 = toBase64String(encSalt);
+    QString authKeyB64 = toBase64String(keys.serverAuthKey);
+    QString encryptedMEKB64 = toBase64String(encrypted.ciphertext);
+    // QString mekIVB64 = toBase64String(encrypted.iv);
+    // QString mekTagB64 = toBase64String(encrypted.tag);
 
+    qDebug() << "authSalt (b64):" << authSaltB64;
+    qDebug() << "encSalt (b64):" << encSaltB64;
+    qDebug() << "authKey (b64):" << authKeyB64;
+    qDebug() << "encryptedMEK (b64):" << encryptedMEKB64;
+ 
     // 6. Call AuthService to register user
-    m_authDb->registerUser(username, authSaltB64, encSaltB64, authKeyB64, encryptedMEKB64 /*, mekIVB64, mekTagB64 if you extend the API */);
+    m_authDb->registerUser(username, authSaltB64, encSaltB64, authKeyB64, encryptedMEKB64/*, mekIVB64, mekTagB64*/);
 }
 
 void LoginModel::changePassword(const QString& username,
                               const QString& oldPassword,
                               const QString& newPassword,
-                              const QString& confirmPassword) { //HAHAHAHA
+                              const QString& confirmPassword) {
     if (newPassword != confirmPassword) {
         emit authError("New passwords don't match");
         return;
     }
     
-    QString oldAuthSalt = "retrieved_auth_salt";
-    QString encSalt = "retrieved_enc_salt";
-
-    QString oldAuthKey = hashPassword(oldPassword, oldAuthSalt);
-    QString newAuthKey = hashPassword(newPassword, oldAuthSalt);
-    QString newEncryptedMEK = "reencrypted_mock_key"; 
-    
-    m_authDb->changePassword(username, oldAuthKey, newAuthKey, newEncryptedMEK);
+    emit authError("Change password not implemented with new crypto flow");
 }
