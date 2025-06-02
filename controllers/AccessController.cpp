@@ -26,6 +26,7 @@ void AccessController::handleAddUser(const QString &fileName, const QString &use
     if (!m_users.contains(userName, Qt::CaseInsensitive)) {
         m_users.append(userName);
         if (m_dialog) m_dialog->updateUserList(m_users);
+        emit aclChanged(m_fileName, m_users);
     } else {
         QMessageBox::information(m_dialog, "Already Exists", "User already has access.");
     }
@@ -34,4 +35,5 @@ void AccessController::handleAddUser(const QString &fileName, const QString &use
 void AccessController::handleRevokeAccess(const QString &fileName, const QString &userEmail) {
     m_users.removeAll(userEmail);
     if (m_dialog) m_dialog->updateUserList(m_users);
+    emit aclChanged(m_fileName, m_users);
 }

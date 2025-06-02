@@ -109,6 +109,8 @@ qt_add_executable(ChrisPlusPlus
     services/auth/AuthService.cpp
     services/ApiService.cpp
     services/auth/otp/TOTP.cpp
+    services/ack/AclService.cpp
+    services/ack/AclService.h
 )
 
 target_link_libraries(ChrisPlusPlus

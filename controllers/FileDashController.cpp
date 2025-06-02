@@ -49,9 +49,21 @@ void FileDashController::showAccessDialogForFile(const QString &fileName) {
     AccessDialog *dialog = new AccessDialog(fileName, users, nullptr);
     AccessController *accessController = new AccessController(fileName, users, dialog);
     accessController->setView(dialog);
+    
+    // Connect ACL change signal to bubble upward
+    connect(accessController, &AccessController::aclChanged,
+            this, [this](const QString &fname, const QStringList &acl){
+                m_fileAccess[fname] = acl;           // keep UI model in sync
+                emit accessChanged(fname, acl);      // bubble up
+            });
+    
     dialog->exec();
     // After dialog closes, update m_fileAccess with any changes
     m_fileAccess[fileName] = accessController->getUsers();
+    
+    // Clean up
+    accessController->deleteLater();
+    dialog->deleteLater();
 }
 
 void FileDashController::onDeleteFileRequested(const QString &fileName) {
