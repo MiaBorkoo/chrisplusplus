@@ -21,6 +21,7 @@ add_library(tofu
 target_link_libraries(tofu
     PUBLIC
         Qt6::Core
+        Qt6::Concurrent
         OpenSSL::SSL
         OpenSSL::Crypto
         ${QRENCODE_LIBRARIES}

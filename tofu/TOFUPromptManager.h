@@ -32,7 +32,7 @@ public:
     // Configuration
     void setDecisionHandler(TOFUDecisionHandler* handler);
     void setRequire2FA(bool require) { require2FA_ = require; }
-    void setHttpClient(HttpClient* client) { httpClient_ = client; }
+    void setHttpClient(const std::shared_ptr<HttpClient>& client) { httpClient_ = client; } //new implementation
     
     // Trust store management
     void addTrustStoreEntry(const TrustStoreEntry& entry);
@@ -54,6 +54,7 @@ signals:
     void trustDecisionRecorded(const QString& userId, bool accepted);
     void qrVerificationSucceeded(const QString& userId, const QString& deviceId);
     void qrVerificationFailed(const QString& userId, const QString& error);
+    void certificatesFetched(const QString& userId, const QVector<DeviceCertificate>& certificates);
 
 public slots:
     // Handle user decisions
@@ -65,7 +66,7 @@ private:
     TOFUDecisionHandler* decisionHandler_;
     QMap<QString, TrustStoreEntry> trustStore_;  // userId -> TrustStoreEntry
     QRVerification qrVerification_;
-    HttpClient* httpClient_;  // For fetching certificates
+    std::shared_ptr<HttpClient> httpClient_; // For fetching certificates, new implementation
     
     // Helper methods
     bool verify2FAIfRequired(const QString& operation);
@@ -74,6 +75,8 @@ private:
     void updateTrustStore(const QString& userId, bool accepted,
                          const QString& verificationMethod);
     QVector<DeviceCertificate> fetchCertificatesFromServer(const QString& userId);
+
+    QVector<DeviceCertificate> parseCertList(const QString& userId, const HttpResponse&);
                          
 private slots:
     void handleQRVerificationSuccess(const QString& userId, const QString& deviceId);

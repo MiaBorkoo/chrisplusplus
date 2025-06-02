@@ -5,6 +5,7 @@
 #include "../sockets/SSLConnection.h"
 #include <functional>
 #include <QtConcurrent>
+
 // Forward declaration instead of including QIODevice
 class QIODevice;
 

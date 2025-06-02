@@ -46,7 +46,7 @@ else()
 endif()
 
 # Find required packages
-find_package(Qt6 6.5.0 REQUIRED COMPONENTS Core Widgets Network Test)
+find_package(Qt6 6.5.0 REQUIRED COMPONENTS Core Widgets Network Test Concurrent)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
@@ -155,6 +155,7 @@ add_executable(testFileUploadSimple
 target_link_libraries(testFileUploadSimple PRIVATE 
     Qt6::Core 
     Qt6::Widgets 
+    Qt6::Concurrent
     file_transfer 
     http_layer 
     sockets

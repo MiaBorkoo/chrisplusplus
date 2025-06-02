@@ -18,5 +18,6 @@ target_include_directories(http_layer
 target_link_libraries(http_layer
     PUBLIC
         Qt6::Core
+        Qt6::Concurrent
         sockets
 )

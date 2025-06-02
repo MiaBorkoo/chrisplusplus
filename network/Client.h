@@ -29,7 +29,7 @@ private:
                                 const QString& method,
                                 const QJsonObject& payload);
     std::unique_ptr<SSLContext> m_sslContext;
-    std::unique_ptr<HttpClient> m_httpClient;
+    std::unique_ptr<HttpClient> m_http;
     QString m_baseUrl;
     QString m_apiKey;
 }; 
