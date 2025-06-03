@@ -1,5 +1,5 @@
-#include "../network/FileServiceClient.h"
-#include "../network/DataConverter.h"
+#include "../client/FileServiceClient.h"
+#include "../client/DataConverter.h"
 #include "../encryption/FileEncryptionEngine.h"
 #include "../interfaces/Interfaces.h"
 #include <iostream>

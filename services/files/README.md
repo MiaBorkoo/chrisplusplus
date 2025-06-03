@@ -21,7 +21,7 @@ This implementation provides the **data conversion layer** that bridges the File
 
 ## What Was Implemented
 
-### 1. **DataConverter Class** (`network/DataConverter.{h,cpp}`)
+### 1. **DataConverter Class** (`client/DataConverter.{h,cpp}`)
 
 **Purpose**: Handles format conversion between binary crypto data and API-expected formats.
 
@@ -42,7 +42,7 @@ std::string form_data = DataConverter::build_multipart_form_data(
     encrypted_file_data, metadata, boundary);  // Raw binary in multipart
 ```
 
-### 2. **Complete HTTPClient Implementation** (`network/HTTPClient.{h,cpp}`)
+### 2. **Complete FileServiceClient Implementation** (`client/FileServiceClient.{h,cpp}`)
 
 **Purpose**: REST API client using existing SSL infrastructure.
 
