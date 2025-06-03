@@ -2,6 +2,7 @@
 #include "../views/HeaderWidget.h"
 #include "../views/AccountSection.h"
 #include <QPoint>
+#include <QMessageBox>
 
 AccountController::AccountController(HeaderWidget* headerWidget, AccountSection* accountSection, QObject* parent)
     : QObject(parent), m_headerWidget(headerWidget), m_accountSection(accountSection) 
@@ -35,20 +36,26 @@ void AccountController::onAccountButtonClicked() {
         m_accountSection->activateWindow();
     }
 }
-
 void AccountController::onChangePasswordRequested(const QString& oldPass, const QString& newPass) {
-    // Here, handle password change logic - call model, validate, etc.
-    // For demo, just print to console or show a message box:
-    // TODO: Replace with actual business logic
-
+    // Simple validation example:
     if (oldPass.isEmpty() || newPass.isEmpty()) {
-        // You can add signals to AccountSection for errors or use a messagebox
+        m_accountSection->showErrorMessage("Fields cannot be empty.");
+        m_accountSection->clearFields();
         return;
     }
 
-    // Example: just print to console for now
-    qDebug("Password change requested: old = %s, new = %s", oldPass.toUtf8().constData(), newPass.toUtf8().constData());
+    // TODO: Replace with actual password change logic, e.g. check old password validity
 
-    // On success, maybe hide the account section or show success message
-    m_accountSection->hide();
+    bool passwordChangedSuccessfully = true; // simulate success or failure
+
+    if (passwordChangedSuccessfully) {
+        // Show success popup
+        QMessageBox::information(m_accountSection, "Success", "Password changed successfully!");
+        m_accountSection->clearFields();
+        m_accountSection->hide();  // optional, close popup on success
+    } else {
+        // On failure, show error label with message
+        m_accountSection->showErrorMessage("Failed to change password. Please try again.");
+        m_accountSection->clearFields();
+    }
 }

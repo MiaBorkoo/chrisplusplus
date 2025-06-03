@@ -20,6 +20,9 @@ private:
     AccountSection* m_accountSection;
 
     QString m_currentUsername = "User123";  // Example username, could come from model/session
+
+signals:
+    void passwordChangeSuccessful();
 };
 
 #endif // ACCOUNTCONTROLLER_H

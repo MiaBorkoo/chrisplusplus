@@ -481,6 +481,6 @@ HeaderWidget QPushButton:pressed {
 /* Error Message */
 #accountErrorLabel {
     color: #D32F2F;
-    font-size: 13px;
-    margin-top: 10px;
+    font-size: 8px;
+    margin-top: 5px;
 }
