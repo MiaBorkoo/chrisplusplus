@@ -1,15 +1,13 @@
 #include "LoginModel.h"
 #include "../crypto/KeyDerivation.h"
-#include "../crypto/MEKGenerator.h"
-#include "../crypto/WrappedMEK.h"
 #include "../crypto/AuthHash.h"
 
 /**
  * @class LoginModel
- * @brief Manages login and registration operations.
+ * @brief Manages login operations.
  * @author jjola00
  *
- * This class handles user login and registration operations.
+ * This class handles user login operations.
  */
 
 template <size_t N>
@@ -26,94 +24,41 @@ LoginModel::LoginModel(IAuthService* authDb, QObject* parent)
 {
     connect(m_authDb, &IAuthService::loginCompleted,
             this, &LoginModel::handleLoginCompleted);
-
-    connect(m_authDb, &IAuthService::registrationCompleted,
-            this, &LoginModel::handleRegistrationCompleted);
 }
-
 
 void LoginModel::handleLoginCompleted(bool success, const QString& token) {
     if (success) {
-        emit authSuccess();
+        emit loginSuccess();
     } else {
-        emit authError("Login failed");
+        emit loginError("Login failed");
     }
 }
-
-void LoginModel::handleRegistrationCompleted(bool success) {
-    if (success) {
-        emit authSuccess();
-    } else {
-        emit authError("Registration failed");
-    }
-}
-
 
 void LoginModel::login(const QString& username, const QString& password) {
     if (username.isEmpty() || password.isEmpty()) {
-        emit authError("Credentials cannot be empty");
-        return;
-    }
-    
-    emit authError("Login not implemented with new crypto flow");
-}
-
-void LoginModel::registerUser(const QString& username, 
-                            const QString& password,
-                            const QString& confirmPassword) {
-    if (username.isEmpty() || password.isEmpty()) {
-        emit authError("Fields cannot be empty");
-        return;
-    }
-    if (password != confirmPassword) {
-        emit authError("Passwords don't match");
+        emit loginError("Credentials cannot be empty");
         return;
     }
 
-    // 1. Generate salts
-    KeyDerivation kd;
-    std::vector<uint8_t> authSalt = kd.generateSalt();
-    std::vector<uint8_t> encSalt = kd.generateSalt();
+    try {
+        // 1. Get salts from server (this would be a separate API call)
+        // TODO: Implement salt retrieval
+        std::vector<uint8_t> authSalt1; // = getSaltsFromServer(username).authSalt1;
+        std::vector<uint8_t> authSalt2; // = getSaltsFromServer(username).authSalt2;
+        std::vector<uint8_t> encSalt;   // = getSaltsFromServer(username).encSalt;
 
-    // 2. Derive keys from password and salts
-    DerivedKeys keys = kd.deriveKeysFromPassword(password.toStdString(), authSalt, encSalt);
+        // 2. Derive keys using the same process as registration
+        KeyDerivation kd;
+        DerivedKeys keys = kd.deriveKeysFromPassword(password.toStdString(), authSalt1, encSalt);
 
-    // 2.5. Hash the serverAuthKey
-    std::vector<uint8_t> authSalt2 = AuthHash::generateSalt(16);
+        // 3. Generate auth hash using server auth key and second salt
+        std::vector<uint8_t> serverAuthKeyVec(keys.serverAuthKey.begin(), keys.serverAuthKey.end());
+        std::vector<uint8_t> authHash = AuthHash::computeAuthHash(serverAuthKeyVec, authSalt2);
 
-    std::vector<uint8_t> serverAuthKeyVec(keys.serverAuthKey.begin(), keys.serverAuthKey.end());//converting auth key from std::array to std::vector 
-
-    // this computes the authentication hash using the server authkey and the new salt
-    std::vector<uint8_t> authHash = AuthHash::computeAuthHash(serverAuthKeyVec, authSalt2);
-
-    // 3. Generate a random MEK
-    std::vector<unsigned char> mek = generateMEK();
-
-    // 4. Encrypt the MEK with the MEK Wrapper Key
-    std::vector<uint8_t> mekWrapperKey(keys.mekWrapperKey.begin(), keys.mekWrapperKey.end());
-    EncryptedMEK encrypted = encryptMEKWithWrapperKey(mek, mekWrapperKey);
-
-    // 5. Prepare data to send to server (Base64 encode all binary fields)
-    QString authSaltB64 = toBase64String(authSalt);
-    QString encSaltB64 = toBase64String(encSalt);
-    QString authKeyB64 = toBase64String(keys.serverAuthKey);
-    QString authHashB64 = toBase64String(authHash);
-    QString encryptedMEKB64 = toBase64String(encrypted.ciphertext);
-    // QString mekIVB64 = toBase64String(encrypted.iv);
-    // QString mekTagB64 = toBase64String(encrypted.tag);
- 
-    // 6. Call AuthService to register user
-    m_authDb->registerUser(username, authSaltB64, encSaltB64, authKeyB64, encryptedMEKB64/* authHashB64, mekIVB64, mekTagB64*/);
-}
-
-void LoginModel::changePassword(const QString& username,
-                              const QString& oldPassword,
-                              const QString& newPassword,
-                              const QString& confirmPassword) {
-    if (newPassword != confirmPassword) {
-        emit authError("New passwords don't match");
-        return;
+        // 4. Convert to base64 and send to server
+        QString authHashB64 = toBase64String(authHash);
+        m_authDb->login(username, authHashB64);
+    } catch (const std::exception& e) {
+        emit loginError(QString("Login failed: %1").arg(e.what()));
     }
-    
-    emit authError("Change password not implemented with new crypto flow");
 }

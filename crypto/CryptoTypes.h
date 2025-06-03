@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <vector>
+#include <cstdint>
 
 constexpr size_t KEY_LEN = 32; // this is 256 bits
 
