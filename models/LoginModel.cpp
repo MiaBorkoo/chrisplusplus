@@ -19,11 +19,13 @@ QString toBase64String(const std::vector<uint8_t>& data) {
     return QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(data.data()), static_cast<int>(data.size())).toBase64());
 }
 
-LoginModel::LoginModel(IAuthService* authDb, QObject* parent)
-    : QObject(parent), m_authDb(authDb) 
+LoginModel::LoginModel(std::shared_ptr<AuthService> authService, QObject* parent)
+    : QObject(parent), m_authService(authService) 
 {
-    connect(m_authDb, &IAuthService::loginCompleted,
+    connect(m_authService.get(), &AuthService::loginCompleted,
             this, &LoginModel::handleLoginCompleted);
+    connect(m_authService.get(), &AuthService::errorOccurred,
+            this, [this](const QString& error) { emit loginError(error); });
 }
 
 void LoginModel::handleLoginCompleted(bool success, const QString& token) {
@@ -57,7 +59,7 @@ void LoginModel::login(const QString& username, const QString& password) {
 
         // 4. Convert to base64 and send to server
         QString authHashB64 = toBase64String(authHash);
-        m_authDb->login(username, authHashB64);
+        m_authService->login(username, authHashB64);
     } catch (const std::exception& e) {
         emit loginError(QString("Login failed: %1").arg(e.what()));
     }

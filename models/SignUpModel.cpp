@@ -21,11 +21,13 @@ QString toBase64String(const std::vector<uint8_t>& data) {
     return QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(data.data()), static_cast<int>(data.size())).toBase64());
 }
 
-SignUpModel::SignUpModel(IAuthService* authDb, QObject* parent)
-    : QObject(parent), m_authDb(authDb) 
+SignUpModel::SignUpModel(std::shared_ptr<AuthService> authService, QObject* parent)
+    : QObject(parent), m_authService(authService) 
 {
-    connect(m_authDb, &IAuthService::registrationCompleted,
+    connect(m_authService.get(), &AuthService::registrationCompleted,
             this, &SignUpModel::handleRegistrationCompleted);
+    connect(m_authService.get(), &AuthService::errorOccurred,
+            this, [this](const QString& error) { emit registrationError(error); });
 }
 
 void SignUpModel::handleRegistrationCompleted(bool success) {
@@ -79,14 +81,14 @@ void SignUpModel::registerUser(const QString& username,
         QString mekTagB64 = toBase64String(encrypted.tag);
     
         // 7. Call AuthService to register user with all required parameters
-        m_authDb->registerUser(username, 
-                             authHashB64,
-                             encryptedMEKB64,
-                             authSalt1B64,
-                             authSalt2B64,
-                             encSaltB64,
-                             mekIVB64,
-                             mekTagB64);
+        m_authService->registerUser(username, 
+                                  authHashB64,
+                                  encryptedMEKB64,
+                                  authSalt1B64,
+                                  authSalt2B64,
+                                  encSaltB64,
+                                  mekIVB64,
+                                  mekTagB64);
     } catch (const std::exception& e) {
         emit registrationError(QString("Registration failed: %1").arg(e.what()));
     }

@@ -12,14 +12,16 @@
  * This class handles authentication operations.
  */
 
-AuthService::AuthService(Client* client, QObject* parent)
-    : IAuthService(parent), m_client(client), m_settings(new QSettings(this))  
+AuthService::AuthService(std::shared_ptr<Client> client, QObject* parent)
+    : ApiService(parent), m_client(client), m_settings(new QSettings(this))  
 {
-    connect(m_client, SIGNAL(responseReceived(int, QJsonObject)), 
-            this, SLOT(handleResponseReceived(int, QJsonObject)));
+    if (m_client) {
+        connect(m_client.get(), SIGNAL(responseReceived(int, QJsonObject)), 
+                this, SLOT(handleResponseReceived(int, QJsonObject)));
 
-    connect(m_client, SIGNAL(networkError(QString)),
-            this, SLOT(handleNetworkError(QString)));
+        connect(m_client.get(), SIGNAL(networkError(QString)),
+                this, SLOT(handleNetworkError(QString)));
+    }
 }
 
 void AuthService::login(const QString& username, const QString& authHash) {
