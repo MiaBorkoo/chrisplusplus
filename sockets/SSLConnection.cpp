@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <stdexcept>
 #include <cstring>
+#include <iostream>
 
 SSLConnection::SSLConnection(SSLContext& ctx,
                              const std::string& host,
@@ -15,7 +16,9 @@ SSLConnection::SSLConnection(SSLContext& ctx,
     : host_(host)
 {
     // 1) TCP connect
+    std::cout << "Attempting TCP connection to " << host << ":" << port << std::endl;
     sockfd_ = connectTCP(host, port); //this is the socket file descriptor, "example.com" is the hostname, "443" is the port number
+    std::cout << "TCP connection successful, socket fd: " << sockfd_ << std::endl;
 
     // 2) Create SSL session
     ssl_ = SSL_new(ctx.get());
@@ -30,17 +33,37 @@ SSLConnection::SSLConnection(SSLContext& ctx,
 
     // 4) Attach socket FD to SSL
     SSL_set_fd(ssl_, sockfd_);
+    std::cout << "Starting SSL handshake..." << std::endl;
 
     // 5) Perform TLS handshake
     if (SSL_connect(ssl_) != 1) {
         unsigned long err = ERR_get_error();
         char buf[256];
         ERR_error_string_n(err, buf, sizeof(buf));
-        throw std::runtime_error(std::string("SSL_connect failed: ") + buf);
+        
+        // Get more detailed error information
+        int ssl_error = SSL_get_error(ssl_, -1);
+        std::string detailed_error = "SSL_connect failed: ";
+        detailed_error += buf;
+        detailed_error += " (SSL error code: " + std::to_string(ssl_error) + ")";
+        
+        // Print all errors in the queue
+        std::cout << "SSL Error Details:" << std::endl;
+        while ((err = ERR_get_error()) != 0) {
+            ERR_error_string_n(err, buf, sizeof(buf));
+            std::cout << "  " << buf << std::endl;
+        }
+        
+        throw std::runtime_error(detailed_error);
     }
 
-    // 6) Verify certificate chain and hostname
-    verifyPeerCertificate();
+    // 6) Only verify certificate if verification is enabled in the context
+    int verify_mode = SSL_CTX_get_verify_mode(ctx.get());
+    if (verify_mode != SSL_VERIFY_NONE) {
+        verifyPeerCertificate();
+    } else {
+        std::cout << "Skipping certificate verification (SSL_VERIFY_NONE)" << std::endl;
+    }
 }
 
 SSLConnection::~SSLConnection()

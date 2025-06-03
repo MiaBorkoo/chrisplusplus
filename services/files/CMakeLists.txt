@@ -60,8 +60,8 @@ target_link_libraries(CompressionEngine ExceptionsLib ${ZLIB_LIBRARIES} ${LIBZIP
 
 # Data Converter (handles API format conversion)
 add_library(DataConverter
-    network/DataConverter.cpp
-    network/DataConverter.h
+    client/DataConverter.cpp
+    client/DataConverter.h
 )
 target_link_libraries(DataConverter 
     ExceptionsLib
@@ -72,16 +72,16 @@ target_link_libraries(DataConverter
 
 # File Service Client (handles REST API communication)
 add_library(FileServiceClientLib
-    network/FileServiceClient.cpp
-    network/FileServiceClient.h
-    network/AuthServiceClient.cpp
-    network/AuthServiceClient.h
-    network/FileOperationsClient.cpp
-    network/FileOperationsClient.h
-    network/SharingServiceClient.cpp
-    network/SharingServiceClient.h
-    network/AuditServiceClient.cpp
-    network/AuditServiceClient.h
+    client/FileServiceClient.cpp
+    client/FileServiceClient.h
+    client/AuthServiceClient.cpp
+    client/AuthServiceClient.h
+    client/FileOperationsClient.cpp
+    client/FileOperationsClient.h
+    client/SharingServiceClient.cpp
+    client/SharingServiceClient.h
+    client/AuditServiceClient.cpp
+    client/AuditServiceClient.h
 )
 target_link_libraries(FileServiceClientLib
     DataConverter
@@ -106,24 +106,11 @@ target_link_libraries(FileEncryptionEngine
     OpenSSL::Crypto
 )
 
-# File Manager (high-level interface)
-add_library(FileManager
-    FileManager.cpp
-    FileManager.h
-)
-target_link_libraries(FileManager 
-    FileEncryptionEngine
-    FileServiceClientLib
-    DataConverter
-    ExceptionsLib
-)
-
 # Example executable
 add_executable(FileManagementExample
     examples/FileManagementExample.cpp
 )
 target_link_libraries(FileManagementExample 
-    FileManager
     FileEncryptionEngine
     FileServiceClientLib
     DataConverter

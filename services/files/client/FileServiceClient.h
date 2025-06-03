@@ -44,6 +44,18 @@ public:
         const std::string& file_id,
         const std::string& session_token);
     
+    // Download file directly to disk (convenience method)
+    bool download_file_to_disk(
+        const std::string& file_id,
+        const std::string& output_path,
+        const std::string& session_token);
+    
+    // Download file using stream method to avoid binary corruption
+    bool download_file_stream(
+        const std::string& file_id,
+        const std::string& output_path,
+        const std::string& session_token);
+    
     FileMetadataResponse get_file_metadata(
         const std::string& file_id,
         const std::string& session_token);

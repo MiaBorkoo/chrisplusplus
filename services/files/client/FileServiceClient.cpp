@@ -25,18 +25,36 @@ FileServiceClient::FileServiceClient(const std::string& base_url) : base_url(bas
     SSLContext::initializeOpenSSL();
     ssl_context = std::make_unique<SSLContext>();
     
-    // Parse URL to determine if SSL is needed
+    // Parse URL to determine if SSL is needed and extract host/port
     if (base_url.find("https://") == 0) {
         use_ssl = true;
         // Disable certificate verification for development with self-signed certs
         ssl_context->disableCertificateVerification();
-        server_port = "8000";  // Default HTTPS port for development
+        
+        // Extract host and port from URL
+        std::string url_part = base_url.substr(8); // Remove "https://"
+        size_t colon_pos = url_part.find(':');
+        if (colon_pos != std::string::npos) {
+            server_host = url_part.substr(0, colon_pos);
+            server_port = url_part.substr(colon_pos + 1);
+        } else {
+            server_host = url_part;
+            server_port = "443";  // Default HTTPS port
+        }
     } else {
         use_ssl = false;
-        server_port = "8000";  // Default HTTP port
+        
+        // Extract host and port from HTTP URL
+        std::string url_part = base_url.substr(7); // Remove "http://"
+        size_t colon_pos = url_part.find(':');
+        if (colon_pos != std::string::npos) {
+            server_host = url_part.substr(0, colon_pos);
+            server_port = url_part.substr(colon_pos + 1);
+        } else {
+            server_host = url_part;
+            server_port = "80";  // Default HTTP port
+        }
     }
-    
-    server_host = "localhost";
     
     initialize_clients();
 }
@@ -108,6 +126,20 @@ FileDownloadResponse FileServiceClient::download_file(
     const std::string& file_id,
     const std::string& session_token) {
     return file_client_->download_file(file_id, session_token);
+}
+
+bool FileServiceClient::download_file_to_disk(
+    const std::string& file_id,
+    const std::string& output_path,
+    const std::string& session_token) {
+    return file_client_->download_file_to_disk(file_id, output_path, session_token);
+}
+
+bool FileServiceClient::download_file_stream(
+    const std::string& file_id,
+    const std::string& output_path,
+    const std::string& session_token) {
+    return file_client_->download_file_stream(file_id, output_path, session_token);
 }
 
 FileMetadataResponse FileServiceClient::get_file_metadata(

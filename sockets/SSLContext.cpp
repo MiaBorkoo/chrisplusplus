@@ -2,6 +2,7 @@
 #include "SSLContext.h"
 #include <openssl/err.h>
 #include <stdexcept>
+#include <iostream>
 
 //this is the initialization of the ssl context
 void SSLContext::initializeOpenSSL()
