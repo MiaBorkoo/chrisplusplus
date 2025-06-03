@@ -101,6 +101,11 @@ qt_add_executable(ChrisPlusPlus
     controllers/AccessController.cpp
     controllers/AccessController.h
     models/SideNavTabs.h
+    views/AccountSection.cpp
+    views/AccountSection.h
+    controllers/AccountController.cpp
+    controllers/AccountController.h
+
     ${RESOURCE_FILES}
     # ✅ ADD: Authentication system
     models/LoginModel.cpp
