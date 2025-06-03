@@ -9,9 +9,16 @@
 #include <QStackedWidget>
 #include <QMessageBox>
 #include <QDebug>
+#include <QFile>
 
 MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 {
+    //loading global stylesheet
+    QFile styleFile(":/styles/styles.css");
+    styleFile.open(QFile::ReadOnly);
+    QString styleSheet = QLatin1String(styleFile.readAll());
+    qApp->setStyleSheet(styleSheet);
+
     setWindowTitle("Login");
     QScreen *screen = QApplication::primaryScreen();
     QRect screenGeometry = screen->geometry();
@@ -30,6 +37,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
     m_filesDashView = new FilesDashView(this);
     m_fileDashController = new FileDashController(m_filesDashView->getSearchBar(), m_filesDashView->getFileTable(), this);
+   
 
     m_sharedDashView = new SharedDashView(this);
     m_sharedDashController = new SharedDashController(m_sharedDashView, this);
@@ -58,7 +66,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     //switches to files dash view after successful login
     connect(m_loginController, &LoginController::loginSuccessful, this, [this]() {
         m_stack->setCurrentWidget(m_filesDashView);
-        m_sideNavController->setActiveTab(" Owned Files");
+        m_sideNavController->setActiveTab(SideNavTab::OwnedFiles);
     });
     
     connect(m_filesDashView, &FilesDashView::fileOpenRequested, this, [this](const QString &fileName) {
@@ -80,17 +88,18 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     // Connect side nav signals
     connect(m_sideNavController, &SideNavController::ownedFilesRequested, this, [this]() {
         m_stack->setCurrentWidget(m_filesDashView);
-        m_sideNavController->setActiveTab(" Owned Files");
+        m_sideNavController->setActiveTab(SideNavTab::OwnedFiles);
     });
 
     connect(m_sideNavController, &SideNavController::sharedFilesRequested, this, [this]() {
         m_stack->setCurrentWidget(m_sharedDashView);
-        m_sideNavController->setActiveTab(" Shared With Me");
+        m_sideNavController->setActiveTab(SideNavTab::SharedWithMe);
     });
 
     connect(m_sideNavController, &SideNavController::inboxRequested, this, [this]() {
-        // TODO: Implement inbox view -> this depeneds on if we want to keep it
+        // TODO: Implement inbox view -> this depends on if we want to keep it
         QMessageBox::information(this, "Inbox", "Inbox view coming soon!");
+        m_sideNavController->setActiveTab(SideNavTab::Inbox);
     });
 
     connect(m_sideNavController, &SideNavController::logoutRequested, this, [this]() {
@@ -101,8 +110,10 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     connect(m_stack, &QStackedWidget::currentChanged, this, [this](int index) {
         if (index == 2) { // FilesDashView
             m_sideNavController->setView(m_filesDashView->getSideNav());
+            m_sideNavController->setActiveTab(SideNavTab::OwnedFiles);
         } else if (index == 3) { // SharedDashView
             m_sideNavController->setView(m_sharedDashView->getSideNav());
+            m_sideNavController->setActiveTab(SideNavTab::SharedWithMe);
         }
     });
 
@@ -113,3 +124,5 @@ MainWindow::~MainWindow()
 {
     //destructor cause it wouldnt build without i
 }   
+
+

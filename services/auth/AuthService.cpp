@@ -1,5 +1,8 @@
 #include "AuthService.h"
+#include "otp/TOTP.h"          // NEW
 #include <QJsonObject>
+#include <QSettings>           // ← NEW, used for secure storage
+
 
 /**
  * @class AuthService
@@ -10,7 +13,7 @@
  */
 
 AuthService::AuthService(Client* client, QObject* parent)
-    : IAuthService(parent), m_client(client) 
+    : IAuthService(parent), m_client(client), m_settings(new QSettings(this))  
 {
     // SIGNAL/SLOT (avoids Qt template issues)
     connect(m_client, SIGNAL(responseReceived(int, QJsonObject)), 
@@ -24,6 +27,13 @@ void AuthService::login(const QString& username, const QString& authKey) {
     QJsonObject payload;
     payload["username"] = username;
     payload["auth_key"] = authKey;
+    
+    const QString secretB32 = m_settings->value("totp/secret").toString();
+    if (!secretB32.isEmpty()) {                 // user has enrolled
+        TOTP totp(secretB32.toStdString());  // Convert QString to std::string
+        const QString otp = QString::fromStdString(totp.generate());  // Uses current time by default
+        payload["otp"] = otp;                   // add 6-digit code
+    }
     m_client->sendRequest("/login", "POST", payload);
 }
 
@@ -64,7 +74,7 @@ void AuthService::handleResponseReceived(int status, const QJsonObject& data) {
 }
 
 void AuthService::handleNetworkError(const QString& error) {
-    emit errorOccurred(error);
+    reportError(error);
 }
 
 void AuthService::handleLoginResponse(int status, const QJsonObject& data) {
@@ -75,7 +85,7 @@ void AuthService::handleLoginResponse(int status, const QJsonObject& data) {
     if (success) {
         m_sessionToken = token;
     } else {
-        emit errorOccurred(data.value("error").toString("Login failed. Please try again."));
+        reportError(data.value("error").toString("Login failed. Please try again."));
     }
 }
 
@@ -83,7 +93,7 @@ void AuthService::handleRegisterResponse(int status, const QJsonObject& data) {
     const bool success = (status == 200 && data.value("success").toBool());
     emit registrationCompleted(success);
     if (!success) {
-        emit errorOccurred(data.value("error").toString("Registration failed. Please try again."));
+        reportError(data.value("error").toString("Registration failed. Please try again."));
     }
 }
 
@@ -93,7 +103,7 @@ void AuthService::handleChangePasswordResponse(int status, const QJsonObject& da
     if (success) {
         invalidateSession(); 
     } else {
-        emit errorOccurred(data.value("error").toString("Password change failed. Please try again."));
+        reportError(data.value("error").toString("Password change failed. Please try again."));
     }
 }
 

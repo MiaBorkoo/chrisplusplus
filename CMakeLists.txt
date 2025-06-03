@@ -46,7 +46,8 @@ else()
 endif()
 
 # Find required packages
-find_package(Qt6 6.5.0 REQUIRED COMPONENTS Core Widgets Network Test)
+find_package(Qt6 6.5.0 REQUIRED COMPONENTS Core Widgets Network Test Concurrent)
+find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -94,13 +95,21 @@ qt_add_executable(ChrisPlusPlus
     controllers/SideNavController.h
     controllers/SharedDashController.cpp
     controllers/SharedDashController.h
+    views/AccessDialog.cpp
+    views/AccessDialog.h
+    controllers/AccessController.cpp
+    controllers/AccessController.h
+    models/SideNavTabs.h
     ${RESOURCE_FILES}
     # ✅ ADD: Authentication system
     models/LoginModel.cpp
     network/Client.cpp
     services/auth/IAuthService.cpp
     services/auth/AuthService.cpp
-    # services/auth/otp/TOTP.cpp #TODO: add this back in
+    services/ApiService.cpp
+    services/auth/otp/TOTP.cpp
+    services/ack/AclService.cpp
+    services/ack/AclService.h
 )
 
 target_link_libraries(ChrisPlusPlus
@@ -112,6 +121,7 @@ target_link_libraries(ChrisPlusPlus
         file_transfer
         http_layer
         sockets
+        tofu           # Add TOFU library
         OpenSSL::SSL
         OpenSSL::Crypto
         crypto-lib
@@ -129,6 +139,7 @@ target_include_directories(ChrisPlusPlus
         ${CMAKE_SOURCE_DIR}/sockets
         ${CMAKE_SOURCE_DIR}/httpC
         ${CMAKE_SOURCE_DIR}/fileIO
+        ${CMAKE_SOURCE_DIR}/tofu    # Add TOFU include path
 )
 
 # ============================================================================
