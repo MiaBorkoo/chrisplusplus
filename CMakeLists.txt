@@ -63,9 +63,10 @@ qt_standard_project_setup()
 # Add subdirectories for ALL libraries
 # ============================================================================
 add_subdirectory(sockets)    # SSL/TLS layer (shared by both systems)
-add_subdirectory(httpC)      # HTTP protocol layer (YOUR addition)
-add_subdirectory(fileIO)     # File transfer layer (YOUR addition)
-add_subdirectory(tofu)       # TOFU system (NEW)
+add_subdirectory(httpC)      # HTTP protocol layer
+add_subdirectory(fileIO)     # File transfer layer 
+add_subdirectory(crypto)     # Crypto library 
+add_subdirectory(tofu)       # TOFU library
 
 # Main application with authentication
 qt_add_executable(ChrisPlusPlus
@@ -101,7 +102,6 @@ qt_add_executable(ChrisPlusPlus
     controllers/AccessController.h
     models/SideNavTabs.h
     ${RESOURCE_FILES}
-    
     # ✅ ADD: Authentication system
     models/LoginModel.cpp
     network/Client.cpp
@@ -122,9 +122,10 @@ target_link_libraries(ChrisPlusPlus
         file_transfer
         http_layer
         sockets
-        tofu           # Add TOFU library
+        tofu           
         OpenSSL::SSL
         OpenSSL::Crypto
+        crypto-lib
 )
 
 # Include directories (consolidated)
@@ -139,7 +140,7 @@ target_include_directories(ChrisPlusPlus
         ${CMAKE_SOURCE_DIR}/sockets
         ${CMAKE_SOURCE_DIR}/httpC
         ${CMAKE_SOURCE_DIR}/fileIO
-        ${CMAKE_SOURCE_DIR}/tofu    # Add TOFU include path
+        ${CMAKE_SOURCE_DIR}/tofu   
 )
 
 # ============================================================================
@@ -152,17 +153,48 @@ add_executable(testSSLforNow
 )
 target_link_libraries(testSSLforNow PRIVATE sockets http_layer)
 
-# add_executable(testFileUploadSimple
-#     tests/testFileUploadSimple.cpp
-# )
-# target_link_libraries(testFileUploadSimple PRIVATE 
-#     Qt6::Core 
-#     Qt6::Widgets 
-#     Qt6::Concurrent
-#     file_transfer 
-#     http_layer 
-#     sockets
-# )
+add_executable(testNetworkSystemComplete
+    tests/testNetworkSystemComplete.cpp
+)
+target_link_libraries(testNetworkSystemComplete PRIVATE 
+    Qt6::Core 
+    Qt6::Widgets 
+    file_transfer 
+    http_layer 
+    sockets
+)
+
+add_executable(testKeyDerivation
+    tests/testKeyDerivation.cpp
+    crypto/KeyDerivation.cpp
+)
+target_link_libraries(testKeyDerivation PRIVATE crypto-lib)
+target_include_directories(testKeyDerivation PRIVATE
+    ${CMAKE_SOURCE_DIR}/crypto
+)
+
+add_executable(testMEKGenerator
+    tests/testMEKGenerator.cpp
+    crypto/MEKGenerator.cpp
+)
+target_link_libraries(testMEKGenerator PRIVATE OpenSSL::Crypto)
+target_include_directories(testMEKGenerator PRIVATE ${CMAKE_SOURCE_DIR}/crypto)
+
+add_executable(testWrappedMEK
+    tests/testWrappedMEK.cpp
+    crypto/WrappedMEK.cpp
+)
+target_link_libraries(testWrappedMEK PRIVATE OpenSSL::Crypto)
+target_include_directories(testWrappedMEK PRIVATE
+    ${CMAKE_SOURCE_DIR}/crypto
+)
+
+add_executable(testAuthHash
+    tests/testAuthHash.cpp
+    crypto/AuthHash.cpp
+)
+target_link_libraries(testAuthHash PRIVATE crypto-lib)
+target_include_directories(testAuthHash PRIVATE ${CMAKE_SOURCE_DIR}/crypto)
 
 # ============================================================================
 # INSTALLATION (updated for ChrisPlusPlus)
