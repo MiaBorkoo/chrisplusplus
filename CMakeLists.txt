@@ -38,6 +38,7 @@ elseif(WIN32)
 else()
     # Linux: Standard paths
     set(CMAKE_PREFIX_PATH 
+        "/home/ruan/Qt/6.9.0/gcc_64"
         "/opt/Qt/6.7.0/gcc_64"
         "/usr/lib/x86_64-linux-gnu/cmake/Qt6"
         ${CMAKE_PREFIX_PATH}
@@ -46,9 +47,15 @@ else()
 endif()
 
 # Find required packages
+
+find_package(OpenSSL REQUIRED)
+
+
 find_package(Qt6 6.5.0 REQUIRED COMPONENTS Core Widgets Network Test Concurrent)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
+find_package(nlohmann_json REQUIRED)
+
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
