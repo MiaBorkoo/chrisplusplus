@@ -3,6 +3,7 @@
 #include "../../../httpC/HttpClient.h"
 #include "../../../httpC/HttpRequest.h"
 #include "../../../httpC/HttpResponse.h"
+#include "../config/ServiceConfig.h"
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <stdexcept>
@@ -32,7 +33,7 @@ std::vector<AuditLogResponse> AuditServiceClient::get_file_audit_logs(
         http_request.path = "/api/files/" + file_id + "/audit?" + query_string;
         http_request.headers["Host"] = server_host_;
         http_request.headers["Authorization"] = "Bearer " + session_token;
-        http_request.headers["User-Agent"] = "ChrisPlusPlus-Files/1.0";
+        http_request.headers["User-Agent"] = ServiceConfig::Client::USER_AGENT;
         
         HttpResponse response = client.sendRequest(http_request);
         

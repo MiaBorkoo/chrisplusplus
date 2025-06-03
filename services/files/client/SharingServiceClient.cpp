@@ -3,6 +3,7 @@
 #include "../../../httpC/HttpClient.h"
 #include "../../../httpC/HttpRequest.h"
 #include "../../../httpC/HttpResponse.h"
+#include "../config/ServiceConfig.h"
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <stdexcept>
@@ -26,7 +27,7 @@ FileShareResponse SharingServiceClient::share_file(
         http_request.headers["Host"] = server_host_;
         http_request.headers["Authorization"] = "Bearer " + session_token;
         http_request.headers["Content-Type"] = "application/json";
-        http_request.headers["User-Agent"] = "ChrisPlusPlus-Files/1.0";
+        http_request.headers["User-Agent"] = ServiceConfig::Client::USER_AGENT;
         http_request.body = DataConverter::to_json_string(request);
         
         HttpResponse response = client.sendRequest(http_request);
@@ -57,7 +58,7 @@ bool SharingServiceClient::revoke_share(
         http_request.path = "/api/files/share/" + share_id;
         http_request.headers["Host"] = server_host_;
         http_request.headers["Authorization"] = "Bearer " + session_token;
-        http_request.headers["User-Agent"] = "ChrisPlusPlus-Files/1.0";
+        http_request.headers["User-Agent"] = ServiceConfig::Client::USER_AGENT;
         
         HttpResponse response = client.sendRequest(http_request);
         
@@ -79,7 +80,7 @@ std::vector<ShareResponse> SharingServiceClient::list_file_shares(
         http_request.path = "/api/files/" + file_id + "/shares";
         http_request.headers["Host"] = server_host_;
         http_request.headers["Authorization"] = "Bearer " + session_token;
-        http_request.headers["User-Agent"] = "ChrisPlusPlus-Files/1.0";
+        http_request.headers["User-Agent"] = ServiceConfig::Client::USER_AGENT;
         
         HttpResponse response = client.sendRequest(http_request);
         
@@ -154,7 +155,7 @@ std::vector<SharedFileResponse> SharingServiceClient::list_received_shares(
         http_request.path = "/api/files/shares/received?" + query_string;
         http_request.headers["Host"] = server_host_;
         http_request.headers["Authorization"] = "Bearer " + session_token;
-        http_request.headers["User-Agent"] = "ChrisPlusPlus-Files/1.0";
+        http_request.headers["User-Agent"] = ServiceConfig::Client::USER_AGENT;
         
         HttpResponse response = client.sendRequest(http_request);
         
