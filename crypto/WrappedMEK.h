@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include <string>
+#include <cstdint>
 
 struct EncryptedMEK {
     std::vector<uint8_t> ciphertext;
