@@ -106,6 +106,7 @@ struct FileShareRequest {
     std::string recipient_username;
     std::vector<uint8_t> encrypted_data_key;
     std::optional<uint64_t> expires_at;
+    std::optional<uint32_t> max_downloads;
     std::string share_grant_hmac;
     std::string share_chain_hmac;
 };

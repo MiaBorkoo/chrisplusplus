@@ -2,6 +2,7 @@
 #include "SSLContext.h"
 #include <openssl/err.h>
 #include <stdexcept>
+#include <iostream>
 
 //this is the initialization of the ssl context
 void SSLContext::initializeOpenSSL()
@@ -79,7 +80,12 @@ SSL_CTX* SSLContext::get() const
     return ctx_;
 }
 
-/*
+void SSLContext::disableCertificateVerification() {
+    // Disable certificate verification for development with self-signed certs
+    std::cout << "Disabling SSL certificate verification for development" << std::endl;
+    SSL_CTX_set_verify(ctx_, SSL_VERIFY_NONE, nullptr);
+}
+
 void SSLContext::loadClientCertificate(const std::string& certFile, 
                                      const std::string& keyFile) {
     if (SSL_CTX_use_certificate_file(ctx_, certFile.c_str(), SSL_FILETYPE_PEM) <= 0) {
@@ -89,4 +95,3 @@ void SSLContext::loadClientCertificate(const std::string& certFile,
         throw std::runtime_error("Failed to load client private key");
     }
 }
-*/

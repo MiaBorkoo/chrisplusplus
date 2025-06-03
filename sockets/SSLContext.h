@@ -27,6 +27,10 @@ class SSLContext {
         void loadClientCertificate(const std::string& certFile, 
                                  const std::string& keyFile);
 
+        // Disable certificate verification for development (self-signed certs)
+        // todo: re enable
+        void disableCertificateVerification();
+
     private:
         SSL_CTX* ctx_;
 };

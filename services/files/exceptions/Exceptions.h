@@ -19,7 +19,8 @@ enum class FileError {
     SERIALIZATION_FAILED,
     DESERIALIZATION_FAILED,
     INVALID_CONTENT_TYPE,
-    FOLDER_PROCESSING_FAILED
+    FOLDER_PROCESSING_FAILED,
+    FILE_SYSTEM_ERROR
 };
 
 class FileException : public std::exception {

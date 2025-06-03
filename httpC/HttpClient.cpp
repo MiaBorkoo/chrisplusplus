@@ -193,6 +193,7 @@ std::string HttpClient::readFixedLengthBody(SSLConnection& conn, int contentLeng
 
 std::string HttpClient::readChunkedBody(SSLConnection& conn) {
     std::string body;
+    int chunkCount = 0;
     
     while (true) {
         // Read chunk size line (hex number followed by \r\n)
@@ -213,29 +214,61 @@ std::string HttpClient::readChunkedBody(SSLConnection& conn) {
             }
         }
         
-        // Parse chunk size (hex format)
+        // Parse chunk size (hex format) - ignore any chunk extensions
+        std::string hexSize = chunkSizeLine;
+        size_t semicolon = hexSize.find(';');
+        if (semicolon != std::string::npos) {
+            hexSize = hexSize.substr(0, semicolon);
+        }
+        
         int chunkSize;
-        std::istringstream hexStream(chunkSizeLine);
+        std::istringstream hexStream(hexSize);
         hexStream >> std::hex >> chunkSize;
+        
+        std::cout << "Chunk " << chunkCount << ": size line='" << chunkSizeLine 
+                  << "' -> hex='" << hexSize << "' -> size=" << chunkSize << std::endl;
         
         if (chunkSize == 0) {
             // Final chunk - read any trailing headers and final \r\n
             std::string trailer;
-            while (trailer.size() < 2 || trailer.substr(trailer.size() - 2) != "\r\n") {
+            while (true) {
                 ssize_t n = conn.receive(buf, 1);
                 if (n <= 0) break;
                 trailer += buf[0];
+                
+                // Look for final \r\n that ends the chunked message
+                if (trailer.size() >= 2 && trailer.substr(trailer.size() - 2) == "\r\n") {
+                    break;
+                }
             }
+            std::cout << "Final chunk received, total body size: " << body.size() << std::endl;
             break;
         }
         
-        // Read chunk data
-        std::string chunk = readFixedLengthBody(conn, chunkSize);
-        body += chunk;
+        // Read chunk data (use fixed-length read to ensure we get exactly chunkSize bytes)
+        char* chunkBuffer = new char[chunkSize];
+        int totalRead = 0;
         
-        // Read trailing CRLF after chunk
-        conn.receive(buf, 1); // \r
-        conn.receive(buf, 1); // \n
+        while (totalRead < chunkSize) {
+            ssize_t n = conn.receive(chunkBuffer + totalRead, chunkSize - totalRead);
+            if (n <= 0) {
+                delete[] chunkBuffer;
+                throw std::runtime_error("Connection closed while reading chunk data");
+            }
+            totalRead += n;
+        }
+        
+        body.append(chunkBuffer, chunkSize);
+        std::cout << "   Read " << totalRead << " bytes of chunk data, total so far: " << body.size() << std::endl;
+        delete[] chunkBuffer;
+        
+        // Read trailing CRLF after chunk data (mandatory in HTTP/1.1 chunked)
+        char crlf[2];
+        if (conn.receive(crlf, 2) != 2 || crlf[0] != '\r' || crlf[1] != '\n') {
+            throw std::runtime_error("Invalid chunked encoding: missing CRLF after chunk");
+        }
+        
+        chunkCount++;
     }
     
     return body;
