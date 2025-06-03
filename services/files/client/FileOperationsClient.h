@@ -59,4 +59,7 @@ private:
     SSLContext& ssl_context_;
     std::string server_host_;
     std::string server_port_;
+    
+    // Helper methods
+    std::vector<uint8_t> remove_padding_byte(const std::vector<uint8_t>& data);
 }; 

@@ -187,11 +187,7 @@ bool FileOperationsClient::download_file_to_disk(
         FileDownloadResponse download_response = download_file(file_id, session_token);
         
         // WORKAROUND: Remove padding byte that was added to compensate for HttpResponse::parse bug
-        std::vector<uint8_t> actual_data = download_response.file_data;
-        if (!actual_data.empty()) {
-            // Remove the last byte which should be our 0xFF padding
-            actual_data.pop_back();
-        }
+        std::vector<uint8_t> actual_data = remove_padding_byte(download_response.file_data);
         
         // Write to disk
         std::ofstream output_file(output_path, std::ios::binary);
@@ -312,7 +308,7 @@ UserFilesResponse FileOperationsClient::list_files(
         
         HttpRequest http_request;
         http_request.method = "GET";
-        http_request.path = "/api/files/?" + query_string;
+        http_request.path = "/api/files?" + query_string;
         http_request.headers["Host"] = server_host_;
         http_request.headers["Authorization"] = "Bearer " + session_token;
         http_request.headers["User-Agent"] = "ChrisPlusPlus-Files/1.0";
@@ -356,4 +352,14 @@ bool FileOperationsClient::delete_file(
     } catch (const std::exception& e) {
         return false;
     }
+}
+
+// Helper method to remove padding byte
+std::vector<uint8_t> FileOperationsClient::remove_padding_byte(const std::vector<uint8_t>& data) {
+    std::vector<uint8_t> result = data;
+    if (!result.empty()) {
+        // Remove the last byte which should be our 0xFF padding
+        result.pop_back();
+    }
+    return result;
 } 

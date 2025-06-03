@@ -29,12 +29,7 @@ FileShareResponse SharingServiceClient::share_file(
         http_request.headers["User-Agent"] = "ChrisPlusPlus-Files/1.0";
         http_request.body = DataConverter::to_json_string(request);
         
-        std::cout << "File sharing request JSON: " << http_request.body << std::endl;
-        
         HttpResponse response = client.sendRequest(http_request);
-        
-        std::cout << "File sharing response status: " << response.statusCode << std::endl;
-        std::cout << "File sharing response body: " << response.body << std::endl;
         
         if (response.statusCode != 200) {
             throw FileException(FileError::SHARE_CREATION_FAILED, 
