@@ -66,6 +66,7 @@ add_subdirectory(sockets)    # SSL/TLS layer (shared by both systems)
 add_subdirectory(httpC)      # HTTP protocol layer
 add_subdirectory(fileIO)     # File transfer layer 
 add_subdirectory(crypto)     # Crypto library 
+add_subdirectory(tofu)       # TOFU library
 
 # Main application with authentication
 qt_add_executable(ChrisPlusPlus
@@ -121,7 +122,7 @@ target_link_libraries(ChrisPlusPlus
         file_transfer
         http_layer
         sockets
-        tofu           # Add TOFU library
+        tofu           
         OpenSSL::SSL
         OpenSSL::Crypto
         crypto-lib
@@ -139,7 +140,7 @@ target_include_directories(ChrisPlusPlus
         ${CMAKE_SOURCE_DIR}/sockets
         ${CMAKE_SOURCE_DIR}/httpC
         ${CMAKE_SOURCE_DIR}/fileIO
-        ${CMAKE_SOURCE_DIR}/tofu    # Add TOFU include path
+        ${CMAKE_SOURCE_DIR}/tofu   
 )
 
 # ============================================================================
@@ -151,17 +152,6 @@ add_executable(testSSLforNow
     tests/testSSLforNow.cpp
 )
 target_link_libraries(testSSLforNow PRIVATE sockets http_layer)
-
-add_executable(testFileUploadSimple
-    tests/testFileUploadSimple.cpp
-)
-target_link_libraries(testFileUploadSimple PRIVATE 
-    Qt6::Core 
-    Qt6::Widgets 
-    file_transfer 
-    http_layer 
-    sockets
-)
 
 add_executable(testNetworkSystemComplete
     tests/testNetworkSystemComplete.cpp

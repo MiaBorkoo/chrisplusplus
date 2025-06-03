@@ -2,14 +2,14 @@
 #include <argon2.h>
 #include <random>
 #include <stdexcept>
+#include <openssl/rand.h>
 
-// generates a random salt of at least 16 bytes using std::random_device
+// generates a random salt of at least 16 bytes using OpenSSL RAND_bytes
 std::vector<uint8_t> AuthHash::generateSalt(size_t length) {
     if (length < 16) length = 16; // enforce minimum salt length
-    std::random_device rd;
     std::vector<uint8_t> salt(length);
-    for (size_t i = 0; i < length; ++i) {
-        salt[i] = static_cast<uint8_t>(rd() & 0xFF); // fill with random bytes
+    if (RAND_bytes(salt.data(), static_cast<int>(length)) != 1) {
+        throw std::runtime_error("OpenSSL RAND_bytes failed to generate secure salt");
     }
     return salt;
 }

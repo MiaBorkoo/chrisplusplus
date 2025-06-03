@@ -2,6 +2,7 @@
 #include <argon2.h>
 #include <random>
 #include <stdexcept>
+#include <openssl/rand.h>
 
 DerivedKeys KeyDerivation::deriveKeysFromPassword(
     const std::string& password,
@@ -43,11 +44,10 @@ DerivedKeys KeyDerivation::deriveKeysFromPassword(
 
 std::vector<uint8_t> KeyDerivation::generateSalt(size_t length) {
     if (length < 16) length = 16;
-    std::random_device rd;
     std::vector<uint8_t> salt(length);
 
-    for (size_t i = 0; i < length; ++i) {
-        salt[i] = static_cast<uint8_t>(rd() & 0xFF);
+    if (RAND_bytes(salt.data(), static_cast<int>(length)) != 1) {
+        throw std::runtime_error("OpenSSL RAND_bytes failed to generate secure salt");
     }
 
     return salt;
