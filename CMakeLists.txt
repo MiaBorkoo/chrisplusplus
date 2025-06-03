@@ -62,9 +62,9 @@ qt_standard_project_setup()
 # Add subdirectories for ALL libraries
 # ============================================================================
 add_subdirectory(sockets)    # SSL/TLS layer (shared by both systems)
-add_subdirectory(httpC)      # HTTP protocol layer (YOUR addition)
-add_subdirectory(fileIO)     # File transfer layer (YOUR addition)
-add_subdirectory(crypto)     # Crypto library (YOUR addition)
+add_subdirectory(httpC)      # HTTP protocol layer
+add_subdirectory(fileIO)     # File transfer layer 
+add_subdirectory(crypto)     # Crypto library 
 
 # Main application with authentication
 qt_add_executable(ChrisPlusPlus
