@@ -116,6 +116,10 @@ qt_add_executable(ChrisPlusPlus
     controllers/SideNavController.h
     controllers/SharedDashController.cpp
     controllers/SharedDashController.h
+    crypto/MEKGenerator.cpp
+    crypto/WrappedMEK.cpp
+    crypto/KeyDerivation.cpp
+    crypto/AuthHash.cpp
     ${RESOURCE_FILES}
     
     # ✅ ADD: Authentication system
@@ -137,6 +141,7 @@ target_link_libraries(ChrisPlusPlus
         sockets
         OpenSSL::SSL
         OpenSSL::Crypto
+        argon2
 )
 
 # Include directories (consolidated)
@@ -210,6 +215,13 @@ target_link_libraries(testWrappedMEK PRIVATE OpenSSL::Crypto)
 target_include_directories(testWrappedMEK PRIVATE
     ${CMAKE_SOURCE_DIR}/crypto
 )
+
+add_executable(testAuthHash
+    tests/testAuthHash.cpp
+    crypto/AuthHash.cpp
+)
+target_link_libraries(testAuthHash PRIVATE argon2)
+target_include_directories(testAuthHash PRIVATE ${CMAKE_SOURCE_DIR}/crypto)
 
 # ============================================================================
 # INSTALLATION (updated for ChrisPlusPlus)
