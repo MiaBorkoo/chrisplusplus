@@ -11,6 +11,8 @@
 #include <QFile>
 #include <cstring>
 
+// TODO: Mia, refactor to use modern socket client
+
 FileOperationsClient::FileOperationsClient(SSLContext& ssl_context, 
                                           const std::string& host, 
                                           const std::string& port)
