@@ -16,15 +16,14 @@ void testComputeAuthHash() {
     //checking that hash isn't all zeros
     bool allZero = std::all_of(authHash.begin(), authHash.end(), [](uint8_t b) { return b == 0; });
     assert(!allZero);
-
-    std::cout << "✅ AuthHash test passed.\n";
 }
 
 int main() {
     try {
         testComputeAuthHash();
+        std::cout << "testAuthHash: PASS" << std::endl;
     } catch (const std::exception& e) {
-        std::cerr << "❌ Test failed: " << e.what() << '\n';
+        std::cerr << "testAuthHash: FAIL - " << e.what() << '\n';
         return 1;
     }
     return 0;

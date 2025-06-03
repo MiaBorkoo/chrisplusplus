@@ -1,12 +1,10 @@
 #include "../crypto/MEKGenerator.h"
 #include <iostream>
+#include <cassert>
 
 int main() {
     auto mek = generateMEK();
-    std::cout << "Generated MEK (32 bytes): ";
-    for (auto byte : mek) {
-        printf("%02x ", byte);
-    }
-    std::cout << "\n";
+    assert(mek.size() == 32);
+    std::cout << "testMEKGenerator: PASS" << std::endl;
     return 0;
 }

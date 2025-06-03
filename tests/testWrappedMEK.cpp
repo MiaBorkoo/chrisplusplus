@@ -1,17 +1,7 @@
 #include "WrappedMEK.h"
 #include <openssl/rand.h>
 #include <iostream>
-#include <iomanip>
 #include <vector>
-
-// helper function to print bytes in hex
-void printHex(const std::string& label, const std::vector<uint8_t>& data) {
-    std::cout << label << ": ";
-    for (uint8_t byte : data) {
-        std::cout << std::hex << std::setfill('0') << std::setw(2) << (int)byte;
-    }
-    std::cout << std::dec << std::endl;
-}
 
 int main() {
     // create a random 32-byte wrapper key
@@ -32,11 +22,6 @@ int main() {
     try {
         EncryptedMEK encrypted = encryptMEKWithWrapperKey(mek, wrapperKey);
 
-        // print results
-        printHex("iv", encrypted.iv);
-        printHex("ciphertext", encrypted.ciphertext);
-        printHex("tag", encrypted.tag);
-
         // basic assertions
         if (encrypted.iv.size() != 12) {
             std::cerr << "error: iv length is not 12 bytes" << std::endl;
@@ -53,7 +38,7 @@ int main() {
             return 1;
         }
 
-        std::cout << "encryption test passed successfully" << std::endl;
+        std::cout << "testWrappedMEK: PASS" << std::endl;
 
     } catch (const std::exception& e) {
         std::cerr << "exception during encryption: " << e.what() << std::endl;

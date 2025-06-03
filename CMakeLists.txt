@@ -1,29 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 project(ChrisPlusPlus LANGUAGES CXX)
 
-# =============================================
-# Argon2 - Cross Platform Support
-# =============================================
-if(APPLE)
-    set(ARGON2_INCLUDE_DIR "/opt/homebrew/opt/argon2/include")
-    set(ARGON2_LIBRARY "/opt/homebrew/opt/argon2/lib/libargon2.dylib")
-elseif(WIN32)
-    # customise this path depending on where Windows users install argon2
-    set(ARGON2_INCLUDE_DIR "C:/libs/argon2/include")
-    set(ARGON2_LIBRARY "C:/libs/argon2/lib/argon2.lib")
-elseif(UNIX)
-    #example for Linux 
-    set(ARGON2_INCLUDE_DIR "/usr/include")
-    set(ARGON2_LIBRARY "/usr/lib/x86_64-linux-gnu/libargon2.so")
-endif()
-
-# Import the argon2 library
-add_library(argon2 SHARED IMPORTED)
-set_target_properties(argon2 PROPERTIES
-    IMPORTED_LOCATION ${ARGON2_LIBRARY}
-    INTERFACE_INCLUDE_DIRECTORIES ${ARGON2_INCLUDE_DIR}
-)
-
 # Disable warnings as errors
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
 
@@ -87,6 +64,7 @@ qt_standard_project_setup()
 add_subdirectory(sockets)    # SSL/TLS layer (shared by both systems)
 add_subdirectory(httpC)      # HTTP protocol layer (YOUR addition)
 add_subdirectory(fileIO)     # File transfer layer (YOUR addition)
+add_subdirectory(crypto)     # Crypto library (YOUR addition)
 
 # Main application with authentication
 qt_add_executable(ChrisPlusPlus
@@ -116,12 +94,7 @@ qt_add_executable(ChrisPlusPlus
     controllers/SideNavController.h
     controllers/SharedDashController.cpp
     controllers/SharedDashController.h
-    crypto/MEKGenerator.cpp
-    crypto/WrappedMEK.cpp
-    crypto/KeyDerivation.cpp
-    crypto/AuthHash.cpp
     ${RESOURCE_FILES}
-    
     # ✅ ADD: Authentication system
     models/LoginModel.cpp
     network/Client.cpp
@@ -141,7 +114,7 @@ target_link_libraries(ChrisPlusPlus
         sockets
         OpenSSL::SSL
         OpenSSL::Crypto
-        argon2
+        crypto-lib
 )
 
 # Include directories (consolidated)
@@ -194,10 +167,9 @@ add_executable(testKeyDerivation
     tests/testKeyDerivation.cpp
     crypto/KeyDerivation.cpp
 )
-target_link_libraries(testKeyDerivation PRIVATE argon2)
+target_link_libraries(testKeyDerivation PRIVATE crypto-lib)
 target_include_directories(testKeyDerivation PRIVATE
     ${CMAKE_SOURCE_DIR}/crypto
-    ${ARGON2_INCLUDE_DIR}
 )
 
 add_executable(testMEKGenerator
@@ -220,7 +192,7 @@ add_executable(testAuthHash
     tests/testAuthHash.cpp
     crypto/AuthHash.cpp
 )
-target_link_libraries(testAuthHash PRIVATE argon2)
+target_link_libraries(testAuthHash PRIVATE crypto-lib)
 target_include_directories(testAuthHash PRIVATE ${CMAKE_SOURCE_DIR}/crypto)
 
 # ============================================================================
