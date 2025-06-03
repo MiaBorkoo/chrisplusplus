@@ -14,18 +14,18 @@ public:
     //param port  Service port (e.g. "443")
     //throws std::runtime_error on any failure (DNS, TCP, TLS, cert check)
 
-    //constructor for the SSLConnection class
+    // Regular constructor
     SSLConnection(class SSLContext& ctx,
                   const std::string& host,
                   const std::string& port);
 
     ~SSLConnection();
 
-    // No copies (sockets and SSL* can’t be shared safely)
+    // No copies (sockets and SSL* can't be shared safely)
     SSLConnection(const SSLConnection&) = delete;
     SSLConnection& operator=(const SSLConnection&) = delete;
 
-    // Allow move semantics (for containers/factories)
+    // Move constructor (different parameter signature)
     SSLConnection(SSLConnection&& other) noexcept;
     SSLConnection& operator=(SSLConnection&& other) noexcept;
 
@@ -35,9 +35,13 @@ public:
     //receive the data over the TLS channel
     ssize_t receive(void* buf, size_t buflen);
 
+    void setTimeout(int seconds);
+
 private:
     //resolve the host to a socket file descriptor
-    int connectTCP(const std::string& host, const std::string& port);
+    int connectTCP(const std::string& host, 
+                   const std::string& port, 
+                   int timeout_seconds = 30);  // Add default parameter
 
     //after the SSL_connect(), verify the chain and hostname match
     void verifyPeerCertificate();
@@ -45,4 +49,5 @@ private:
     int      sockfd_{-1};    //underlying TCP socket file descriptor
     SSL*     ssl_{nullptr};  //OpenSSL session object
     std::string host_;       //hostname for SNI & cert checks
+    int timeoutSeconds_{30};
 };

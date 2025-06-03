@@ -24,6 +24,9 @@ class SSLContext {
         //get the raw SSL_CTX pointer for use in SSLConnection - chris would be proud he asked me about get()
         SSL_CTX* get() const;
 
+        void loadClientCertificate(const std::string& certFile, 
+                                 const std::string& keyFile);
+
     private:
         SSL_CTX* ctx_;
 };
