@@ -1,10 +1,8 @@
 #include "LoginModel.h"
-#include <QCryptographicHash>
-#include <QUuid>
 #include "../crypto/KeyDerivation.h"
 #include "../crypto/MEKGenerator.h"
 #include "../crypto/WrappedMEK.h"
-#include <QDebug>
+#include "../crypto/AuthHash.h"
 
 /**
  * @class LoginModel
@@ -80,6 +78,14 @@ void LoginModel::registerUser(const QString& username,
     // 2. Derive keys from password and salts
     DerivedKeys keys = kd.deriveKeysFromPassword(password.toStdString(), authSalt, encSalt);
 
+    // 2.5. Hash the serverAuthKey
+    std::vector<uint8_t> authSalt2 = AuthHash::generateSalt(16);
+
+    std::vector<uint8_t> serverAuthKeyVec(keys.serverAuthKey.begin(), keys.serverAuthKey.end());//converting auth key from std::array to std::vector 
+
+    // this computes the authentication hash using the server authkey and the new salt
+    std::vector<uint8_t> authHash = AuthHash::computeAuthHash(serverAuthKeyVec, authSalt2);
+
     // 3. Generate a random MEK
     std::vector<unsigned char> mek = generateMEK();
 
@@ -91,17 +97,13 @@ void LoginModel::registerUser(const QString& username,
     QString authSaltB64 = toBase64String(authSalt);
     QString encSaltB64 = toBase64String(encSalt);
     QString authKeyB64 = toBase64String(keys.serverAuthKey);
+    QString authHashB64 = toBase64String(authHash);
     QString encryptedMEKB64 = toBase64String(encrypted.ciphertext);
     // QString mekIVB64 = toBase64String(encrypted.iv);
     // QString mekTagB64 = toBase64String(encrypted.tag);
-
-    qDebug() << "authSalt (b64):" << authSaltB64;
-    qDebug() << "encSalt (b64):" << encSaltB64;
-    qDebug() << "authKey (b64):" << authKeyB64;
-    qDebug() << "encryptedMEK (b64):" << encryptedMEKB64;
  
     // 6. Call AuthService to register user
-    m_authDb->registerUser(username, authSaltB64, encSaltB64, authKeyB64, encryptedMEKB64/*, mekIVB64, mekTagB64*/);
+    m_authDb->registerUser(username, authSaltB64, encSaltB64, authKeyB64, encryptedMEKB64/* authHashB64, mekIVB64, mekTagB64*/);
 }
 
 void LoginModel::changePassword(const QString& username,
