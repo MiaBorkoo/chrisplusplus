@@ -4,6 +4,10 @@ project(ChrisPlusPlus LANGUAGES CXX)
 # Disable warnings as errors
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
 
+set(CMAKE_AUTOMOC ON) #handles qts meta object compiler
+set(CMAKE_AUTORCC ON) #handles QT resources files
+set(CMAKE_AUTOUIC ON) #handles QT UI files
+
 if(APPLE)
     # macOS: Use Homebrew Qt (team-friendly!)
     execute_process(
@@ -43,12 +47,22 @@ else()
 endif()
 
 # Find required packages
-find_package(Qt6 6.5.0 REQUIRED COMPONENTS Core Widgets Network Test)
+
 find_package(OpenSSL REQUIRED)
+
+
+find_package(Qt6 6.5.0 REQUIRED COMPONENTS Core Widgets Network Test Concurrent)
+find_package(OpenSSL REQUIRED COMPONENTS Crypto)
+find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 find_package(nlohmann_json REQUIRED)
+
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(RESOURCE_FILES
+    resources.qrc
+)
 
 qt_standard_project_setup()
 
@@ -56,21 +70,54 @@ qt_standard_project_setup()
 # Add subdirectories for ALL libraries
 # ============================================================================
 add_subdirectory(sockets)    # SSL/TLS layer (shared by both systems)
-add_subdirectory(httpC)      # HTTP protocol layer (YOUR addition)
-add_subdirectory(fileIO)     # File transfer layer (YOUR addition)
-
+add_subdirectory(httpC)      # HTTP protocol layer
+add_subdirectory(fileIO)     # File transfer layer 
+add_subdirectory(crypto)     # Crypto library 
+add_subdirectory(tofu)       # TOFU library
 
 # Main application with authentication
 qt_add_executable(ChrisPlusPlus
     WIN32 MACOSX_BUNDLE
-    # Main application entry point
     main.cpp
-    
-    # Authentication system (from dev branch - LoginForm)
+    mainwindow.cpp
+    mainwindow.h
+    views/LoginView.cpp
+    views/LoginView.h
+    views/SignUpView.cpp
+    views/SignUpView.h
+    controllers/LoginController.cpp
+    controllers/LoginController.h
+    controllers/SignUpController.cpp
+    controllers/SignUpController.h
+    views/HeaderWidget.cpp
+    views/HeaderWidget.h
+    views/SideNavWidget.cpp
+    views/SideNavWidget.h
+    views/FilesDashView.cpp
+    views/FilesDashView.h
+    controllers/FileDashController.cpp
+    controllers/FileDashController.h
+    views/SharedDashView.cpp
+    views/SharedDashView.h
+    controllers/SideNavController.cpp
+    controllers/SideNavController.h
+    controllers/SharedDashController.cpp
+    controllers/SharedDashController.h
+    views/AccessDialog.cpp
+    views/AccessDialog.h
+    controllers/AccessController.cpp
+    controllers/AccessController.h
+    models/SideNavTabs.h
+    ${RESOURCE_FILES}
+    # ✅ ADD: Authentication system
     models/LoginModel.cpp
     network/Client.cpp
+    services/auth/IAuthService.cpp
     services/auth/AuthService.cpp
-    services/files/FileService.cpp
+    services/ApiService.cpp
+    services/auth/otp/TOTP.cpp
+    services/ack/AclService.cpp
+    services/ack/AclService.h
 )
 
 target_link_libraries(ChrisPlusPlus
@@ -79,28 +126,28 @@ target_link_libraries(ChrisPlusPlus
         Qt6::Core
         Qt6::Widgets
         Qt6::Network
-        
-        # OpenSSL libraries
+        file_transfer
+        http_layer
+        sockets
+        tofu           
         OpenSSL::SSL
         OpenSSL::Crypto
-        
-        # All libraries (dev branch + YOUR additions)
-        sockets         # SSL/TLS (shared by both systems)
-        http_layer      # YOUR HTTP protocol system
-        file_transfer   # YOUR file transfer system
+        crypto-lib
 )
 
-# Include directories (from dev branch + YOUR additions)
+# Include directories (consolidated)
 target_include_directories(ChrisPlusPlus
     PRIVATE
-        ${CMAKE_SOURCE_DIR}/sockets
         ${CMAKE_SOURCE_DIR}/models
+        ${CMAKE_SOURCE_DIR}/views
+        ${CMAKE_SOURCE_DIR}/controllers
         ${CMAKE_SOURCE_DIR}/services
         ${CMAKE_SOURCE_DIR}/services/auth
-        ${CMAKE_SOURCE_DIR}/services/files
         ${CMAKE_SOURCE_DIR}/network
+        ${CMAKE_SOURCE_DIR}/sockets
         ${CMAKE_SOURCE_DIR}/httpC
         ${CMAKE_SOURCE_DIR}/fileIO
+        ${CMAKE_SOURCE_DIR}/tofu   
 )
 
 # ============================================================================
@@ -111,19 +158,8 @@ target_include_directories(ChrisPlusPlus
 add_executable(testSSLforNow
     tests/testSSLforNow.cpp
 )
-target_link_libraries(testSSLforNow
-    PRIVATE
-        sockets
-        Qt6::Core
-        OpenSSL::SSL
-        OpenSSL::Crypto
-)
-target_include_directories(testSSLforNow
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/sockets
-)
+target_link_libraries(testSSLforNow PRIVATE sockets http_layer)
 
-# YOUR secure file transfer tests
 add_executable(testNetworkSystemComplete
     tests/testNetworkSystemComplete.cpp
 )
@@ -135,17 +171,37 @@ target_link_libraries(testNetworkSystemComplete PRIVATE
     sockets
 )
 
-add_executable(testFileUploadSimple
-    tests/testFileUploadSimple.cpp
+add_executable(testKeyDerivation
+    tests/testKeyDerivation.cpp
+    crypto/KeyDerivation.cpp
 )
-target_link_libraries(testFileUploadSimple PRIVATE 
-    Qt6::Core 
-    Qt6::Widgets 
-    file_transfer 
-    http_layer 
-    sockets
+target_link_libraries(testKeyDerivation PRIVATE crypto-lib)
+target_include_directories(testKeyDerivation PRIVATE
+    ${CMAKE_SOURCE_DIR}/crypto
 )
 
+add_executable(testMEKGenerator
+    tests/testMEKGenerator.cpp
+    crypto/MEKGenerator.cpp
+)
+target_link_libraries(testMEKGenerator PRIVATE OpenSSL::Crypto)
+target_include_directories(testMEKGenerator PRIVATE ${CMAKE_SOURCE_DIR}/crypto)
+
+add_executable(testWrappedMEK
+    tests/testWrappedMEK.cpp
+    crypto/WrappedMEK.cpp
+)
+target_link_libraries(testWrappedMEK PRIVATE OpenSSL::Crypto)
+target_include_directories(testWrappedMEK PRIVATE
+    ${CMAKE_SOURCE_DIR}/crypto
+)
+
+add_executable(testAuthHash
+    tests/testAuthHash.cpp
+    crypto/AuthHash.cpp
+)
+target_link_libraries(testAuthHash PRIVATE crypto-lib)
+target_include_directories(testAuthHash PRIVATE ${CMAKE_SOURCE_DIR}/crypto)
 
 # ============================================================================
 # INSTALLATION (updated for ChrisPlusPlus)

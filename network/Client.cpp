@@ -1,7 +1,6 @@
 #include "Client.h"
-#include <QNetworkRequest>
 #include <QJsonDocument>
-#include <QSslConfiguration>
+#include <QUrl>
 
 /**
  * @class Client
@@ -12,76 +11,76 @@
  */
 
 Client::Client(const QString& baseUrl, const QString& apiKey, QObject* parent) 
-    : QObject(parent), m_baseUrl(baseUrl), m_apiKey(apiKey) 
+    : QObject(parent), m_baseUrl(baseUrl), m_apiKey(apiKey)
 {
-    m_manager = new QNetworkAccessManager(this);
-    m_manager->setTransferTimeout(30000);
+    // uses SSL infrastructure
+    SSLContext::initializeOpenSSL();
+    m_sslContext = std::make_unique<SSLContext>();
+    
+    // Extract host and port from baseUrl
+    QUrl url(baseUrl);
+    std::string host = url.host().toStdString();
+    std::string port = QString::number(url.port(443)).toStdString();
+    
+    m_http = std::make_unique<HttpClient>(*m_sslContext, host, port);
 }
 
-void Client::sendRequest(const QString& endpoint,
-                           const QString& method,
-                           const QJsonObject& data) 
+/* ===== helper to build HttpRequest ===== */
+HttpRequest Client::buildRequest(const QString& ep,
+                                 const QString& method,
+                                 const QJsonObject& payload)
 {
-    QUrl url(m_baseUrl + endpoint);
-    QNetworkRequest request(url);
-    
-    request.setRawHeader("Authorization", ("Bearer " + m_apiKey).toUtf8());
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    
-    // SSL Configuration
-    QSslConfiguration sslConfig = QSslConfiguration::defaultConfiguration();
-    sslConfig.setProtocol(QSsl::TlsV1_2OrLater);
-    request.setSslConfiguration(sslConfig);
+    HttpRequest req;
+    req.method = method.toStdString();
+    req.path   = ep.toStdString();
 
-    QNetworkReply* reply = nullptr;
-    QJsonDocument doc(data);
+    QUrl u(m_baseUrl);
+    req.headers["Host"]        = u.host().toStdString();
+    req.headers["User-Agent"]  = "ChrisPlusPlus/1.0";
+    req.headers["Content-Type"]= "application/json";
+    if (!m_apiKey.isEmpty())
+        req.headers["Authorization"] =
+            ("Bearer " + m_apiKey).toStdString();
 
-    if (method.compare("GET", Qt::CaseInsensitive) == 0) {
-        QUrlQuery query;
-        for(auto it = data.begin(); it != data.end(); ++it) {
-            query.addQueryItem(it.key(), it.value().toString());
-        }
-        url.setQuery(query);
-        request.setUrl(url);
-        reply = m_manager->get(request);
+    if (method.compare("POST",Qt::CaseInsensitive)==0 ||
+        method.compare("PUT", Qt::CaseInsensitive)==0)
+    {
+        QJsonDocument d(payload);
+        req.body = d.toJson(QJsonDocument::Compact).toStdString();
     }
-    else if (method.compare("POST", Qt::CaseInsensitive) == 0) {
-        reply = m_manager->post(request, doc.toJson());
-    }
-    else if (method.compare("PUT", Qt::CaseInsensitive) == 0) {
-        reply = m_manager->put(request, doc.toJson());
-    }
-    else if (method.compare("DELETE", Qt::CaseInsensitive) == 0) {
-        reply = m_manager->deleteResource(request);
-    }
-    else {
-        emit networkError("Unsupported HTTP method");
-        return;
-    }
+    return req;
+}
 
-    connect(reply, &QNetworkReply::finished, [=]() {
-        if (reply->error() == QNetworkReply::NoError) {
-            emit responseReceived(
-                reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt(),
-                QJsonDocument::fromJson(reply->readAll()).object()
-            );
-        } else {
-            QString errorMsg = reply->errorString();
-            if (reply->error() == QNetworkReply::TimeoutError) {
-                errorMsg = "Request timed out. Please try again.";
-            } else if (reply->error() == QNetworkReply::HostNotFoundError) {
-                errorMsg = "Server not found. Please check your network connection.";
-            }
-            emit networkError(errorMsg);
-        }
-        reply->deleteLater();
-    });
+/* ===== blocking ===== */
+void Client::sendRequest(const QString& ep,
+                         const QString& method,
+                         const QJsonObject& data)
+{
+    try {
+        HttpRequest  r  = buildRequest(ep, method, data);
+        HttpResponse resp = m_http->sendRequest(r);
 
-    connect(reply, &QNetworkReply::sslErrors, [=](const QList<QSslError>& errors) {
-        QString errorMsg;
-        for (const auto& error : errors) {
-            errorMsg += error.errorString() + "\n";
-        }
-        emit networkError("SSL Errors: " + errorMsg);
-    });
+        QJsonObject obj =
+            QJsonDocument::fromJson(QByteArray::fromStdString(resp.body)).object();
+        obj["endpoint"] = ep;
+        emit responseReceived(resp.statusCode, obj);
+    } catch (const std::exception& ex) {
+        emit networkError(QString::fromUtf8(ex.what()));
+    }
+}
+
+/* ===== async wrapper ===== */
+void Client::sendAsync(const QString& ep,const QString& method,const QJsonObject& data,
+                       std::function<void(int,const QJsonObject&)> ok,
+                       std::function<void(const QString&)>         err)
+{
+    HttpRequest r = buildRequest(ep, method, data);
+    m_http->sendAsync(r,
+        [ok,ep](const HttpResponse& resp){
+            QJsonObject obj =
+                QJsonDocument::fromJson(QByteArray::fromStdString(resp.body)).object();
+            obj["endpoint"] = ep;
+            ok(resp.statusCode, obj);
+        },
+        std::move(err));
 }

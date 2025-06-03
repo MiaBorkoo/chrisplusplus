@@ -1,0 +1,14 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file>styles/styles.css</file>
+        <file>assets/logo.png</file>
+        <file>assets/folder.svg</file>
+        <file>assets/shared.svg</file>
+        <file>assets/inbox.svg</file>
+        <file>assets/account.svg</file>
+        <file>assets/logout.svg</file>
+        <file>assets/trash.svg</file>
+        <file>assets/arrow.svg</file>
+    </qresource>
+</RCC>
