@@ -3,7 +3,8 @@
 #include "../models/DataModels.h"
 #include <memory>
 
-// Placeholder interface for TOFU system (Person 1)
+// Interface for TOFU system integration (Person 1)
+// Used by file service for verifying recipient identity during file sharing
 class TOFUInterface {
 public:
     virtual ~TOFUInterface() = default;
@@ -18,22 +19,4 @@ public:
     virtual void notify_sharing_event(
         const std::string& recipient_username,
         const std::string& file_id) = 0;
-};
-
-// Placeholder interface for Authentication system (Person 3)  
-class AuthenticationInterface {
-public:
-    virtual ~AuthenticationInterface() = default;
-    
-    virtual AuthSessionResponse authenticate_user(const AuthSessionRequest& request) = 0;
-    
-    virtual MEKResponse verify_totp_and_get_mek(const MEKRequest& request) = 0;
-    
-    virtual UserKeyInfo get_user_public_key(const std::string& username) = 0;
-    
-    virtual bool validate_session(const std::string& session_token) = 0;
-    
-    virtual std::string get_current_username(const std::string& session_token) = 0;
-    
-    virtual UserSaltsResponse get_user_salts(const std::string& username) = 0;
 }; 

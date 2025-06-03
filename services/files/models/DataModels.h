@@ -30,47 +30,7 @@ struct FolderContent {
     size_t file_count;
 };
 
-// API Request/Response Models
-struct RegisterRequest {
-    std::string username;
-    std::string auth_salt;
-    std::string enc_salt;
-    std::string auth_key;
-    std::string encrypted_mek;
-    std::string totp_secret;
-    nlohmann::json public_key;
-    std::string user_data_hmac;
-};
-
-struct LoginRequest {
-    std::string username;
-    std::string auth_key;
-};
-
-struct TOTPRequest {
-    std::string username;
-    std::string totp_code;
-};
-
-struct TOTPResponse {
-    std::string session_token;
-    std::string encrypted_mek;
-    uint64_t expires_at;
-};
-
-struct ChangePasswordRequest {
-    std::string username;
-    std::string old_auth_key;
-    std::string new_auth_key;
-    std::string new_encrypted_mek;
-    std::string totp_code;
-};
-
-struct UserSaltsResponse {
-    std::string auth_salt;
-    std::string enc_salt;
-};
-
+// File API Request/Response Models
 struct FileUploadRequest {
     std::vector<uint8_t> file;
     std::string file_id;
@@ -193,7 +153,22 @@ struct ShareCryptoContext {
     bool is_revoked;
 };
 
-// User Interface Helper Structures
+// User Interface Helper Structures  
+struct ContentInfo {
+    std::string content_id;
+    std::string content_name;                // Decrypted filename or foldername
+    ContentTypeEnum content_type;            // FILE or FOLDER
+    size_t original_size;                    // Decrypted original size
+    size_t compressed_size;                  // Decrypted compressed size
+    uint64_t upload_timestamp;
+    bool integrity_verified;
+    bool is_compressed;
+    
+    // Folder-specific metadata (only populated for folders)
+    std::optional<size_t> file_count;
+    std::optional<std::vector<std::string>> file_list;
+};
+
 struct FileInfo {
     std::string file_id;
     std::string filename;
@@ -224,37 +199,7 @@ struct AuditInfo {
     std::string client_ip_hash;
 };
 
-// Authentication Models
-struct AuthSessionRequest {
-    std::string username;
-    std::string auth_key;
-};
-
-struct AuthSessionResponse {
-    bool login_success;
-    std::string totp_challenge_token;
-    std::string session_token;
-};
-
-struct MEKRequest {
-    std::string username;
-    std::string totp_code;
-};
-
-struct MEKResponse {
-    bool success;
-    std::string session_token;
-    std::string encrypted_mek;
-    uint64_t expires_at;
-};
-
-struct UserKeyInfo {
-    std::string username;
-    nlohmann::json public_key;
-    bool is_active;
-};
-
-// TOFU Models
+// TOFU Interface Models (kept for sharing integration)
 struct IdentityVerificationRequest {
     std::string recipient_username;
     std::vector<uint8_t> recipient_public_key;

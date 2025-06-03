@@ -147,47 +147,6 @@ std::string DataConverter::build_query_string(const std::map<std::string, std::s
     return query.str();
 }
 
-std::string DataConverter::to_json_string(const RegisterRequest& request) {
-    nlohmann::json j;
-    j["username"] = request.username;
-    j["auth_salt"] = request.auth_salt;
-    j["enc_salt"] = request.enc_salt;
-    j["auth_key"] = request.auth_key;
-    j["encrypted_mek"] = request.encrypted_mek;
-    j["totp_secret"] = request.totp_secret;
-    j["public_key"] = request.public_key;
-    j["user_data_hmac"] = request.user_data_hmac;
-    
-    return j.dump();
-}
-
-std::string DataConverter::to_json_string(const LoginRequest& request) {
-    nlohmann::json j;
-    j["username"] = request.username;
-    j["auth_key"] = request.auth_key;
-    
-    return j.dump();
-}
-
-std::string DataConverter::to_json_string(const TOTPRequest& request) {
-    nlohmann::json j;
-    j["username"] = request.username;
-    j["totp_code"] = request.totp_code;
-    
-    return j.dump();
-}
-
-std::string DataConverter::to_json_string(const ChangePasswordRequest& request) {
-    nlohmann::json j;
-    j["username"] = request.username;
-    j["old_auth_key"] = request.old_auth_key;
-    j["new_auth_key"] = request.new_auth_key;
-    j["new_encrypted_mek"] = request.new_encrypted_mek;
-    j["totp_code"] = request.totp_code;
-    
-    return j.dump();
-}
-
 std::string DataConverter::to_json_string(const FileShareRequest& request) {
     nlohmann::json j;
     j["file_id"] = request.file_id;
@@ -214,17 +173,6 @@ std::string DataConverter::to_json_string(const FileDeleteRequest& request) {
     j["file_id"] = request.file_id;
     
     return j.dump();
-}
-
-template<>
-UserSaltsResponse DataConverter::parse_json_response<UserSaltsResponse>(const std::string& json_body) {
-    nlohmann::json j = nlohmann::json::parse(json_body);
-    
-    UserSaltsResponse response;
-    response.auth_salt = j["auth_salt"];
-    response.enc_salt = j["enc_salt"];
-    
-    return response;
 }
 
 template<>
@@ -324,59 +272,6 @@ UserFilesResponse DataConverter::parse_json_response<UserFilesResponse>(const st
         file.file_data_hmac = file_json["file_data_hmac"];
         file.share_id = file_json["share_id"];
         response.shared_files.push_back(file);
-    }
-    
-    return response;
-}
-
-template<>
-MEKResponse DataConverter::parse_json_response<MEKResponse>(const std::string& json_body) {
-    nlohmann::json j = nlohmann::json::parse(json_body);
-    
-    MEKResponse response;
-    
-    // Handle different response formats from the server
-    if (j.contains("success")) {
-        response.success = j["success"];
-    } else {
-        // If no success field, assume success if we have session_token
-        response.success = j.contains("session_token") && !j["session_token"].is_null();
-    }
-    
-    if (j.contains("session_token") && !j["session_token"].is_null()) {
-        response.session_token = j["session_token"];
-    }
-    
-    if (j.contains("encrypted_mek") && !j["encrypted_mek"].is_null()) {
-        response.encrypted_mek = j["encrypted_mek"];
-    }
-    
-    if (j.contains("expires_at") && !j["expires_at"].is_null()) {
-        response.expires_at = j["expires_at"];
-    }
-    
-    return response;
-}
-
-template<>
-AuthSessionResponse DataConverter::parse_json_response<AuthSessionResponse>(const std::string& json_body) {
-    nlohmann::json j = nlohmann::json::parse(json_body);
-    
-    AuthSessionResponse response;
-    
-    // Check if the response contains temp_token (JavaScript expects this)
-    if (j.contains("temp_token")) {
-        response.totp_challenge_token = j["temp_token"];
-        response.login_success = true;
-    } else if (j.contains("totp_challenge_token")) {
-        response.totp_challenge_token = j["totp_challenge_token"];
-        response.login_success = true;
-    } else if (j.contains("session_token")) {
-        response.session_token = j["session_token"];
-        response.login_success = true;
-    } else {
-        // If the response is empty or just indicates success, that's valid for login
-        response.login_success = true;
     }
     
     return response;

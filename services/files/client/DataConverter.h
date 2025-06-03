@@ -37,11 +37,7 @@ public:
     // Helper for creating URL query parameters
     static std::string build_query_string(const std::map<std::string, std::string>& params);
     
-    // JSON serialization helpers
-    static std::string to_json_string(const RegisterRequest& request);
-    static std::string to_json_string(const LoginRequest& request);
-    static std::string to_json_string(const TOTPRequest& request);
-    static std::string to_json_string(const ChangePasswordRequest& request);
+    // JSON serialization helpers (file operations only)
     static std::string to_json_string(const FileShareRequest& request);
     static std::string to_json_string(const FileDeleteRequest& request);
     

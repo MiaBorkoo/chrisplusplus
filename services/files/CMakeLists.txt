@@ -74,8 +74,6 @@ target_link_libraries(DataConverter
 add_library(FileServiceClientLib
     client/FileServiceClient.cpp
     client/FileServiceClient.h
-    client/AuthServiceClient.cpp
-    client/AuthServiceClient.h
     client/FileOperationsClient.cpp
     client/FileOperationsClient.h
     client/SharingServiceClient.cpp

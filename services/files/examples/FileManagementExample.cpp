@@ -54,107 +54,34 @@ public:
         // Don't create FileManager since it's not implemented - use FileServiceClient directly
     }
     
-    // Perform authentication and return session token (matches JavaScript flow)
-    std::string authenticate_user() {
-        std::cout << "\n=== Authentication Flow ===" << std::endl;
+    // Simulated authentication - assume session token is provided by auth system
+    std::string get_session_token() {
+        std::cout << "\n=== Authentication (Simulated) ===" << std::endl;
+        std::cout << "In production, authentication is handled by the authentication service." << std::endl;
+        std::cout << "For this demo, we simulate a valid session token." << std::endl;
         
-        try {
-            // Use the same test credentials as JavaScript
-            const std::string username = "test_user2";
-            const std::string password = "test";  
-            const std::string totp_code = "123456";
-            
-            std::cout << "Using test credentials:" << std::endl;
-            std::cout << "  Username: " << username << std::endl;
-            std::cout << "  Password: " << password << std::endl;
-            std::cout << "  TOTP Code: " << totp_code << std::endl;
-            
-            // Step 1: Get user salts (matches JavaScript flow)
-            std::cout << "\n1. Getting user salts..." << std::endl;
-            auto salts = http_client->get_user_salts(username);
-            std::cout << "   ✓ Retrieved auth_salt and enc_salt" << std::endl;
-            std::cout << "   Auth salt: " << salts.auth_salt.substr(0, 16) << "..." << std::endl;
-            std::cout << "   Enc salt: " << salts.enc_salt.substr(0, 16) << "..." << std::endl;
-            
-            // Step 2: Derive auth key (using same fake hash as JavaScript)
-            std::cout << "\n2. Deriving authentication key..." << std::endl;
-            
-            // Use the EXACT same fake hash function as JavaScript generateFakeHash()
-            std::string password_salt_combo = password + salts.auth_salt;
-            
-            // JavaScript: let hash = 0;
-            int32_t hash = 0;
-            
-            // JavaScript: for (let i = 0; i < input.length; i++) {
-            for (size_t i = 0; i < password_salt_combo.length(); i++) {
-                // JavaScript: const char = input.charCodeAt(i);
-                int32_t char_code = static_cast<int32_t>(password_salt_combo[i]);
-                
-                // JavaScript: hash = ((hash << 5) - hash) + char;
-                hash = ((hash << 5) - hash) + char_code;
-                
-                // JavaScript: hash = hash & hash; // Convert to 32-bit integer
-                hash = hash & hash;
-            }
-            
-            // JavaScript: return 'fake_hash_' + Math.abs(hash).toString(16);
-            std::stringstream hex_stream;
-            hex_stream << "fake_hash_" << std::hex << std::abs(hash);
-            std::string auth_key = hex_stream.str();
-            
-            std::cout << "   ✓ Auth key derived using JavaScript-compatible fake hash" << std::endl;
-            std::cout << "   Auth key: " << auth_key.substr(0, 32) << "..." << std::endl;
-            
-            // Step 3: Login to get TOTP challenge (matches JavaScript)
-            std::cout << "\n3. Logging in..." << std::endl;
-            LoginRequest login_req;
-            login_req.username = username;
-            login_req.auth_key = auth_key;
-            
-            std::cout << "   Sending login request..." << std::endl;
-            std::cout << "   Request: username=" << username << ", auth_key=" << auth_key.substr(0, 16) << "..." << std::endl;
-            
-            auto login_response = http_client->login(login_req);
-            std::cout << "   ✓ Login successful, TOTP verification required" << std::endl;
-            std::cout << "   Login response received successfully" << std::endl;
-            
-            // Step 4: Verify TOTP to get session token and MEK (matches JavaScript)
-            std::cout << "\n4. Verifying TOTP..." << std::endl;
-            TOTPRequest totp_req;
-            totp_req.username = username;
-            totp_req.totp_code = totp_code;
-            
-            auto totp_response = http_client->verify_totp(totp_req);
-            std::cout << "   ✓ TOTP verified, session established" << std::endl;
-            std::cout << "   Session token: " << totp_response.session_token.substr(0, 32) << "..." << std::endl;
-            std::cout << "   Session expires at: " << totp_response.expires_at << std::endl;
-            
-            return totp_response.session_token;
-            
-        } catch (const std::exception& e) {
-            std::cerr << "Authentication failed: " << e.what() << std::endl;
-            std::cout << "\nTroubleshooting tips:" << std::endl;
-            std::cout << "1. Ensure FastAPI server is running on the right server" << std::endl;
-            std::cout << "2. Verify test_user2 is registered with password 'test'" << std::endl;
-            std::cout << "3. Check that TOTP code '123456' is currently valid" << std::endl;
-            std::cout << "4. Ensure SSL certificates are properly configured" << std::endl;
-            return "";
-        }
+        // Generate a fake session token for demo purposes
+        std::string session_token = "demo-session-" + std::to_string(
+            std::chrono::duration_cast<std::chrono::seconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count());
+        
+        std::cout << "   ✓ Using simulated session token: " << session_token.substr(0, 32) << "..." << std::endl;
+        return session_token;
     }
     
     void demonstrate_complete_workflow() {
         std::cout << "\n=== File Management System Demo ===" << std::endl;
-        std::cout << "This demo matches the JavaScript frontend functionality" << std::endl;
+        std::cout << "This demo shows file operations after authentication is complete" << std::endl;
         
         try {
-            // Step 1: Authenticate and get session token
-            std::string session_token = authenticate_user();
+            // Step 1: Get session token (in production, this comes from auth service)
+            std::string session_token = get_session_token();
             if (session_token.empty()) {
-                std::cerr << "Failed to authenticate - cannot continue demo" << std::endl;
+                std::cerr << "Failed to get session token - cannot continue demo" << std::endl;
                 return;
             }
             
-            std::cout << "\n✓ Authentication successful!" << std::endl;
+            std::cout << "\n✓ Session token obtained!" << std::endl;
             
             // Step 2: Create and upload a test file (matches JavaScript file upload)
             std::cout << "\n=== File Upload Demo ===" << std::endl;

@@ -1,5 +1,4 @@
 #include "FileServiceClient.h"
-#include "AuthServiceClient.h"
 #include "FileOperationsClient.h"
 #include "SharingServiceClient.h"
 #include "AuditServiceClient.h"
@@ -10,9 +9,6 @@ FileServiceClient::FileServiceClient() : base_url("https://localhost:8000") {
     use_ssl = true;
     SSLContext::initializeOpenSSL();
     ssl_context = std::make_unique<SSLContext>();
-    
-    // Disable certificate verification for development with self-signed certs
-    ssl_context->disableCertificateVerification();
     
     server_host = "localhost";
     server_port = "8000";
@@ -28,8 +24,6 @@ FileServiceClient::FileServiceClient(const std::string& base_url) : base_url(bas
     // Parse URL to determine if SSL is needed and extract host/port
     if (base_url.find("https://") == 0) {
         use_ssl = true;
-        // Disable certificate verification for development with self-signed certs
-        ssl_context->disableCertificateVerification();
         
         // Extract host and port from URL
         std::string url_part = base_url.substr(8); // Remove "https://"
@@ -83,35 +77,9 @@ void FileServiceClient::initialize_clients() {
         return;  // Cannot initialize without SSL context
     }
     
-    auth_client_ = std::make_unique<AuthServiceClient>(*ssl_context, server_host, server_port);
     file_client_ = std::make_unique<FileOperationsClient>(*ssl_context, server_host, server_port);
     sharing_client_ = std::make_unique<SharingServiceClient>(*ssl_context, server_host, server_port);
     audit_client_ = std::make_unique<AuditServiceClient>(*ssl_context, server_host, server_port);
-}
-
-// Authentication operations (delegated to AuthServiceClient)
-AuthSessionResponse FileServiceClient::register_user(const RegisterRequest& request) {
-    return auth_client_->register_user(request);
-}
-
-AuthSessionResponse FileServiceClient::login(const LoginRequest& request) {
-    return auth_client_->login(request);
-}
-
-MEKResponse FileServiceClient::verify_totp(const TOTPRequest& request) {
-    return auth_client_->verify_totp(request);
-}
-
-bool FileServiceClient::logout(const std::string& session_token) {
-    return auth_client_->logout(session_token);
-}
-
-bool FileServiceClient::change_password(const ChangePasswordRequest& request) {
-    return auth_client_->change_password(request);
-}
-
-UserSaltsResponse FileServiceClient::get_user_salts(const std::string& username) {
-    return auth_client_->get_user_salts(username);
 }
 
 // File operations (delegated to FileOperationsClient)
@@ -197,10 +165,6 @@ std::vector<AuditLogResponse> FileServiceClient::get_file_audit_logs(
 }
 
 // Access to specialized clients for advanced usage
-AuthServiceClient& FileServiceClient::auth_client() {
-    return *auth_client_;
-}
-
 FileOperationsClient& FileServiceClient::file_client() {
     return *file_client_;
 }

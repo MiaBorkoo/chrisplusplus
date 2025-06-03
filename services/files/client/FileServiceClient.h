@@ -7,14 +7,13 @@
 #include <string>
 
 // Forward declarations of specialized clients
-class AuthServiceClient;
 class FileOperationsClient;
 class SharingServiceClient;
 class AuditServiceClient;
 
 /**
  * Main file service client that aggregates functionality from specialized clients
- * Renamed from HTTPClient to avoid confusion with httpC/HttpClient
+ * Handles file operations, sharing, and audit - authentication is handled separately
  */
 class FileServiceClient {
 public:
@@ -25,14 +24,6 @@ public:
     // Configuration
     void set_server(const std::string& host, const std::string& port = "8000");
     void set_base_url(const std::string& url);
-
-    // Authentication operations (delegated to AuthServiceClient)
-    AuthSessionResponse register_user(const RegisterRequest& request);
-    AuthSessionResponse login(const LoginRequest& request);
-    MEKResponse verify_totp(const TOTPRequest& request);
-    bool logout(const std::string& session_token);
-    bool change_password(const ChangePasswordRequest& request);
-    UserSaltsResponse get_user_salts(const std::string& username);
     
     // File operations (delegated to FileOperationsClient)
     FileUploadResponse upload_file(
@@ -95,7 +86,6 @@ public:
         int offset = 0);
 
     // Access to specialized clients for advanced usage
-    AuthServiceClient& auth_client();
     FileOperationsClient& file_client();
     SharingServiceClient& sharing_client();
     AuditServiceClient& audit_client();
@@ -108,7 +98,6 @@ private:
     std::unique_ptr<SSLContext> ssl_context;
     
     // Specialized clients
-    std::unique_ptr<AuthServiceClient> auth_client_;
     std::unique_ptr<FileOperationsClient> file_client_;
     std::unique_ptr<SharingServiceClient> sharing_client_;
     std::unique_ptr<AuditServiceClient> audit_client_;
