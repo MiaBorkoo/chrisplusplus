@@ -22,46 +22,65 @@ Client::Client(const QString& baseUrl, const QString& apiKey, QObject* parent)
     std::string host = url.host().toStdString();
     std::string port = QString::number(url.port(443)).toStdString();
     
-    m_httpClient = std::make_unique<HttpClient>(*m_sslContext, host, port);
+    m_http = std::make_unique<HttpClient>(*m_sslContext, host, port);
 }
 
-void Client::sendRequest(const QString& endpoint, const QString& method, const QJsonObject& data) {
-    try {
-        // Build HTTP request using YOUR HttpRequest
-        HttpRequest request;
-        request.method = method.toStdString();
-        request.path = endpoint.toStdString();
-        
-        // Add headers
-        QUrl url(m_baseUrl);
-        request.headers["Host"] = url.host().toStdString();
-        request.headers["User-Agent"] = "ChrisPlusPlus-Auth/1.0";
-        request.headers["Content-Type"] = "application/json";
-        
-        if (!m_apiKey.isEmpty()) {
-            request.headers["Authorization"] = ("Bearer " + m_apiKey).toStdString();
-        }
-        
-        // Add JSON body for POST/PUT
-        if (method.compare("POST", Qt::CaseInsensitive) == 0 || 
-            method.compare("PUT", Qt::CaseInsensitive) == 0) {
-            QJsonDocument doc(data);
-            request.body = doc.toJson(QJsonDocument::Compact).toStdString();
-        }
-        
-        // Send via HttpClient (SSL encrypted)
-        HttpResponse response = m_httpClient->sendRequest(request);
-        
-        // Parse JSON response
-        QJsonDocument responseDoc = QJsonDocument::fromJson(QByteArray::fromStdString(response.body));
-        QJsonObject responseObj = responseDoc.object();
-        
-        // Add endpoint info for routing
-        responseObj["endpoint"] = endpoint;
-        
-        emit responseReceived(response.statusCode, responseObj);
-        
-    } catch (const std::exception& e) {
-        emit networkError(QString::fromStdString(e.what()));
+/* ===== helper to build HttpRequest ===== */
+HttpRequest Client::buildRequest(const QString& ep,
+                                 const QString& method,
+                                 const QJsonObject& payload)
+{
+    HttpRequest req;
+    req.method = method.toStdString();
+    req.path   = ep.toStdString();
+
+    QUrl u(m_baseUrl);
+    req.headers["Host"]        = u.host().toStdString();
+    req.headers["User-Agent"]  = "ChrisPlusPlus/1.0";
+    req.headers["Content-Type"]= "application/json";
+    if (!m_apiKey.isEmpty())
+        req.headers["Authorization"] =
+            ("Bearer " + m_apiKey).toStdString();
+
+    if (method.compare("POST",Qt::CaseInsensitive)==0 ||
+        method.compare("PUT", Qt::CaseInsensitive)==0)
+    {
+        QJsonDocument d(payload);
+        req.body = d.toJson(QJsonDocument::Compact).toStdString();
     }
-} 
+    return req;
+}
+
+/* ===== blocking ===== */
+void Client::sendRequest(const QString& ep,
+                         const QString& method,
+                         const QJsonObject& data)
+{
+    try {
+        HttpRequest  r  = buildRequest(ep, method, data);
+        HttpResponse resp = m_http->sendRequest(r);
+
+        QJsonObject obj =
+            QJsonDocument::fromJson(QByteArray::fromStdString(resp.body)).object();
+        obj["endpoint"] = ep;
+        emit responseReceived(resp.statusCode, obj);
+    } catch (const std::exception& ex) {
+        emit networkError(QString::fromUtf8(ex.what()));
+    }
+}
+
+/* ===== async wrapper ===== */
+void Client::sendAsync(const QString& ep,const QString& method,const QJsonObject& data,
+                       std::function<void(int,const QJsonObject&)> ok,
+                       std::function<void(const QString&)>         err)
+{
+    HttpRequest r = buildRequest(ep, method, data);
+    m_http->sendAsync(r,
+        [ok,ep](const HttpResponse& resp){
+            QJsonObject obj =
+                QJsonDocument::fromJson(QByteArray::fromStdString(resp.body)).object();
+            obj["endpoint"] = ep;
+            ok(resp.statusCode, obj);
+        },
+        std::move(err));
+}

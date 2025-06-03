@@ -2,6 +2,7 @@
 #include "IAuthService.h"
 #include "../../network/Client.h"
 #include <QJsonObject>
+#include <QSettings>   
 
 class AuthService : public IAuthService {
     Q_OBJECT
@@ -20,6 +21,9 @@ public:
                        const QString& oldAuthKey,
                        const QString& newAuthKey,
                        const QString& newEncryptedMEK) override;
+    bool isInitialized() const override {
+        return m_client != nullptr;
+    }
 
     QString sessionToken() const { return m_sessionToken; }
     bool hasActiveSession() const { return !m_sessionToken.isEmpty(); }
@@ -33,6 +37,7 @@ private slots:
 private:
     Client* m_client;
     QString m_sessionToken;
+    QScopedPointer<QSettings> m_settings;
     
     void handleLoginResponse(int status, const QJsonObject& data);
     void handleRegisterResponse(int status, const QJsonObject& data);

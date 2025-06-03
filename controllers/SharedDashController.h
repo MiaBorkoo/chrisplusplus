@@ -1,0 +1,20 @@
+#ifndef SHAREDDASHCONTROLLER_H
+#define SHAREDDASHCONTROLLER_H
+
+#include <QObject>
+#include "../views/SharedDashView.h"
+
+class SharedDashController : public QObject {
+    Q_OBJECT
+public:
+    explicit SharedDashController(SharedDashView *view, QObject *parent = nullptr);
+
+signals:
+    void downloadRequested(const QString &fileName);
+
+private:
+    SharedDashView *view;
+    void connectSignals();
+};
+
+#endif // SHAREDDASHCONTROLLER_H 

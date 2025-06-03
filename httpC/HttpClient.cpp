@@ -12,6 +12,7 @@ HttpClient::HttpClient(SSLContext& ctx,
   : ctx_(ctx), host_(host), port_(port)
 {}
 
+//Blocking synchronous HTTP request
 HttpResponse HttpClient::sendRequest(const HttpRequest& req) {
     // 1) Open TLS connection
     SSLConnection conn(ctx_, host_, port_);
@@ -25,6 +26,27 @@ HttpResponse HttpClient::sendRequest(const HttpRequest& req) {
     return receiveResponse(conn);
 }
 
+//Asynchronous HTTP request (non-blocking - GUI safe)
+void HttpClient::sendAsync(const HttpRequest& req,
+                          std::function<void(const HttpResponse&)> onSuccess,
+                          std::function<void(const QString&)> onError) {
+    // RESTORE: Your original ACTUALLY async code
+    auto self = shared_from_this();
+    QtConcurrent::run([self, req, onSuccess, onError]{
+        try {
+            HttpResponse r = self->sendRequest(req);
+            QMetaObject::invokeMethod(qApp, [onSuccess, r]{
+                onSuccess(r);
+            }, Qt::QueuedConnection);
+        } catch (const std::exception& ex) {
+            QMetaObject::invokeMethod(qApp, [onError, ex]{
+                onError(QString::fromUtf8(ex.what()));
+            }, Qt::QueuedConnection);
+        }
+    });
+}
+
+//streaming upload (blocking)
 HttpResponse HttpClient::sendRequestWithStreamingBody(const HttpRequest& req, QIODevice& bodySource) {
     // 1) Open TLS connection
     SSLConnection conn(ctx_, host_, port_);
@@ -47,6 +69,7 @@ HttpResponse HttpClient::sendRequestWithStreamingBody(const HttpRequest& req, QI
     return receiveResponse(conn);
 }
 
+//streaming download (blocking)
 bool HttpClient::downloadToStream(const HttpRequest& req, QIODevice& destination) {
     // 1) Open TLS connection
     SSLConnection conn(ctx_, host_, port_);
@@ -350,4 +373,31 @@ bool HttpClient::receiveResponseToStream(SSLConnection& conn, QIODevice& destina
     }
     
     return true;
+}
+
+void HttpClient::downloadAsync(const HttpRequest& request,
+                              const QString& filePath,
+                              std::function<void(const HttpResponse&)> onSuccess,
+                              std::function<void(const QString&)> onError) {
+    try {
+        // Use existing download method (if it exists)
+        HttpResponse response = sendRequest(request);
+        
+        // Write to file
+        QFile file(filePath);
+        if (file.open(QIODevice::WriteOnly)) {
+            file.write(response.body.c_str(), response.body.size());
+            if (onSuccess) {
+                onSuccess(response);
+            }
+        } else {
+            if (onError) {
+                onError("Cannot create file: " + file.errorString());
+            }
+        }
+    } catch (const std::exception& e) {
+        if (onError) {
+            onError(QString::fromStdString(e.what()));
+        }
+    }
 }
