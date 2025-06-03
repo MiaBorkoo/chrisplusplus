@@ -15,6 +15,10 @@ TOFUPromptManager::TOFUPromptManager(QObject* parent)
             this, &TOFUPromptManager::handleQRVerificationSuccess);
     connect(&qrVerification_, &QRVerification::verificationFailed,
             this, &TOFUPromptManager::handleQRVerificationFailure);
+    connect(this, &TOFUPromptManager::certificatesFetched,
+            this, &TOFUPromptManager::handleTOFUPrompt);
+   
+    
 }
 
 QVector<DeviceCertificate> TOFUPromptManager::fetchCertificatesFromServer(const QString& userId) {
@@ -33,36 +37,15 @@ QVector<DeviceCertificate> TOFUPromptManager::fetchCertificatesFromServer(const 
         req.headers["Accept"] = "application/json";
         
         // Send request and get response
-        HttpResponse resp = httpClient_->sendRequest(req);
-        
-        if (resp.statusCode != 200) {
-            qWarning() << "Failed to fetch certificates for user" << userId
-                      << "Status:" << resp.statusCode;
-            return certificates;
-        }
-        
-        // Parse JSON response
-        QJsonDocument doc = QJsonDocument::fromJson(QByteArray::fromStdString(resp.body));
-        if (!doc.isObject()) {
-            qWarning() << "Invalid JSON response when fetching certificates";
-            return certificates;
-        }
-        
-        QJsonObject root = doc.object();
-        QJsonArray deviceArray = root["devices"].toArray();
-        
-        // Convert each device entry to a DeviceCertificate
-        for (const QJsonValue& deviceVal : deviceArray) {
-            QJsonObject device = deviceVal.toObject();
-            
-            DeviceCertificate cert;
-            cert.setDeviceId(device["device_id"].toString());
-            cert.setIdentityPublicKey(QByteArray::fromBase64(device["public_key"].toString().toLatin1()));
-            cert.setSelfSignature(QByteArray::fromBase64(device["signature"].toString().toLatin1()));
-            cert.setCreatedAt(QDateTime::fromString(device["timestamp"].toString(), Qt::ISODate));
-            
-            certificates.append(cert);
-        }
+        httpClient_->sendAsync(req,
+            [this, userId](const HttpResponse& r) {
+                QVector<DeviceCertificate> certs = parseCertList(userId, r);
+                emit certificatesFetched(userId, certs);
+            },
+            [this, userId](const QString& err) {
+                emit qrVerificationFailed(userId, err);
+            });
+        return {};                // fetch now happens in background
         
     } catch (const std::exception& e) {
         qWarning() << "Exception while fetching certificates:" << e.what();
@@ -258,6 +241,32 @@ bool TOFUPromptManager::verify2FAIfRequired(const QString& operation) {
         return false;
     }
 }
+
+QVector<DeviceCertificate> TOFUPromptManager::parseCertList(
+         const QString& userId,
+         const HttpResponse& r)
+{
+    QVector<DeviceCertificate> out;
+    QJsonDocument doc = QJsonDocument::fromJson(
+            QByteArray::fromStdString(r.body));
+    for (auto v : doc["devices"].toArray()) {
+        QJsonObject o = v.toObject();
+        DeviceCertificate c;
+        c.setUserId(userId);
+        c.setDeviceId(o["device_id"].toString());
+        c.setIdentityPublicKey(QByteArray::fromBase64(
+                                o["public_key"].toString().toLatin1()));
+        c.setSelfSignature(QByteArray::fromBase64(
+                                o["signature"].toString().toLatin1()));
+        c.setCreatedAt(QDateTime::fromString(
+                                o["created_at"].toString(), Qt::ISODate));
+        c.setExpiresAt(QDateTime::fromString(
+                                o["expires_at"].toString(), Qt::ISODate));
+        if (c.verify()) out.append(c);
+    }
+    return out;
+}
+
 
 void TOFUPromptManager::notifyDecisionHandler(const QString& userId, bool accepted,
                                             const QString& verificationMethod) {

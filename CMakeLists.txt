@@ -46,7 +46,7 @@ else()
 endif()
 
 # Find required packages
-find_package(Qt6 6.5.0 REQUIRED COMPONENTS Core Widgets Network Test)
+find_package(Qt6 6.5.0 REQUIRED COMPONENTS Core Widgets Network Test Concurrent)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
@@ -107,7 +107,10 @@ qt_add_executable(ChrisPlusPlus
     network/Client.cpp
     services/auth/IAuthService.cpp
     services/auth/AuthService.cpp
-    # services/auth/otp/TOTP.cpp #TODO: add this back in
+    services/ApiService.cpp
+    services/auth/otp/TOTP.cpp
+    services/ack/AclService.cpp
+    services/ack/AclService.h
 )
 
 target_link_libraries(ChrisPlusPlus
@@ -149,29 +152,17 @@ add_executable(testSSLforNow
 )
 target_link_libraries(testSSLforNow PRIVATE sockets http_layer)
 
-add_executable(testFileUploadSimple
-    tests/testFileUploadSimple.cpp
-)
-target_link_libraries(testFileUploadSimple PRIVATE 
-    Qt6::Core 
-    Qt6::Widgets 
-    file_transfer 
-    http_layer 
-    sockets
-)
-
-add_executable(testNetworkSystemComplete
-    tests/testNetworkSystemComplete.cpp
-)
-target_link_libraries(testNetworkSystemComplete PRIVATE 
-    Qt6::Core 
-    Qt6::Widgets 
-    file_transfer 
-    http_layer 
-    sockets
-)
-
-
+# add_executable(testFileUploadSimple
+#     tests/testFileUploadSimple.cpp
+# )
+# target_link_libraries(testFileUploadSimple PRIVATE 
+#     Qt6::Core 
+#     Qt6::Widgets 
+#     Qt6::Concurrent
+#     file_transfer 
+#     http_layer 
+#     sockets
+# )
 
 # ============================================================================
 # INSTALLATION (updated for ChrisPlusPlus)

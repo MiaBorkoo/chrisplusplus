@@ -14,13 +14,22 @@ public:
     
     void sendRequest(const QString& endpoint, const QString& method, const QJsonObject& data);
 
+    void sendAsync(const QString& endpoint,
+                    const QString& method,
+                    const QJsonObject& payload,
+                    std::function<void(int,const QJsonObject&)> onSuccess,
+                    std::function<void(const QString&)>         onError);
+
 signals:
     void responseReceived(int status, const QJsonObject& data);
     void networkError(const QString& error);
 
 private:
+    HttpRequest buildRequest(const QString& endpoint,
+                                const QString& method,
+                                const QJsonObject& payload);
     std::unique_ptr<SSLContext> m_sslContext;
-    std::unique_ptr<HttpClient> m_httpClient;
+    std::unique_ptr<HttpClient> m_http;
     QString m_baseUrl;
     QString m_apiKey;
 }; 

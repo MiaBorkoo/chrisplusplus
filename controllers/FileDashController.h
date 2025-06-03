@@ -29,6 +29,7 @@ public:
 signals:
     void searchRequested(const QString &text);
     void fileSelected(const QString &fileName);
+    void accessChanged(const QString &fileName, const QStringList &newAcl);
 
 public slots:
     void handleSearch(const QString &text);

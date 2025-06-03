@@ -1,5 +1,6 @@
 #pragma once
 #include <QObject>
+#include <QString>
 
 class ApiService : public QObject {
     Q_OBJECT
