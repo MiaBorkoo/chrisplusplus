@@ -19,6 +19,11 @@ private:
     bool uploadCalled = false;
     bool downloadCalled = false;
     bool deleteCalled = false;
+    bool searchCalled = false;
+    bool fileSelectedCalled = false;
+    bool errorHandled = false;
+    qint64 lastProgressSent = 0;
+    qint64 lastProgressTotal = 0;
 
 private slots:
     void initTestCase() {
@@ -36,6 +41,19 @@ private slots:
                 [this](bool success, const QString&) { downloadCalled = true; });
         connect(m_fileService.get(), &FileService::deleteComplete,
                 [this](bool success, const QString&) { deleteCalled = true; });
+        
+        // Add new signal hooks
+        connect(m_controller, &FileDashController::searchRequested,
+                [this](const QString&) { searchCalled = true; });
+        connect(m_controller, &FileDashController::fileSelected,
+                [this](const QString&) { fileSelectedCalled = true; });
+        connect(m_fileModel.get(), &FileModel::errorOccurred,
+                [this](const QString&) { errorHandled = true; });
+        connect(m_fileModel.get(), &FileModel::uploadProgress,
+                [this](qint64 sent, qint64 total) { 
+                    lastProgressSent = sent;
+                    lastProgressTotal = total;
+                });
     }
 
     void testViewToModelInteraction() {
@@ -112,17 +130,78 @@ private slots:
         QVERIFY(!selectedFile.isEmpty());
     }
 
-    void testErrorHandling() {
-        // Test error propagation through MVC layers
+    void testProgressUpdates() {
+        // Reset progress values
+        lastProgressSent = 0;
+        lastProgressTotal = 0;
         
-        // 1. Simulate error in model
+        // Simulate upload progress
+        qint64 testSent = 50;
+        qint64 testTotal = 100;
+        m_fileService->uploadProgress(testSent, testTotal);
+        
+        // Verify progress was propagated
+        QCOMPARE(lastProgressSent, testSent);
+        QCOMPARE(lastProgressTotal, testTotal);
+    }
+
+    void testSearchFunctionality() {
+        // Reset flags
+        searchCalled = false;
+        
+        // Simulate user typing in search bar
+        QString searchText = "test_search";
+        m_view->getSearchBar()->setText(searchText);
+        
+        // Verify search was triggered
+        QVERIFY(searchCalled);
+        
+        // Test search filtering
+        m_controller->handleSearch(searchText);
+        
+        // Verify view only shows matching files
+        QTableWidget* fileTable = m_view->getFileTable();
+        bool hasOnlyMatchingFiles = true;
+        for(int row = 0; row < fileTable->rowCount(); row++) {
+            QString fileName = fileTable->item(row, 0)->text();
+            if(!fileName.contains(searchText, Qt::CaseInsensitive)) {
+                hasOnlyMatchingFiles = false;
+                break;
+            }
+        }
+        QVERIFY(hasOnlyMatchingFiles);
+    }
+
+    void testFileSelection() {
+        // Reset flags
+        fileSelectedCalled = false;
+        
+        // Add a test file to the table
+        m_view->addFileRow("test_file.txt", "1024", "2024-03-20");
+        
+        // Simulate file selection
+        m_controller->handleFileSelection(0, 0);
+        
+        // Verify selection was handled
+        QVERIFY(fileSelectedCalled);
+        
+        // Verify correct file was selected
+        QString selectedFile = m_view->getFileTable()->item(0, 0)->text();
+        QCOMPARE(selectedFile, QString("test_file.txt"));
+    }
+
+    void testErrorHandling() {
+        // Reset flags
+        errorHandled = false;
+        
+        // Simulate error in model
         QString errorMsg = "File not found";
         m_fileService->errorOccurred(errorMsg);
         
-        // 2. Verify controller handled error appropriately
-        // (This assumes your view has some way to display errors - add appropriate verification)
+        // Verify error was handled
+        QVERIFY(errorHandled);
         
-        // 3. Test recovery - verify system still works after error
+        // Test recovery - verify system still works after error
         testModelToViewUpdates();
     }
 
