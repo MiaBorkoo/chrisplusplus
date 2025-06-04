@@ -19,7 +19,11 @@ public:
     void saveConfig();
 
 private:
-    Config() { loadConfig(); }  // Constructor is private
+    Config() { 
+        // Initialize QSettings with organization and application name
+        m_settings = std::make_unique<QSettings>("EPIC", "ChrisPlusPlus");
+        loadConfig(); 
+    }
     ~Config() = default;
     
     Config(const Config&) = delete;
@@ -27,7 +31,7 @@ private:
 
     void setDefaults();
 
-    QString m_serverUrl = "http://localhost:8000";  // Default value
+    QString m_serverUrl = "http://localhost:8000";  // Default value TODO: change to server url
     QString m_serverHost = "localhost";
     QString m_serverPort = "8000";
     std::unique_ptr<QSettings> m_settings;

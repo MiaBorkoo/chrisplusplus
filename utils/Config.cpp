@@ -3,9 +3,6 @@
 #include <QDir>
 
 void Config::loadConfig() {
-    // Initialize QSettings with organization and application name
-    m_settings = std::make_unique<QSettings>("EPIC", "ChrisPlusPlus");
-    
     // Load values from settings, use defaults if not found
     m_serverUrl = m_settings->value("server/url", m_serverUrl).toString();
     m_serverHost = m_settings->value("server/host", m_serverHost).toString();
@@ -20,10 +17,6 @@ void Config::loadConfig() {
 }
 
 void Config::saveConfig() {
-    if (!m_settings) {
-        m_settings = std::make_unique<QSettings>("EPIC", "ChrisPlusPlus");
-    }
-    
     m_settings->setValue("server/url", m_serverUrl);
     m_settings->setValue("server/host", m_serverHost);
     m_settings->setValue("server/port", m_serverPort);

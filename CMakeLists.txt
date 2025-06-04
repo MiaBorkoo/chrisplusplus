@@ -82,6 +82,8 @@ qt_add_executable(ChrisPlusPlus
     main.cpp
     mainwindow.cpp
     mainwindow.h
+    utils/Config.cpp
+    utils/Config.h
     views/LoginView.cpp
     views/LoginView.h
     views/SignUpView.cpp
