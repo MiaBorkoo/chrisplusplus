@@ -3,9 +3,17 @@
 #include "../../crypto/WrappedMEK.h"
 #include "../../crypto/AuthHash.h"
 #include "../../crypto/MEKGenerator.h"
-#include "otp/TOTP.h"          
+#include "otp/TOTP.h"
+#include "../../tofu/QRVerification.h"          
 #include <QJsonObject>
 #include <QSettings>           
+#include <QDebug>
+#include <QByteArray>
+
+// Use qrencode library directly for TOTP QR codes
+extern "C" {
+#include <qrencode.h>
+}
 
 namespace {
     template <size_t N>
@@ -338,4 +346,118 @@ QString AuthService::deriveAuthHash(const QString& password,
     } catch (const std::exception& e) {
         throw std::runtime_error(std::string("Failed to derive auth hash: ") + e.what());
     }
+}
+
+// Simple TOTP methods (industry standard approach)
+QString AuthService::enableTOTP(const QString& username) {
+    try {
+        // Check if TOTP is already enabled
+        if (hasTOTPEnabled()) {
+            emit errorOccurred("TOTP is already enabled for this account");
+            return QString();
+        }
+        
+        // Generate cryptographically secure secret using TOTP class
+        m_pendingTOTPSecret = QString::fromStdString(TOTP::generateSecret());
+        m_pendingUsername = username;
+        
+        // Create standard otpauth:// URL
+        std::string otpauthURL = TOTP::createOTPAuthURL(
+            "MyShare",                          // Issuer
+            username.toStdString(),             // Account
+            m_pendingTOTPSecret.toStdString()   // Secret
+        );
+        
+        // Generate actual QR code image using qrencode
+        QRcode* qrcode = QRcode_encodeString(
+            otpauthURL.c_str(),
+            0,                    // Version 0: Auto-select optimal version
+            QR_ECLEVEL_H,        // High error correction (30% recovery)
+            QR_MODE_8,           // 8-bit data mode for URLs
+            1                    // Case sensitive
+        );
+        
+        if (!qrcode) {
+            emit errorOccurred("Failed to generate QR code");
+            return QString();
+        }
+        
+        // Convert QR matrix to image data
+        int size = qrcode->width * qrcode->width;
+        QByteArray qrImageData(reinterpret_cast<const char*>(qrcode->data), size);
+        
+        // Create metadata for QR reconstruction
+        QByteArray metadata;
+        QDataStream metaStream(&metadata, QIODevice::WriteOnly);
+        metaStream << static_cast<qint32>(qrcode->width) << static_cast<qint32>(qrcode->version);
+        
+        QRcode_free(qrcode);
+        
+        // Combine metadata + image data and encode as base64
+        QByteArray qrData = (metadata + qrImageData).toBase64();
+        
+        emit totpEnabled(qrData);
+        qDebug() << "TOTP setup started for user:" << username;
+        qDebug() << "OTP Auth URL:" << QString::fromStdString(otpauthURL);
+        
+        return qrData;  // Return actual QR code as base64
+        
+    } catch (const std::exception& e) {
+        emit errorOccurred(QString("TOTP setup failed: %1").arg(e.what()));
+        return QString();
+    }
+}
+
+bool AuthService::verifyTOTPSetup(const QString& code) {
+    if (m_pendingTOTPSecret.isEmpty()) {
+        emit errorOccurred("No TOTP setup in progress");
+        return false;
+    }
+    
+    try {
+        // Verify the user-entered code against the pending secret
+        TOTP totp(m_pendingTOTPSecret.toStdString());
+        bool isValid = totp.verify(code.toStdString());
+        
+        if (isValid) {
+            // TODO: SECURITY ISSUE - Store in encrypted form or OS keychain
+            // Current QSettings storage is NOT SECURE (plain text)
+            // Consider using QKeychain or encrypting with user's master key
+            m_settings->setValue("totp/secret", m_pendingTOTPSecret);
+            m_settings->setValue("totp/username", m_pendingUsername);
+            m_settings->setValue("totp/enabled_at", QDateTime::currentDateTimeUtc());
+            m_settings->sync();
+            
+            // Clear temporary data
+            m_pendingTOTPSecret.clear();
+            m_pendingUsername.clear();
+            
+            emit totpSetupCompleted(true);
+            qDebug() << "TOTP setup completed successfully";
+            
+        } else {
+            emit totpSetupCompleted(false);
+            qDebug() << "TOTP setup failed: Invalid verification code";
+        }
+        
+        return isValid;
+        
+    } catch (const std::exception& e) {
+        emit errorOccurred(QString("TOTP verification failed: %1").arg(e.what()));
+        return false;
+    }
+}
+
+bool AuthService::hasTOTPEnabled() const {
+    return !m_settings->value("totp/secret").toString().isEmpty();
+}
+
+void AuthService::disableTOTP() {
+    m_settings->remove("totp/secret");
+    m_settings->remove("totp/username");  
+    m_settings->remove("totp/enabled_at");
+    m_settings->sync();
+    
+    emit totpDisabled();
+    qDebug() << "TOTP disabled";
 }

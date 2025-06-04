@@ -1,5 +1,6 @@
 #include "HttpClient.h"
 #include <QIODevice>
+#include <QThreadPool>
 #include <sstream>
 #include <iomanip>
 #include <iostream>
@@ -32,7 +33,7 @@ void HttpClient::sendAsync(const HttpRequest& req,
                           std::function<void(const QString&)> onError) {
     // RESTORE: Your original ACTUALLY async code
     auto self = shared_from_this();
-    QtConcurrent::run([self, req, onSuccess, onError]{
+    QThreadPool::globalInstance()->start([self, req, onSuccess, onError]{
         try {
             HttpResponse r = self->sendRequest(req);
             QMetaObject::invokeMethod(qApp, [onSuccess, r]{

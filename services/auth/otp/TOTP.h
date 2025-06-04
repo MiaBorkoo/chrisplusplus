@@ -20,7 +20,15 @@ public:
                   std::uint32_t timeStepSeconds = 30,
                   std::uint32_t digits = 6);
 
+    // Core TOTP functionality
     std::string generate(std::uint64_t unixTime = 0) const;
+    bool verify(const std::string& code, int windowTolerance = 1) const;
+
+    // Static utility methods
+    static std::string generateSecret();
+    static std::string createOTPAuthURL(const std::string& issuer, 
+                                       const std::string& accountName, 
+                                       const std::string& secret);
 
 private:
     std::vector<std::uint8_t> secret_;
@@ -28,4 +36,5 @@ private:
     std::uint32_t digits_;
 
     static std::vector<std::uint8_t> decodeBase32(const std::string& s);
+    static std::string encodeBase32(const std::vector<std::uint8_t>& data);
 };

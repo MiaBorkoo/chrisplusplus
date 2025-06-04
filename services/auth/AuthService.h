@@ -4,9 +4,12 @@
 #include <QObject>
 #include <QString>
 #include <QJsonObject>
-#include <QSettings>
+#include <QSettings>   
 #include <memory>
 #include "ValidationService.h"
+
+// Forward declaration for QR generation
+class QRVerification;
 
 class AuthService : public ApiService {
     Q_OBJECT
@@ -45,6 +48,12 @@ public:
     bool hasActiveSession() const { return !m_sessionToken.isEmpty(); }
     void invalidateSession();
 
+    // Simple TOTP methods (industry standard)
+    QString enableTOTP(const QString& username);  // Returns QR code as base64
+    bool verifyTOTPSetup(const QString& code);    // Verify and save secret
+    void disableTOTP();                           // Remove TOTP
+    bool hasTOTPEnabled() const;                  // Check if enabled
+
     // Get authentication salts from server
     struct AuthSalts {
         QString authSalt1;
@@ -55,10 +64,15 @@ public:
     AuthSalts getAuthSalts(const QString& username);
 
 signals:
-    void loginCompleted(bool success, const QString& token);
+    void loginCompleted(bool success, const QString& token = QString());
     void registrationCompleted(bool success);
     void passwordChangeCompleted(bool success);
     void errorOccurred(const QString& error);
+    
+    // Simple TOTP signals
+    void totpEnabled(const QString& qrCodeBase64);
+    void totpSetupCompleted(bool success);
+    void totpDisabled();
 
 private slots:
     void handleResponseReceived(int status, const QJsonObject& data);
@@ -69,6 +83,10 @@ private:
     QString m_sessionToken;
     QScopedPointer<QSettings> m_settings;
     std::shared_ptr<ValidationService> m_validationService;
+    
+    // Simple TOTP state
+    QString m_pendingTOTPSecret;  // Temporary during setup
+    QString m_pendingUsername;    // Username for setup
     
     void handleLoginResponse(int status, const QJsonObject& data);
     void handleRegisterResponse(int status, const QJsonObject& data);

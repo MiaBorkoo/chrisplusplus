@@ -53,7 +53,8 @@ find_package(OpenSSL REQUIRED)
 
 find_package(Qt6 6.5.0 REQUIRED COMPONENTS Core Widgets Network Test Concurrent)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
-find_package(OpenSSL REQUIRED COMPONENTS Crypto)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(QRENCODE REQUIRED libqrencode)
 find_package(nlohmann_json REQUIRED)
 
 
@@ -136,6 +137,7 @@ target_link_libraries(ChrisPlusPlus
         OpenSSL::SSL
         OpenSSL::Crypto
         crypto-lib
+        ${QRENCODE_LIBRARIES}
 )
 
 # Include directories (consolidated)
@@ -151,7 +153,13 @@ target_include_directories(ChrisPlusPlus
         ${CMAKE_SOURCE_DIR}/httpC
         ${CMAKE_SOURCE_DIR}/fileIO
         ${CMAKE_SOURCE_DIR}/tofu   
+        ${QRENCODE_INCLUDE_DIRS}
 )
+
+# Add library directories for qrencode on macOS
+if(APPLE)
+    target_link_directories(ChrisPlusPlus PRIVATE /opt/homebrew/lib)
+endif()
 
 # ============================================================================
 # TEST EXECUTABLES
@@ -162,6 +170,27 @@ add_executable(testSSLforNow
     tests/testSSLforNow.cpp
 )
 target_link_libraries(testSSLforNow PRIVATE sockets http_layer)
+
+# TOTP functionality test (simple console-based)
+add_executable(testTOTPSimple
+    tests/testTOTPSimple.cpp
+    services/auth/otp/TOTP.cpp
+)
+target_link_libraries(testTOTPSimple PRIVATE 
+    Qt6::Core 
+    ${QRENCODE_LIBRARIES}
+    OpenSSL::SSL
+    OpenSSL::Crypto
+)
+target_include_directories(testTOTPSimple PRIVATE 
+    ${CMAKE_SOURCE_DIR}/services/auth
+    ${QRENCODE_INCLUDE_DIRS}
+)
+
+# Add library directories for qrencode on macOS
+if(APPLE)
+    target_link_directories(testTOTPSimple PRIVATE /opt/homebrew/lib)
+endif()
 
 add_executable(testNetworkSystemComplete
     tests/testNetworkSystemComplete.cpp
