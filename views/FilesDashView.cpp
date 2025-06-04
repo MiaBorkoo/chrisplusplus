@@ -13,6 +13,9 @@ FilesDashView::FilesDashView(QWidget *parent) : QWidget(parent) {
     header = new HeaderWidget(this);
     sideNav = new SideNavWidget(this);
 
+    accountSection = new AccountSection(this);
+    accountController = new AccountController(header, accountSection, this);
+
     // main content widget
     QWidget *mainContent = new QWidget(this);
     mainContent->setObjectName("mainContent");

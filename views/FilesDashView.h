@@ -6,6 +6,8 @@
 #include <QTableWidget>
 #include "HeaderWidget.h"
 #include "SideNavWidget.h"
+#include "AccountSection.h"
+#include "AccountController.h"
 
 class FilesDashView : public QWidget {
     Q_OBJECT
@@ -22,6 +24,8 @@ private:
     SideNavWidget *sideNav;
     QLineEdit *searchBar;
     QTableWidget *fileTable;
+    AccountSection *accountSection;
+    AccountController *accountController;
 
 signals:
     void fileOpenRequested(const QString &fileName);

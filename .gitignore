@@ -2,6 +2,21 @@
 .idea/
 *.user
 build/
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+
+# Other generated files
+*.o
+*.exe
+*.dll
+.cache/
+CMakeUserPresets.json
+ruans_requirements.txt
+=======
 .cache/
 CMakeUserPresets.json
 *.txt
+
