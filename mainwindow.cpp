@@ -6,6 +6,7 @@
 #include "controllers/SharedDashController.h"
 #include "views/AccountSection.h"
 #include "controllers/AccountController.h"
+#include "utils/Config.h"
 #include <QScreen>
 #include <QApplication>
 #include <QStackedWidget>
@@ -37,8 +38,8 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     m_signUpView = new SignUpView(this);
     m_signUpController = new SignUpController(m_signUpView, this);
 
-    // Initialize network client and services
-    auto client = std::make_shared<Client>("http://localhost:8000");
+    // Initialize network client and services using Config
+    auto client = std::make_shared<Client>(Config::getInstance().getServerUrl());
     m_fileService = std::make_shared<FileService>(client);
     m_fileModel = std::make_shared<FileModel>(m_fileService);
 
