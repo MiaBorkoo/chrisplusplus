@@ -14,6 +14,11 @@ public:
         const std::vector<uint8_t>& encSalt
     ) = 0;
 
+    virtual DerivedKeys deriveKeysFromPassword(
+        const std::string& password,
+        const std::vector<uint8_t>& authSalt
+    ) = 0;
+
     //generates a random salt
     virtual std::vector<uint8_t> generateSalt(size_t length = 16) = 0;
 };

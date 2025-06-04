@@ -1,6 +1,7 @@
 #include "TOTP.h"
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
+#include <openssl/rand.h>
 #include <chrono>
 #include <iomanip>
 #include <sstream>
@@ -51,6 +52,83 @@ std::string TOTP::generate(std::uint64_t unixTime) const
     return oss.str();
 }
 
+bool TOTP::verify(const std::string& code, int windowTolerance) const {
+    std::uint64_t currentTime = duration_cast<seconds>(
+        system_clock::now().time_since_epoch()).count();
+    
+    // Check current time and surrounding time windows
+    for (int i = -windowTolerance; i <= windowTolerance; ++i) {
+        std::uint64_t testTime = currentTime + (i * step_);
+        if (generate(testTime) == code) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::string TOTP::generateSecret() {
+    // Generate 160-bit (20-byte) secret for HMAC-SHA1
+    std::vector<std::uint8_t> randomBytes(20);
+    
+    if (RAND_bytes(randomBytes.data(), 20) != 1) {
+        throw std::runtime_error("Failed to generate cryptographically secure random bytes");
+    }
+    
+    return encodeBase32(randomBytes);
+}
+
+std::string TOTP::createOTPAuthURL(const std::string& issuer, 
+                                  const std::string& accountName, 
+                                  const std::string& secret) {
+    if (issuer.empty() || accountName.empty() || secret.empty()) {
+        throw std::invalid_argument("issuer, accountName, and secret cannot be empty");
+    }
+    
+    // URL encode function for special characters
+    auto urlEncode = [](const std::string& value) -> std::string {
+        std::ostringstream encoded;
+        for (char c : value) {
+            if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+                encoded << c;
+            } else {
+                encoded << '%' << std::setfill('0') << std::setw(2) << std::hex << (unsigned char)c;
+            }
+        }
+        return encoded.str();
+    };
+    
+    std::ostringstream url;
+    url << "otpauth://totp/" << urlEncode(issuer) << ":" << urlEncode(accountName)
+        << "?secret=" << secret
+        << "&issuer=" << urlEncode(issuer)
+        << "&algorithm=SHA1&digits=6&period=30";
+    
+    return url.str();
+}
+
+std::string TOTP::encodeBase32(const std::vector<std::uint8_t>& data) {
+    const char* chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+    std::string result;
+    
+    int buffer = 0;
+    int bits = 0;
+    
+    for (uint8_t byte : data) {
+        buffer = (buffer << 8) | byte;
+        bits += 8;
+        
+        while (bits >= 5) {
+            bits -= 5;
+            result += chars[(buffer >> bits) & 0x1F];
+        }
+    }
+    
+    if (bits > 0) {
+        result += chars[(buffer << (5 - bits)) & 0x1F];
+    }
+    
+    return result;
+}
 
 // based on RFC 4648 base-32 decode (A-Z 2-7, case-insensitive, no padding required)
 std::vector<std::uint8_t> TOTP::decodeBase32(const std::string& s)

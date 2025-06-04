@@ -97,6 +97,7 @@ struct SharedFileResponse {
     uint64_t upload_timestamp;
     std::string file_data_hmac;
     std::string share_id;
+    std::string shared_by;  
 };
 
 struct UserFilesResponse {
@@ -182,6 +183,7 @@ struct SharedFileInfo : public FileInfo {
     std::string owner_username;
     uint64_t shared_at;
     std::optional<uint64_t> expires_at;
+    std::string sharedBy; 
 };
 
 struct ShareInfo {
