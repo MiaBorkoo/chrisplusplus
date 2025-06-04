@@ -49,34 +49,8 @@ void AuthService::login(const QString& username, const QString& password) {
     }
 
     try {
-        // DEVELOPMENT MODE: Check if server is available
-        // In production, this would be handled by proper error handling
         qDebug() << "Attempting login for user:" << username;
         
-        // For demo purposes, simulate different scenarios based on username
-        if (username.toLower() == "demo") {
-            // Demo user - simulate successful login without server
-            qDebug() << "Demo mode - simulating successful login";
-            QTimer::singleShot(1000, this, [this]() {
-                emit loginCompleted(true, "demo_token_12345");
-            });
-            return;
-        }
-        
-        if (username.toLower().startsWith("totp")) {
-            // TOTP demo user - simulate first login TOTP setup
-            qDebug() << "TOTP demo mode - simulating first login TOTP setup";
-            QTimer::singleShot(500, this, [this, username]() {
-                QString qrCode = enableTOTP(username);
-                if (!qrCode.isEmpty()) {
-                    emit firstLoginTOTPSetupRequired(username, "fake_auth_hash", qrCode);
-                } else {
-                    emit errorOccurred("Failed to generate TOTP setup");
-                }
-            });
-            return;
-        }
-
         // Get current salts from server
         AuthSalts salts = getAuthSalts(username);
         
@@ -86,7 +60,7 @@ void AuthService::login(const QString& username, const QString& password) {
         std::vector<uint8_t> authSalt1(authSalt1Data.begin(), authSalt1Data.end());
         std::vector<uint8_t> authSalt2(authSalt2Data.begin(), authSalt2Data.end());
         
-        // Derive auth hash (simplified - no TOTP encryption needed)
+        // Derive auth hash
         QString authHash = deriveAuthHash(password, authSalt1, authSalt2);
         
         // Check TOTP status and handle different scenarios
@@ -135,7 +109,7 @@ void AuthService::hashedLogin(const QString& username, const QString& authHash) 
     m_client->sendRequest("/login", "POST", payload);
 }
 
-// New method for login with manual TOTP
+// Method for login with manual TOTP
 void AuthService::hashedLoginWithTOTP(const QString& username, const QString& authHash, const QString& totpCode) {
     QJsonObject payload;
     payload["username"] = username;
@@ -417,7 +391,7 @@ QString AuthService::deriveAuthHash(const QString& password,
     }
 }
 
-// Simple TOTP methods (industry standard approach)
+// TOTP methods (industry standard approach)
 QString AuthService::enableTOTP(const QString& username) {
     try {
         // Check if TOTP is already enabled
@@ -527,20 +501,16 @@ bool AuthService::hasTOTPEnabled() const {
 }
 
 bool AuthService::isFirstTimeLogin(const QString& username) const {
-    // Check if this user has ever completed TOTP setup
-    // We track this separately from totp/enabled to handle edge cases
+    // Check if this specific user has ever completed TOTP setup
     QString key = QString("users/%1/totp_setup_completed").arg(username);
     bool setupCompleted = m_settings->value(key, false).toBool();
     
-    // Also check if TOTP is currently enabled (double check)
-    bool totpEnabled = hasTOTPEnabled();
-    
     qDebug() << "First login check for user:" << username 
-             << "Setup completed:" << setupCompleted 
-             << "TOTP enabled:" << totpEnabled;
+             << "Setup completed:" << setupCompleted;
     
-    // First time login = user exists but has never completed TOTP setup
-    return !setupCompleted && !totpEnabled;
+    // First time login = this specific user has never completed TOTP setup
+    // Don't check global TOTP status - that's irrelevant for individual users
+    return !setupCompleted;
 }
 
 void AuthService::markTOTPSetupCompleted(const QString& username) {

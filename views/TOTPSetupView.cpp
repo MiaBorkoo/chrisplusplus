@@ -12,6 +12,7 @@
 #include <QFont>
 #include <QRegularExpression>
 #include <QRegularExpressionValidator>
+#include <QDebug>
 
 TOTPSetupView::TOTPSetupView(QWidget *parent)
     : QWidget(parent)
@@ -236,14 +237,19 @@ void TOTPSetupView::setSetupInProgress(bool inProgress) {
 }
 
 void TOTPSetupView::handleVerifyClicked() {
-    clearError();
+    QString code = m_codeInput->text().trimmed();
     
-    QString code = m_codeInput->text();
+    qDebug() << "TOTPSetupView: Verify clicked with code:" << code;
+    
     if (code.length() != 6) {
         showError("Please enter a 6-digit code");
         return;
     }
     
+    // Clear any previous errors
+    clearError();
+    
+    qDebug() << "TOTPSetupView: Emitting verificationCodeEntered signal";
     emit verificationCodeEntered(code);
 }
 

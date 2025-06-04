@@ -47,6 +47,10 @@ void LoginController::setAuthService(std::shared_ptr<AuthService> authService)
             m_totpController.get(), &TOTPController::showCodeDialog);
     connect(m_totpModel.get(), &TOTPModel::verificationSuccess,
             this, &LoginController::handleLoginSuccess);
+    
+    // Connect TOTP controller signals back to model
+    connect(m_totpController.get(), &TOTPController::loginCodeEntered,
+            this, &LoginController::handleTOTPCodeEntered);
 }
 
 void LoginController::handleLoginAttempt()
@@ -72,6 +76,9 @@ void LoginController::handleLoginAttempt()
         return;
     }
 
+    // Store username for use during TOTP flow
+    m_currentUsername = username;
+    
     qDebug() << "Starting login process for user:" << username;
     
     // Use the model to perform login
@@ -86,6 +93,9 @@ void LoginController::handleLoginSuccess()
         m_view->clearFields();
     }
     
+    // Clear stored username
+    m_currentUsername.clear();
+    
     emit loginSuccessful();
 }
 
@@ -96,4 +106,18 @@ void LoginController::handleLoginError(const QString &error)
     if (m_view) {
         m_view->showError(error);
     }
+}
+
+void LoginController::handleTOTPCodeEntered(const QString &code)
+{
+    qDebug() << "LoginController: TOTP code entered:" << code;
+    
+    if (!m_totpModel) {
+        qDebug() << "No TOTP model available";
+        return;
+    }
+    
+    // TOTPModel handles the username and auth hash internally from stored pending data
+    qDebug() << "LoginController: Verifying TOTP code";
+    m_totpModel->verifyLoginCode(code, "", "");
 } 

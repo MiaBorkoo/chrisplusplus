@@ -139,7 +139,7 @@ void MainWindow::initializeServices()
 {
     // Initialize network client with default values
     // TODO: These should come from configuration/settings
-    QString baseUrl = "https://localhost:8443/api";  // Default server URL
+    QString baseUrl = "https://api.chrisplusplus.com";  // Default server URL
     QString apiKey = "";  // Will be set after login
     
     m_client = std::make_shared<Client>(baseUrl, apiKey, this);

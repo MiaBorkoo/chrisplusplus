@@ -26,6 +26,8 @@ private slots:
     void handleLoginCode(const QString &code);
     void handleSetupCancelled();
     void handleCodeCancelled();
+    void handleVerificationSuccess();
+    void handleVerificationError(const QString &error);
 
 private:
     TOTPModel *m_model;

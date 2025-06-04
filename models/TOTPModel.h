@@ -39,6 +39,7 @@ private slots:
     void handleTOTPRequired(const QString& username, const QString& authHash);
     void handleFirstLoginTOTPSetup(const QString& username, const QString& authHash, const QString& qrCodeBase64);
     void handleTOTPSetupCompleted(bool success);
+    void handleLoginCompleted(bool success);
     void handleError(const QString& error);
 
 private:

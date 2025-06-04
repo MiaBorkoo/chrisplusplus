@@ -26,6 +26,7 @@ private slots:
     void handleLoginAttempt();
     void handleLoginSuccess();
     void handleLoginError(const QString &error);
+    void handleTOTPCodeEntered(const QString &code);
 
 private:
     LoginView *m_view;
@@ -33,6 +34,7 @@ private:
     std::unique_ptr<TOTPModel> m_totpModel;
     std::unique_ptr<TOTPController> m_totpController;
     std::shared_ptr<AuthService> m_authService;
+    QString m_currentUsername;  // Store username during login process
 
 signals:
     void loginSuccessful();
