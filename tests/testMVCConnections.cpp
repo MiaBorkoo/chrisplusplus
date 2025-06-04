@@ -238,3 +238,4 @@ private slots:
 };
 
 QTEST_MAIN(TestMVCConnections)
+#include "testMVCConnections.moc"
