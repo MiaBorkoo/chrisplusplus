@@ -20,6 +20,8 @@ namespace {
 AuthService::AuthService(std::shared_ptr<Client> client, QObject* parent)
     : ApiService(parent), m_client(client), m_settings(new QSettings(this))  
 {
+    m_validationService = std::make_shared<ValidationService>();
+    
     if (m_client) {
         connect(m_client.get(), SIGNAL(responseReceived(int, QJsonObject)), 
                 this, SLOT(handleResponseReceived(int, QJsonObject)));
