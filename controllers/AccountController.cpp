@@ -18,7 +18,7 @@ void AccountController::onAccountButtonClicked() {
     if (m_accountSection->isVisible()) {
         m_accountSection->hide();
     } else {
-        // Set the username every time before showing
+        // set the username every time before showing
         m_accountSection->setUsername(m_currentUsername);
 
         //gets bottom-right of account button in global coordinates
@@ -37,7 +37,6 @@ void AccountController::onAccountButtonClicked() {
     }
 }
 void AccountController::onChangePasswordRequested(const QString& oldPass, const QString& newPass) {
-    // Simple validation example:
     if (oldPass.isEmpty() || newPass.isEmpty()) {
         m_accountSection->showErrorMessage("Fields cannot be empty.");
         m_accountSection->clearFields();
@@ -46,15 +45,15 @@ void AccountController::onChangePasswordRequested(const QString& oldPass, const 
 
     // TODO: Replace with actual password change logic, e.g. check old password validity
 
-    bool passwordChangedSuccessfully = true; // simulate success or failure
+    bool passwordChangedSuccessfully = true; 
 
     if (passwordChangedSuccessfully) {
         // Show success popup
         QMessageBox::information(m_accountSection, "Success", "Password changed successfully!");
         m_accountSection->clearFields();
-        m_accountSection->hide();  // optional, close popup on success
+        m_accountSection->hide();  
     } else {
-        // On failure, show error label with message
+        //On failure, show error label with message
         m_accountSection->showErrorMessage("Failed to change password. Please try again.");
         m_accountSection->clearFields();
     }

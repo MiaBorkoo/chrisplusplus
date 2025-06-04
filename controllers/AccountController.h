@@ -19,7 +19,7 @@ private:
     HeaderWidget* m_headerWidget;
     AccountSection* m_accountSection;
 
-    QString m_currentUsername = "User123";  // Example username, could come from model/session
+    QString m_currentUsername = "User123";  // TODO:should come from model
 
 signals:
     void passwordChangeSuccessful();
