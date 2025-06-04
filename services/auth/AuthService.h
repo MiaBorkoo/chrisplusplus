@@ -19,7 +19,7 @@ public:
 
     // Auth operations with function overloading
     void login(const QString& username, const QString& password);
-    void hashedLogin(const QString& username, const QString& authHash);
+    void hashedLoginWithTOTP(const QString& username, const QString& authHash, const QString& totpCode);
 
     void registerUser(const QString& username, const QString& password, const QString& confirmPassword);
     void registerUser(const QString& username,
@@ -53,6 +53,10 @@ public:
     bool verifyTOTPSetup(const QString& code);    // Verify and save secret
     void disableTOTP();                           // Remove TOTP
     bool hasTOTPEnabled() const;                  // Check if enabled
+    
+    // First-login TOTP detection
+    bool isFirstTimeLogin(const QString& username) const;  // Check if user needs first-time TOTP setup
+    void markTOTPSetupCompleted(const QString& username);  // Mark that user completed TOTP setup
 
     // Get authentication salts from server
     struct AuthSalts {
@@ -73,6 +77,10 @@ signals:
     void totpEnabled(const QString& qrCodeBase64);
     void totpSetupCompleted(bool success);
     void totpDisabled();
+    void totpRequired(const QString& username, const QString& authHash);
+    
+    // First-login TOTP signal
+    void firstLoginTOTPSetupRequired(const QString& username, const QString& authHash, const QString& qrCodeBase64);
 
 private slots:
     void handleResponseReceived(int status, const QJsonObject& data);
@@ -86,9 +94,8 @@ private:
     QString m_pendingTOTPSecret;
     QString m_pendingUsername;
     
-    // Store mekWrapperKey for TOTP encryption/decryption
-    std::vector<uint8_t> m_mekWrapperKey;
-    
+    // mekWrapperKey removed - no local TOTP secret storage needed
+
     void handleLoginResponse(int status, const QJsonObject& data);
     void handleRegisterResponse(int status, const QJsonObject& data);
     void handleChangePasswordResponse(int status, const QJsonObject& data);
@@ -102,7 +109,8 @@ private:
     std::vector<uint8_t> generateSalt() const;
     std::vector<unsigned char> createMEK() const;
     
-    // Secure TOTP storage helpers
-    QString encryptTOTPSecret(const QString& secret, const std::vector<uint8_t>& mekWrapperKey);
-    QString decryptTOTPSecret(const QString& encryptedSecret, const std::vector<uint8_t>& mekWrapperKey);
+    // SECURITY: hashedLogin made private to prevent TOTP bypass
+    void hashedLogin(const QString& username, const QString& authHash);
+    
+    // TOTP encryption methods removed - no local secret storage needed
 };

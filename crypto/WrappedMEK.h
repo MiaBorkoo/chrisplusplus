@@ -13,7 +13,7 @@ EncryptedMEK encryptMEKWithWrapperKey(
     const std::vector<uint8_t>& mekWrapperKey
 );
 
-// Decrypt MEK using wrapper key (needed for TOTP secret decryption)
+// Decrypt MEK using wrapper key
 std::vector<uint8_t> decryptMEKWithWrapperKey(
     const EncryptedMEK& encrypted,
     const std::vector<uint8_t>& mekWrapperKey

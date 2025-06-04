@@ -1,7 +1,10 @@
 #include "LoginController.h"
 #include <QMessageBox>
 
-LoginController::LoginController(QObject *parent) : QObject(parent), m_view(nullptr){}
+LoginController::LoginController(QObject *parent) 
+    : QObject(parent), m_view(nullptr)
+{
+}
 
 void LoginController::setView(LoginView *view)
 {

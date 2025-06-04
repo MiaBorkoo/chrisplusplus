@@ -115,13 +115,6 @@ qt_add_executable(ChrisPlusPlus
     controllers/AccountController.h
 
     ${RESOURCE_FILES}
-    # ✅ ADD: Authentication system
-    models/LoginModel.cpp
-    network/Client.cpp
-    services/auth/AuthService.cpp
-    services/ApiService.cpp
-    services/auth/otp/TOTP.cpp
-    services/auth/ValidationService.cpp
 )
 
 target_link_libraries(ChrisPlusPlus
