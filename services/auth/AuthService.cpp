@@ -2,6 +2,7 @@
 #include "../../crypto/KeyDerivation.h"
 #include "../../crypto/WrappedMEK.h"
 #include "../../crypto/AuthHash.h"
+#include "../../crypto/MEKGenerator.h"
 #include "otp/TOTP.h"          
 #include <QJsonObject>
 #include <QSettings>           
@@ -222,8 +223,8 @@ std::vector<uint8_t> AuthService::generateSalt() const {
     return kd.generateSalt();
 }
 
-std::vector<unsigned char> AuthService::generateMEK() const {
-    return WrappedMEK::generateMEK();
+std::vector<unsigned char> AuthService::createMEK() const {
+    return generateMEK();
 }
 
 void AuthService::handleResponseReceived(int status, const QJsonObject& data) {

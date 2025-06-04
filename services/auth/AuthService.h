@@ -70,5 +70,5 @@ private:
                          const std::vector<uint8_t>& authSalt2);
     QString encryptMEK(const std::vector<unsigned char>& mek, const std::vector<uint8_t>& mekWrapperKey);
     std::vector<uint8_t> generateSalt() const;
-    std::vector<unsigned char> generateMEK() const;
+    std::vector<unsigned char> createMEK() const;
 };
