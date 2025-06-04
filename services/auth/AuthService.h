@@ -1,17 +1,24 @@
 #pragma once
-#include "IAuthService.h"
+#include "../ApiService.h"
 #include "../../network/Client.h"
+#include <QObject>
+#include <QString>
 #include <QJsonObject>
-#include <QSettings>   
+#include <QSettings>
+#include <memory>
+#include "ValidationService.h"
 
-class AuthService : public IAuthService {
+class AuthService : public ApiService {
     Q_OBJECT
 public:
-    explicit AuthService(Client* client = nullptr, QObject* parent = nullptr);
+    explicit AuthService(std::shared_ptr<Client> client = nullptr, QObject* parent = nullptr);
     ~AuthService() override = default;
 
-    // Interface implementations
-    void login(const QString& username, const QString& authHash) override;
+    // Auth operations with function overloading
+    void login(const QString& username, const QString& password);
+    void hashedLogin(const QString& username, const QString& authHash);
+
+    void registerUser(const QString& username, const QString& password, const QString& confirmPassword);
     void registerUser(const QString& username,
                      const QString& authHash,
                      const QString& encryptedMEK,
@@ -19,30 +26,60 @@ public:
                      const QString& authSalt2,
                      const QString& encSalt,
                      const QString& mekIV,
-                     const QString& mekTag) override;
+                     const QString& mekTag);
+
+    void changePassword(const QString& username,
+                       const QString& oldPassword,
+                       const QString& newPassword);
     void changePassword(const QString& username,
                        const QString& oldAuthHash,
                        const QString& newAuthHash,
-                       const QString& newEncryptedMEK) override;
+                       const QString& newEncryptedMEK);
+
     bool isInitialized() const override {
         return m_client != nullptr;
     }
 
+    // Session management
     QString sessionToken() const { return m_sessionToken; }
     bool hasActiveSession() const { return !m_sessionToken.isEmpty(); }
-    
     void invalidateSession();
+
+    // Get authentication salts from server
+    struct AuthSalts {
+        QString authSalt1;
+        QString authSalt2;
+        QString encSalt;
+    };
+    
+    AuthSalts getAuthSalts(const QString& username);
+
+signals:
+    void loginCompleted(bool success, const QString& token);
+    void registrationCompleted(bool success);
+    void passwordChangeCompleted(bool success);
+    void errorOccurred(const QString& error);
 
 private slots:
     void handleResponseReceived(int status, const QJsonObject& data);
     void handleNetworkError(const QString& error);
 
 private:
-    Client* m_client;
+    std::shared_ptr<Client> m_client;
     QString m_sessionToken;
     QScopedPointer<QSettings> m_settings;
+    std::shared_ptr<ValidationService> m_validationService;
     
     void handleLoginResponse(int status, const QJsonObject& data);
     void handleRegisterResponse(int status, const QJsonObject& data);
     void handleChangePasswordResponse(int status, const QJsonObject& data);
-}; 
+
+    void handleSaltsResponse(int status, const QJsonObject& data, AuthSalts& salts);
+
+    // Crypto helpers
+    QString deriveAuthHash(const QString& password, const std::vector<uint8_t>& authSalt1, 
+                         const std::vector<uint8_t>& authSalt2);
+    QString encryptMEK(const std::vector<unsigned char>& mek, const std::vector<uint8_t>& mekWrapperKey);
+    std::vector<uint8_t> generateSalt() const;
+    std::vector<unsigned char> createMEK() const;
+};

@@ -117,12 +117,10 @@ qt_add_executable(ChrisPlusPlus
     # ✅ ADD: Authentication system
     models/LoginModel.cpp
     network/Client.cpp
-    services/auth/IAuthService.cpp
     services/auth/AuthService.cpp
     services/ApiService.cpp
     services/auth/otp/TOTP.cpp
-    services/ack/AclService.cpp
-    services/ack/AclService.h
+    services/auth/ValidationService.cpp
 )
 
 target_link_libraries(ChrisPlusPlus

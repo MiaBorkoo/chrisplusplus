@@ -41,6 +41,32 @@ DerivedKeys KeyDerivation::deriveKeysFromPassword(
     return keys;
 }
 
+DerivedKeys KeyDerivation::deriveKeysFromPassword(
+    const std::string& password,
+    const std::vector<uint8_t>& authSalt
+) {
+    DerivedKeys keys;
+
+    if (authSalt.size() < 16) {
+        throw std::invalid_argument("Salt must be at least 16 bytes");
+    }
+
+    //Argon2id parameters
+    uint32_t time_cost = 2; // iterations(CPU time)
+    uint32_t memory_cost = 19 * 1024; // 19 MiB in KiB -> how much memory to use
+    uint32_t parallelism = 1; // degree of parallelism -> how many threads/cores to use
+
+    //deriving Server Auth Key
+    if (argon2id_hash_raw(time_cost, memory_cost, parallelism,
+                          password.data(), password.size(),
+                          authSalt.data(), authSalt.size(),
+                          keys.serverAuthKey.data(), keys.serverAuthKey.size()) != ARGON2_OK) {
+        throw std::runtime_error("Argon2id failed (serverAuthKey)");
+    }
+
+    keys.authSalt = authSalt;
+    return keys;
+}
 std::vector<uint8_t> KeyDerivation::generateSalt(size_t length) {
     if (length < 16) length = 16;
     std::vector<uint8_t> salt(length);

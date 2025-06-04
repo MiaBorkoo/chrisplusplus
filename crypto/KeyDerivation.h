@@ -9,5 +9,10 @@ public:
         const std::vector<uint8_t>& encSalt
     ) override;
 
+    DerivedKeys deriveKeysFromPassword(
+        const std::string& password,
+        const std::vector<uint8_t>& authSalt
+    ) override;
+
     std::vector<uint8_t> generateSalt(size_t length = 16) override;
 };
