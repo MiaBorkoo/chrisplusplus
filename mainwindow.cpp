@@ -30,7 +30,10 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
     //creates login view and controller
     m_loginView = new LoginView(this);
-    m_loginController = new LoginController(this);
+    m_client = std::make_shared<Client>("http://localhost:8000", "your-api-key"); // TODO: change to actual api key/url
+    m_authService = std::make_shared<AuthService>(m_client);
+    m_loginModel = std::make_shared<LoginModel>(m_authService);
+    m_loginController = new LoginController(m_loginModel, this);
     m_loginController->setView(m_loginView);
 
     //creates sign up view and controller
@@ -38,8 +41,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     m_signUpController = new SignUpController(m_signUpView, this);
 
     // Initialize network client and services
-    auto client = std::make_shared<Client>("http://localhost:8000", "your-api-key");
-    m_fileService = std::make_shared<FileService>(client);
+    m_fileService = std::make_shared<FileService>(m_client);
     m_fileModel = std::make_shared<FileModel>(m_fileService);
 
     m_filesDashView = new FilesDashView(this);
