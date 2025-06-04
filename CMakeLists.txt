@@ -82,6 +82,8 @@ qt_add_executable(ChrisPlusPlus
     main.cpp
     mainwindow.cpp
     mainwindow.h
+    utils/Config.cpp
+    utils/Config.h
     views/LoginView.cpp
     views/LoginView.h
     views/SignUpView.cpp
@@ -117,9 +119,13 @@ qt_add_executable(ChrisPlusPlus
     ${RESOURCE_FILES}
     # ✅ ADD: Authentication system
     models/LoginModel.cpp
+    models/FileModel.cpp
+    models/AccessModel.cpp
+    models/SharedFileModel.cpp
     network/Client.cpp
     services/auth/AuthService.cpp
     services/ApiService.cpp
+    services/files/FileService.cpp
     services/auth/otp/TOTP.cpp
     services/auth/ValidationService.cpp
 )
@@ -164,6 +170,36 @@ endif()
 # ============================================================================
 # TEST EXECUTABLES
 # ============================================================================
+
+# MVC Connections Test
+qt_add_executable(testMVCConnections
+    tests/testMVCConnections.cpp
+    models/FileModel.cpp
+    models/AccessModel.cpp
+    models/SharedFileModel.cpp
+    services/files/FileService.cpp
+    services/ApiService.cpp
+    controllers/FileDashController.cpp
+    controllers/AccountController.cpp
+    views/FilesDashView.cpp
+    views/HeaderWidget.cpp
+    views/SideNavWidget.cpp
+    views/AccountSection.cpp
+    network/Client.cpp
+)
+
+target_link_libraries(testMVCConnections PRIVATE 
+    Qt6::Core 
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+    file_transfer
+    http_layer
+    sockets
+)
+
+# Add test to CTest
+add_test(NAME testMVCConnections COMMAND testMVCConnections)
 
 # Original test from dev branch
 add_executable(testSSLforNow

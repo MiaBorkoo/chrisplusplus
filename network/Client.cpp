@@ -10,8 +10,8 @@
  * This class sends requests to the server and handles responses.
  */
 
-Client::Client(const QString& baseUrl, const QString& apiKey, QObject* parent) 
-    : QObject(parent), m_baseUrl(baseUrl), m_apiKey(apiKey)
+Client::Client(const QString& baseUrl, QObject* parent) 
+    : QObject(parent), m_baseUrl(baseUrl)
 {
     // uses SSL infrastructure
     SSLContext::initializeOpenSSL();
@@ -38,9 +38,6 @@ HttpRequest Client::buildRequest(const QString& ep,
     req.headers["Host"]        = u.host().toStdString();
     req.headers["User-Agent"]  = "ChrisPlusPlus/1.0";
     req.headers["Content-Type"]= "application/json";
-    if (!m_apiKey.isEmpty())
-        req.headers["Authorization"] =
-            ("Bearer " + m_apiKey).toStdString();
 
     if (method.compare("POST",Qt::CaseInsensitive)==0 ||
         method.compare("PUT", Qt::CaseInsensitive)==0)

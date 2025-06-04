@@ -28,14 +28,13 @@ FilesDashView::FilesDashView(QWidget *parent) : QWidget(parent) {
     QHBoxLayout *topLayout = new QHBoxLayout();
     topLayout->setSpacing(8);
 
-    
     searchBar = new QLineEdit(mainContent);
     searchBar->setObjectName("searchBar");
     searchBar->setPlaceholderText("Search files...");
     topLayout->addWidget(searchBar, 1);
 
     // Upload button
-    QPushButton *uploadButton = new QPushButton("Upload File", mainContent);
+    uploadButton = new QPushButton("Upload File", mainContent);
     uploadButton->setObjectName("uploadButton");
     connect(uploadButton, &QPushButton::clicked, this, &FilesDashView::uploadRequested);
     topLayout->addWidget(uploadButton);
@@ -127,3 +126,4 @@ void FilesDashView::clearTable() {
 QLineEdit* FilesDashView::getSearchBar() const { return searchBar; }
 QTableWidget* FilesDashView::getFileTable() const { return fileTable; }
 SideNavWidget* FilesDashView::getSideNav() const { return sideNav; }
+HeaderWidget* FilesDashView::getHeader() const { return header; }

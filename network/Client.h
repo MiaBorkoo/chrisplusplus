@@ -10,7 +10,7 @@
 class Client : public QObject {
     Q_OBJECT
 public:
-    explicit Client(const QString& baseUrl, const QString& apiKey, QObject* parent = nullptr);
+    explicit Client(const QString& baseUrl, QObject* parent = nullptr);
     
     void sendRequest(const QString& endpoint, const QString& method, const QJsonObject& data);
 
@@ -31,5 +31,4 @@ private:
     std::unique_ptr<SSLContext> m_sslContext;
     std::unique_ptr<HttpClient> m_http;
     QString m_baseUrl;
-    QString m_apiKey;
 }; 
