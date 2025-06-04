@@ -325,7 +325,7 @@ QString AuthService::deriveAuthHash(const QString& password,
     try {
         // 1. Derive keys from password and first salt
         KeyDerivation kd;
-        DerivedKeys keys = kd.deriveKeysFromPassword(password.toStdString(), authSalt1, authSalt1);  // Using authSalt1 twice is fine here
+        DerivedKeys keys = kd.deriveKeysFromPassword(password.toStdString(), authSalt1);
 
         // 2. Extract server auth key
         std::vector<uint8_t> serverAuthKeyVec(keys.serverAuthKey.begin(), keys.serverAuthKey.end());
