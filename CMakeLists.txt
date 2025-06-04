@@ -170,7 +170,7 @@ endif()
 # ============================================================================
 
 # MVC Connections Test
-add_executable(testMVCConnections
+qt_add_executable(testMVCConnections
     tests/testMVCConnections.cpp
     models/FileModel.cpp
     models/AccessModel.cpp
@@ -183,6 +183,7 @@ add_executable(testMVCConnections
     views/SideNavWidget.cpp
     network/Client.cpp
 )
+
 target_link_libraries(testMVCConnections PRIVATE 
     Qt6::Core 
     Qt6::Widgets
@@ -192,6 +193,9 @@ target_link_libraries(testMVCConnections PRIVATE
     http_layer
     sockets
 )
+
+# Add test to CTest
+add_test(NAME testMVCConnections COMMAND testMVCConnections)
 
 # Original test from dev branch
 add_executable(testSSLforNow

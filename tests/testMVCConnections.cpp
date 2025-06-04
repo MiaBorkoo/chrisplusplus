@@ -4,8 +4,12 @@
 #include "../services/files/FileService.h"
 #include "../views/FilesDashView.h"
 #include "../network/Client.h"
+#include <memory>
 
-class TestMVCConnections : public QObject {
+class TestMVCConnections: public QObject
+{
+    Q_OBJECT
+
 private:
     std::shared_ptr<Client> m_client;
     std::shared_ptr<FileService> m_fileService;
@@ -128,4 +132,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(TestMVCConnections) 
+QTEST_MAIN(TestMVCConnections)
+#include "testMVCConnections.moc" 
