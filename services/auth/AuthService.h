@@ -80,13 +80,14 @@ private slots:
 
 private:
     std::shared_ptr<Client> m_client;
-    QString m_sessionToken;
-    QScopedPointer<QSettings> m_settings;
     std::shared_ptr<ValidationService> m_validationService;
+    std::unique_ptr<QSettings> m_settings;
+    QString m_sessionToken;
+    QString m_pendingTOTPSecret;
+    QString m_pendingUsername;
     
-    // Simple TOTP state
-    QString m_pendingTOTPSecret;  // Temporary during setup
-    QString m_pendingUsername;    // Username for setup
+    // Store mekWrapperKey for TOTP encryption/decryption
+    std::vector<uint8_t> m_mekWrapperKey;
     
     void handleLoginResponse(int status, const QJsonObject& data);
     void handleRegisterResponse(int status, const QJsonObject& data);
@@ -100,4 +101,8 @@ private:
     QString encryptMEK(const std::vector<unsigned char>& mek, const std::vector<uint8_t>& mekWrapperKey);
     std::vector<uint8_t> generateSalt() const;
     std::vector<unsigned char> createMEK() const;
+    
+    // Secure TOTP storage helpers
+    QString encryptTOTPSecret(const QString& secret, const std::vector<uint8_t>& mekWrapperKey);
+    QString decryptTOTPSecret(const QString& encryptedSecret, const std::vector<uint8_t>& mekWrapperKey);
 };

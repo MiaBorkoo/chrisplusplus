@@ -54,11 +54,22 @@ void AuthService::login(const QString& username, const QString& password) {
         // Convert salts from base64
         QByteArray authSalt1Data = QByteArray::fromBase64(salts.authSalt1.toUtf8());
         QByteArray authSalt2Data = QByteArray::fromBase64(salts.authSalt2.toUtf8());
+        QByteArray encSaltData = QByteArray::fromBase64(salts.encSalt.toUtf8());
         std::vector<uint8_t> authSalt1(authSalt1Data.begin(), authSalt1Data.end());
         std::vector<uint8_t> authSalt2(authSalt2Data.begin(), authSalt2Data.end());
+        std::vector<uint8_t> encSalt(encSaltData.begin(), encSaltData.end());
         
-        // Derive auth hash using the retrieved salts
-        QString authHash = deriveAuthHash(password, authSalt1, authSalt2);
+        // Derive ALL keys including mekWrapperKey (needed for TOTP encryption)
+        KeyDerivation kd;
+        DerivedKeys keys = kd.deriveKeysFromPassword(password.toStdString(), authSalt1, encSalt);
+        
+        // Store mekWrapperKey for TOTP encryption/decryption
+        m_mekWrapperKey = std::vector<uint8_t>(keys.mekWrapperKey.begin(), keys.mekWrapperKey.end());
+        
+        // Compute auth hash using server auth key and second salt
+        std::vector<uint8_t> serverAuthKeyVec(keys.serverAuthKey.begin(), keys.serverAuthKey.end());
+        std::vector<uint8_t> authHashVec = AuthHash::computeAuthHash(serverAuthKeyVec, authSalt2);
+        QString authHash = toBase64String(authHashVec);
         
         // Proceed with hashed login
         hashedLogin(username, authHash);
@@ -74,12 +85,25 @@ void AuthService::hashedLogin(const QString& username, const QString& authHash) 
     payload["username"] = username;
     payload["auth_hash"] = authHash;
     
-    const QString secretB32 = m_settings->value("totp/secret").toString();
-    if (!secretB32.isEmpty()) {                 
-        TOTP totp(secretB32.toStdString());  
-        const QString otp = QString::fromStdString(totp.generate());  
-        payload["otp"] = otp;                   
+    // Check for encrypted TOTP secret
+    const QString encryptedSecret = m_settings->value("totp/secret").toString();
+    if (!encryptedSecret.isEmpty() && !m_mekWrapperKey.empty()) {
+        try {
+            // Decrypt TOTP secret using mekWrapperKey
+            QString secretB32 = decryptTOTPSecret(encryptedSecret, m_mekWrapperKey);
+            if (!secretB32.isEmpty()) {
+                TOTP totp(secretB32.toStdString());  
+                const QString otp = QString::fromStdString(totp.generate());  
+                payload["otp"] = otp;
+                qDebug() << "TOTP code generated for login";
+            } else {
+                qWarning() << "Failed to decrypt TOTP secret during login";
+            }
+        } catch (const std::exception& e) {
+            qWarning() << "TOTP decryption error during login:" << e.what();
+        }
     }
+    
     m_client->sendRequest("/login", "POST", payload);
 }
 
@@ -291,6 +315,8 @@ void AuthService::handleChangePasswordResponse(int status, const QJsonObject& da
 
 void AuthService::invalidateSession() {
     m_sessionToken.clear();
+    // Clear encryption key for security
+    m_mekWrapperKey.clear();
 }
 
 AuthService::AuthSalts AuthService::getAuthSalts(const QString& username) {
@@ -330,6 +356,8 @@ void AuthService::handleSaltsResponse(int status, const QJsonObject& data, AuthS
 QString AuthService::deriveAuthHash(const QString& password,
                                   const std::vector<uint8_t>& authSalt1,
                                   const std::vector<uint8_t>& authSalt2) {
+    // This method is now obsolete - key derivation is handled in login()
+    // Keeping for backward compatibility, but should not be used
     try {
         // 1. Derive keys from password and first salt
         KeyDerivation kd;
@@ -420,13 +448,23 @@ bool AuthService::verifyTOTPSetup(const QString& code) {
         bool isValid = totp.verify(code.toStdString());
         
         if (isValid) {
-            // TODO: SECURITY ISSUE - Store in encrypted form or OS keychain
-            // Current QSettings storage is NOT SECURE (plain text)
-            // Consider using QKeychain or encrypting with user's master key
-            m_settings->setValue("totp/secret", m_pendingTOTPSecret);
-            m_settings->setValue("totp/username", m_pendingUsername);
-            m_settings->setValue("totp/enabled_at", QDateTime::currentDateTimeUtc());
-            m_settings->sync();
+            // SECURITY: Store TOTP secret encrypted with user's mekWrapperKey
+            if (!m_mekWrapperKey.empty()) {
+                QString encryptedSecret = encryptTOTPSecret(m_pendingTOTPSecret, m_mekWrapperKey);
+                if (!encryptedSecret.isEmpty()) {
+                    m_settings->setValue("totp/secret", encryptedSecret);
+                    m_settings->setValue("totp/username", m_pendingUsername);
+                    m_settings->setValue("totp/enabled_at", QDateTime::currentDateTimeUtc());
+                    m_settings->sync();
+                    qDebug() << "TOTP secret encrypted and stored securely";
+                } else {
+                    emit errorOccurred("Failed to encrypt TOTP secret");
+                    return false;
+                }
+            } else {
+                emit errorOccurred("No encryption key available. Please log in first.");
+                return false;
+            }
             
             // Clear temporary data
             m_pendingTOTPSecret.clear();
@@ -449,6 +487,7 @@ bool AuthService::verifyTOTPSetup(const QString& code) {
 }
 
 bool AuthService::hasTOTPEnabled() const {
+    // Check if encrypted TOTP secret exists
     return !m_settings->value("totp/secret").toString().isEmpty();
 }
 
@@ -460,4 +499,61 @@ void AuthService::disableTOTP() {
     
     emit totpDisabled();
     qDebug() << "TOTP disabled";
+}
+
+// Secure TOTP storage implementation using existing crypto infrastructure
+QString AuthService::encryptTOTPSecret(const QString& secret, const std::vector<uint8_t>& mekWrapperKey) {
+    try {
+        // Convert secret to bytes
+        QByteArray secretBytes = secret.toUtf8();
+        std::vector<uint8_t> secretVec(secretBytes.begin(), secretBytes.end());
+        
+        // Use existing WrappedMEK encryption (AES-256-GCM)
+        EncryptedMEK encrypted = encryptMEKWithWrapperKey(secretVec, mekWrapperKey);
+        
+        // Serialize encrypted data for storage
+        QByteArray serialized;
+        QDataStream stream(&serialized, QIODevice::WriteOnly);
+        stream.setVersion(QDataStream::Qt_6_5);
+        
+        // Store ciphertext, IV, and auth tag
+        stream << QByteArray(reinterpret_cast<const char*>(encrypted.ciphertext.data()), encrypted.ciphertext.size());
+        stream << QByteArray(reinterpret_cast<const char*>(encrypted.iv.data()), encrypted.iv.size());
+        stream << QByteArray(reinterpret_cast<const char*>(encrypted.tag.data()), encrypted.tag.size());
+        
+        return serialized.toBase64();
+        
+    } catch (const std::exception& e) {
+        qWarning() << "Failed to encrypt TOTP secret:" << e.what();
+        return QString();
+    }
+}
+
+QString AuthService::decryptTOTPSecret(const QString& encryptedSecret, const std::vector<uint8_t>& mekWrapperKey) {
+    try {
+        // Deserialize encrypted data
+        QByteArray serialized = QByteArray::fromBase64(encryptedSecret.toUtf8());
+        QDataStream stream(serialized);
+        stream.setVersion(QDataStream::Qt_6_5);
+        
+        QByteArray ciphertext, iv, tag;
+        stream >> ciphertext >> iv >> tag;
+        
+        // Create EncryptedMEK structure
+        EncryptedMEK encrypted;
+        encrypted.ciphertext = std::vector<uint8_t>(ciphertext.begin(), ciphertext.end());
+        encrypted.iv = std::vector<uint8_t>(iv.begin(), iv.end());
+        encrypted.tag = std::vector<uint8_t>(tag.begin(), tag.end());
+        
+        // Decrypt using existing infrastructure
+        std::vector<uint8_t> decrypted = decryptMEKWithWrapperKey(encrypted, mekWrapperKey);
+        
+        // Convert back to QString
+        QByteArray secretBytes(reinterpret_cast<const char*>(decrypted.data()), decrypted.size());
+        return QString::fromUtf8(secretBytes);
+        
+    } catch (const std::exception& e) {
+        qWarning() << "Failed to decrypt TOTP secret:" << e.what();
+        return QString();
+    }
 }
