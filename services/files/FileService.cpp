@@ -109,26 +109,41 @@ void FileService::handleFileListResponse(const QJsonObject& data, bool isSharedL
     QList<FileInfo> files;
     QJsonArray fileArray = data.value("files").toArray();
     
-    // Parse pagination info
     int totalFiles = data.value("total_files").toInt();
     int currentPage = data.value("current_page").toInt();
     int totalPages = data.value("total_pages").toInt();
 
     for (const QJsonValue& value : fileArray) {
         QJsonObject obj = value.toObject();
-        FileInfo info;
-        info.name = obj["name"].toString();
-        info.size = obj["size"].toVariant().toLongLong();
-        info.uploadDate = obj["upload_date"].toString();
         
-        if (obj.contains("acl")) {
-            QJsonArray aclArray = obj["acl"].toArray();
-            for (const QJsonValue& aclValue : aclArray) {
-                info.acl.append(aclValue.toString());
+        if (isSharedList) {
+            SharedFileInfo info;
+            info.name = obj["name"].toString();
+            info.size = obj["size"].toVariant().toLongLong();
+            info.uploadDate = obj["upload_date"].toString();
+            info.sharedBy = obj["shared_by"].toString();  // Get the username of who shared it
+            
+            if (obj.contains("acl")) {
+                QJsonArray aclArray = obj["acl"].toArray();
+                for (const QJsonValue& aclValue : aclArray) {
+                    info.acl.append(aclValue.toString());
+                }
             }
+            files.append(info);
+        } else {
+            FileInfo info;
+            info.name = obj["name"].toString();
+            info.size = obj["size"].toVariant().toLongLong();
+            info.uploadDate = obj["upload_date"].toString();
+            
+            if (obj.contains("acl")) {
+                QJsonArray aclArray = obj["acl"].toArray();
+                for (const QJsonValue& aclValue : aclArray) {
+                    info.acl.append(aclValue.toString());
+                }
+            }
+            files.append(info);
         }
-        
-        files.append(info);
     }
 
     if (isSharedList) {

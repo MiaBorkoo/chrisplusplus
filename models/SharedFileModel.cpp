@@ -27,7 +27,23 @@ void SharedFileModel::downloadSharedFile(const QString& fileName, const QString&
 }
 
 void SharedFileModel::handleSharedFileListReceived(const QList<FileInfo>& files, int totalFiles, int currentPage, int totalPages) {
-    emit sharedFileListUpdated(files, totalFiles, currentPage, totalPages);
+    QList<FileInfo> processedFiles;
+    for (const FileInfo& file : files) {
+        // Check if this is a SharedFileInfo
+        const SharedFileInfo* sharedInfo = dynamic_cast<const SharedFileInfo*>(&file);
+        if (sharedInfo) {
+            SharedFileInfo newInfo;
+            newInfo.name = file.name;
+            newInfo.size = file.size;
+            newInfo.uploadDate = file.uploadDate;
+            newInfo.acl = file.acl;
+            newInfo.sharedBy = sharedInfo->sharedBy;
+            processedFiles.append(newInfo);
+        } else {
+            processedFiles.append(file);
+        }
+    }
+    emit sharedFileListUpdated(processedFiles, totalFiles, currentPage, totalPages);
 }
 
 void SharedFileModel::handleDownloadComplete(bool success, const QString& fileName) {

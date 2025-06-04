@@ -176,6 +176,7 @@ std::vector<SharedFileResponse> SharingServiceClient::list_received_shares(
             file.upload_timestamp = file_json["upload_timestamp"];
             file.file_data_hmac = file_json["file_data_hmac"];
             file.share_id = file_json["share_id"];
+            file.shared_by = file_json.value("shared_by", "");  // Get shared_by with empty string as default
             shared_files.push_back(file);
         }
         

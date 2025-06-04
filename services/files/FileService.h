@@ -13,6 +13,11 @@ struct FileInfo {
     qint64 size;
     QString uploadDate;
     QStringList acl;
+    virtual ~FileInfo() = default;  // Make the class polymorphic
+};
+
+struct SharedFileInfo : public FileInfo {
+    QString sharedBy;  // Username of who shared the file
 };
 
 class FileService : public ApiService {
