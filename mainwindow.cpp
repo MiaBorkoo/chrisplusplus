@@ -27,16 +27,21 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     QRect screenGeometry = screen->geometry();
     setGeometry(screenGeometry);
 
+    // Initialize services first
+    initializeServices();
+
     m_stack = new QStackedWidget(this);
 
     //creates login view and controller
     m_loginView = new LoginView(this);
     m_loginController = new LoginController(this);
     m_loginController->setView(m_loginView);
+    m_loginController->setAuthService(m_authService); // Connect to AuthService
 
     //creates sign up view and controller
     m_signUpView = new SignUpView(this);
     m_signUpController = new SignUpController(m_signUpView, this);
+    m_signUpController->setAuthService(m_authService); // Connect to AuthService
 
     m_filesDashView = new FilesDashView(this);
     m_fileDashController = new FileDashController(m_filesDashView->getSearchBar(), m_filesDashView->getFileTable(), this);
@@ -64,6 +69,12 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
     //switches back to login view when login button is clicked on sign-up page
     connect(m_signUpView, &SignUpView::loginRequested, this, [this]() {
+        m_stack->setCurrentWidget(m_loginView);
+    });
+
+    // Connect registration completion to switch back to login
+    connect(m_signUpController, &SignUpController::registrationCompleted, this, [this]() {
+        QMessageBox::information(this, "Success", "Registration completed! Please log in.");
         m_stack->setCurrentWidget(m_loginView);
     });
 
@@ -122,6 +133,22 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     });
 
    
+}
+
+void MainWindow::initializeServices()
+{
+    // Initialize network client with default values
+    // TODO: These should come from configuration/settings
+    QString baseUrl = "https://localhost:8443/api";  // Default server URL
+    QString apiKey = "";  // Will be set after login
+    
+    m_client = std::make_shared<Client>(baseUrl, apiKey, this);
+    
+    // Initialize AuthService with the client
+    m_authService = std::make_shared<AuthService>(m_client, this);
+    
+    qDebug() << "Services initialized successfully";
+    qDebug() << "Base URL:" << baseUrl;
 }
 
 MainWindow::~MainWindow()

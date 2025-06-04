@@ -74,6 +74,15 @@ LoginView::LoginView(QWidget *parent) : QWidget(parent)
     loginButton->setFixedSize(250, 40);
     connect(loginButton, &QPushButton::clicked, this, &LoginView::handleLogin);
 
+    // Error label for displaying login errors
+    errorLabel = new QLabel;
+    errorLabel->setObjectName("errorLabel");
+    errorLabel->setFont(QFont("Arial", 10));
+    errorLabel->setStyleSheet("color: #ff4444; font-weight: bold;");
+    errorLabel->setAlignment(Qt::AlignCenter);
+    errorLabel->setWordWrap(true);
+    errorLabel->setVisible(false); // Hidden by default
+
     QVBoxLayout *formLayout = new QVBoxLayout;
     formLayout->setAlignment(Qt::AlignCenter);
     formLayout->addWidget(usernameLabel, 0, Qt::AlignCenter);
@@ -82,6 +91,7 @@ LoginView::LoginView(QWidget *parent) : QWidget(parent)
     formLayout->addWidget(passwordEdit, 0, Qt::AlignCenter);
     formLayout->addSpacing(10);
     formLayout->addWidget(loginButton, 0, Qt::AlignCenter);
+    formLayout->addWidget(errorLabel, 0, Qt::AlignCenter); // Add error label to form
 
     QVBoxLayout *loginSectionLayout = new QVBoxLayout;
     loginSectionLayout->addWidget(loginHeading);
@@ -190,6 +200,12 @@ void LoginView::clearFields()
     passwordEdit->setStyleSheet("");
     usernameEdit->setPlaceholderText("Enter username");
     passwordEdit->setPlaceholderText("Enter password");
+    
+    // Clear error message
+    if (errorLabel) {
+        errorLabel->setVisible(false);
+        errorLabel->clear();
+    }
     
     usernameEdit->update();
     passwordEdit->update();

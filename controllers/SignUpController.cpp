@@ -16,8 +16,28 @@ SignUpController::SignUpController(SignUpView *view, QObject *parent): QObject(p
     connect(view, &SignUpView::signUpRequested, this, &SignUpController::onSignUpClicked);
 }
 
+void SignUpController::setAuthService(std::shared_ptr<AuthService> authService)
+{
+    m_authService = authService;
+    
+    // Initialize model with AuthService
+    m_model = std::make_unique<SignUpModel>(authService, this);
+    
+    // Connect model signals
+    connect(m_model.get(), &SignUpModel::registrationSuccess,
+            this, &SignUpController::handleRegistrationSuccess);
+    connect(m_model.get(), &SignUpModel::registrationError,
+            this, &SignUpController::handleRegistrationError);
+}
+
 void SignUpController::onSignUpClicked(const QString &username, const QString &password, const QString &confirmPassword) {
     view->hideError();
+
+    if (!m_model) {
+        qDebug() << "No model set for SignUpController - call setAuthService() first";
+        view->showError("Authentication service not initialized");
+        return;
+    }
 
     // Validate username
     QString usernameError;
@@ -44,8 +64,31 @@ void SignUpController::onSignUpClicked(const QString &username, const QString &p
         return;
     }
 
-    view->clearFields();
-    view->showError("Sign up successful!"); // we will remove this later when it switches to the new page
+    qDebug() << "Starting registration process for user:" << username;
+    
+    // Use the model to perform registration
+    m_model->registerUser(username, password, confirmPassword);
+}
+
+void SignUpController::handleRegistrationSuccess()
+{
+    qDebug() << "Registration successful";
+    
+    if (view) {
+        view->clearFields();
+        view->showError("Registration successful! You can now log in.");
+    }
+    
+    emit registrationCompleted();
+}
+
+void SignUpController::handleRegistrationError(const QString &error)
+{
+    qDebug() << "Registration error:" << error;
+    
+    if (view) {
+        view->showError(error);
+    }
 }
 
 bool SignUpController::isUsernameValid(const QString &username, QString &errorMessage) {

@@ -82,37 +82,76 @@ qt_add_executable(ChrisPlusPlus
     main.cpp
     mainwindow.cpp
     mainwindow.h
+    
+    # Views
     views/LoginView.cpp
     views/LoginView.h
     views/SignUpView.cpp
     views/SignUpView.h
-    controllers/LoginController.cpp
-    controllers/LoginController.h
-    controllers/SignUpController.cpp
-    controllers/SignUpController.h
     views/HeaderWidget.cpp
     views/HeaderWidget.h
     views/SideNavWidget.cpp
     views/SideNavWidget.h
     views/FilesDashView.cpp
     views/FilesDashView.h
-    controllers/FileDashController.cpp
-    controllers/FileDashController.h
     views/SharedDashView.cpp
     views/SharedDashView.h
+    views/AccessDialog.cpp
+    views/AccessDialog.h
+    views/AccountSection.cpp
+    views/AccountSection.h
+    views/TOTPSetupView.cpp
+    views/TOTPSetupView.h
+    views/TOTPCodeDialog.cpp
+    views/TOTPCodeDialog.h
+    
+    # Controllers
+    controllers/LoginController.cpp
+    controllers/LoginController.h
+    controllers/SignUpController.cpp
+    controllers/SignUpController.h
+    controllers/FileDashController.cpp
+    controllers/FileDashController.h
     controllers/SideNavController.cpp
     controllers/SideNavController.h
     controllers/SharedDashController.cpp
     controllers/SharedDashController.h
-    views/AccessDialog.cpp
-    views/AccessDialog.h
     controllers/AccessController.cpp
     controllers/AccessController.h
-    models/SideNavTabs.h
-    views/AccountSection.cpp
-    views/AccountSection.h
     controllers/AccountController.cpp
     controllers/AccountController.h
+    controllers/TOTPController.cpp
+    controllers/TOTPController.h
+    
+    # Models
+    models/LoginModel.cpp
+    models/LoginModel.h
+    models/SignUpModel.cpp
+    models/SignUpModel.h
+    models/TOTPModel.cpp
+    models/TOTPModel.h
+    # Temporarily disabled - depend on FileService which doesn't exist yet
+    # models/FileModel.cpp
+    # models/FileModel.h
+    # models/SharedFileModel.cpp
+    # models/SharedFileModel.h
+    # models/AccessModel.cpp
+    # models/AccessModel.h
+    models/SideNavTabs.h
+    
+    # Services
+    services/ApiService.cpp
+    services/ApiService.h
+    services/auth/AuthService.cpp
+    services/auth/AuthService.h
+    services/auth/ValidationService.cpp
+    services/auth/ValidationService.h
+    services/auth/otp/TOTP.cpp
+    services/auth/otp/TOTP.h
+    
+    # Network
+    network/Client.cpp
+    network/Client.h
 
     ${RESOURCE_FILES}
 )

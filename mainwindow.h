@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QStackedWidget>
+#include <memory>
 #include "views/LoginView.h"
 #include "controllers/LoginController.h"
 #include "views/SignUpView.h"
@@ -12,6 +13,10 @@
 #include "views/SharedDashView.h"
 #include "controllers/SideNavController.h"
 #include "controllers/SharedDashController.h"
+#include "views/AccountSection.h"
+#include "controllers/AccountController.h"
+#include "services/auth/AuthService.h"
+#include "network/Client.h"
 
 class MainWindow : public QMainWindow
 {
@@ -34,6 +39,10 @@ private:
     HeaderWidget* m_headerWidget;
     AccountSection* m_accountSection;
     AccountController* m_accountController;
+    std::shared_ptr<Client> m_client;
+    std::shared_ptr<AuthService> m_authService;
+
+    void initializeServices();
 };
 
 #endif // MAINWINDOW_H
