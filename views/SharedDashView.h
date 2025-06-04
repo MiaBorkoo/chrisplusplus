@@ -7,6 +7,8 @@
 #include <QPushButton>
 #include "HeaderWidget.h"
 #include "SideNavWidget.h"
+#include "AccountSection.h"
+#include "AccountController.h"
 
 class SharedDashView : public QWidget {
     Q_OBJECT
@@ -27,6 +29,8 @@ private:
     SideNavWidget *sideNav;
     QListWidget *fileList;
     QLineEdit *searchBar;
+    AccountSection *accountSection;
+    AccountController *accountController;
 };
 
 #endif // SHAREDDASHVIEW_H
