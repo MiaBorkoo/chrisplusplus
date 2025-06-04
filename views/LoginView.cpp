@@ -210,6 +210,7 @@ void LoginView::handleLogin()
     QString username = usernameEdit->text();
     QString password = passwordEdit->text();
     emit loginAttempted(username, password);
+    clearFields();
 }
 
 void LoginView::handleSignUp()
