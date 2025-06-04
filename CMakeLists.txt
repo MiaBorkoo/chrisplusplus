@@ -48,7 +48,8 @@ endif()
 # Find required packages
 find_package(Qt6 6.5.0 REQUIRED COMPONENTS Core Widgets Network Test Concurrent)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
-find_package(OpenSSL REQUIRED COMPONENTS Crypto)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(QRENCODE REQUIRED libqrencode)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -109,6 +110,7 @@ qt_add_executable(ChrisPlusPlus
     services/auth/AuthService.cpp
     services/ApiService.cpp
     services/auth/otp/TOTP.cpp
+    services/auth/otp/TOTPEnrollment.cpp
     services/ack/AclService.cpp
     services/ack/AclService.h
 )
@@ -125,6 +127,7 @@ target_link_libraries(ChrisPlusPlus
         tofu           # Add TOFU library
         OpenSSL::SSL
         OpenSSL::Crypto
+        ${QRENCODE_LIBRARIES}
 )
 
 # Include directories (consolidated)
@@ -140,7 +143,13 @@ target_include_directories(ChrisPlusPlus
         ${CMAKE_SOURCE_DIR}/httpC
         ${CMAKE_SOURCE_DIR}/fileIO
         ${CMAKE_SOURCE_DIR}/tofu    # Add TOFU include path
+        ${QRENCODE_INCLUDE_DIRS}
 )
+
+# Add library directories for qrencode on macOS
+if(APPLE)
+    target_link_directories(ChrisPlusPlus PRIVATE /opt/homebrew/lib)
+endif()
 
 # ============================================================================
 # TEST EXECUTABLES

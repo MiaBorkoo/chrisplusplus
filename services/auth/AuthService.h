@@ -1,8 +1,10 @@
 #pragma once
 #include "IAuthService.h"
 #include "../../network/Client.h"
+#include "otp/TOTPEnrollment.h"
 #include <QJsonObject>
 #include <QSettings>   
+#include <memory>
 
 class AuthService : public IAuthService {
     Q_OBJECT
@@ -30,6 +32,26 @@ public:
     
     void invalidateSession();
 
+    // TOTP enrollment methods
+    void startTOTPEnrollment(const QString& username);
+    void completeTOTPEnrollment(const QString& userCode);
+    void cancelTOTPEnrollment();
+    
+    // TOTP status checks
+    bool hasTOTPEnabled() const;
+    void disableTOTP();
+
+signals:
+    void loginCompleted(bool success, const QString& token = QString());
+    void registrationCompleted(bool success);
+    void passwordChangeCompleted(bool success);
+    
+    // TOTP enrollment signals
+    void totpEnrollmentStarted(const QByteArray& qrCode, const QString& secret);
+    void totpEnrollmentCompleted(bool success);
+    void totpEnrollmentFailed(const QString& error);
+    void totpStatusChanged(bool enabled);
+
 private slots:
     void handleResponseReceived(int status, const QJsonObject& data);
     void handleNetworkError(const QString& error);
@@ -38,6 +60,11 @@ private:
     Client* m_client;
     QString m_sessionToken;
     QScopedPointer<QSettings> m_settings;
+    
+    // TOTP enrollment infrastructure
+    std::unique_ptr<TOTPEnrollment> m_totpEnrollment;
+    QString m_pendingTOTPSecret;        // Temporary storage during enrollment
+    QString m_pendingUsername;          // Username for current enrollment
     
     void handleLoginResponse(int status, const QJsonObject& data);
     void handleRegisterResponse(int status, const QJsonObject& data);

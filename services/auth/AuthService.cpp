@@ -1,7 +1,9 @@
 #include "AuthService.h"
 #include "otp/TOTP.h"          // NEW
+#include "otp/TOTPEnrollment.h"  // NEW
 #include <QJsonObject>
 #include <QSettings>           // ← NEW, used for secure storage
+#include <QDebug>
 
 
 /**
@@ -13,7 +15,10 @@
  */
 
 AuthService::AuthService(Client* client, QObject* parent)
-    : IAuthService(parent), m_client(client), m_settings(new QSettings(this))  
+    : IAuthService(parent)
+    , m_client(client)
+    , m_settings(new QSettings(this))
+    , m_totpEnrollment(std::make_unique<TOTPEnrollment>(this))  // NEW: Initialize enrollment
 {
     // SIGNAL/SLOT (avoids Qt template issues)
     connect(m_client, SIGNAL(responseReceived(int, QJsonObject)), 
@@ -21,6 +26,26 @@ AuthService::AuthService(Client* client, QObject* parent)
 
     connect(m_client, SIGNAL(networkError(QString)),
             this, SLOT(handleNetworkError(QString)));
+    
+    // NEW: Connect TOTP enrollment signals
+    connect(m_totpEnrollment.get(), &TOTPEnrollment::enrollmentQRGenerated,
+            this, [this](const QByteArray& qrData) {
+                emit totpEnrollmentStarted(qrData, m_pendingTOTPSecret);
+            });
+    
+    connect(m_totpEnrollment.get(), &TOTPEnrollment::setupCodeVerified,
+            this, [this](bool success) {
+                if (success) {
+                    emit totpEnrollmentCompleted(true);
+                } else {
+                    emit totpEnrollmentFailed("Invalid verification code");
+                }
+            });
+    
+    connect(m_totpEnrollment.get(), &TOTPEnrollment::enrollmentFailed,
+            this, [this](const QString& error) {
+                emit totpEnrollmentFailed(error);
+            });
 }
 
 void AuthService::login(const QString& username, const QString& authKey) {
@@ -59,6 +84,106 @@ void AuthService::changePassword(const QString& username, const QString& oldAuth
     payload["new_encrypted_mek"] = newEncryptedMEK;
     
     m_client->sendRequest("/change_password", "POST", payload);
+}
+
+void AuthService::startTOTPEnrollment(const QString& username) {
+    try {
+        // Check if TOTP is already enabled
+        if (hasTOTPEnabled()) {
+            emit totpEnrollmentFailed("TOTP is already enabled for this account");
+            return;
+        }
+        
+        // Generate cryptographically secure secret
+        m_pendingTOTPSecret = m_totpEnrollment->generateSecret();
+        m_pendingUsername = username;
+        
+        // Create enrollment data
+        TOTPEnrollmentData enrollmentData = m_totpEnrollment->createEnrollmentData(
+            "MyShare",              // Issuer name
+            username,               // Account name  
+            m_pendingTOTPSecret     // Base32 secret
+        );
+        
+        if (!enrollmentData.isValid()) {
+            emit totpEnrollmentFailed("Failed to create enrollment data");
+            return;
+        }
+        
+        // Generate QR code
+        QByteArray qrCode = m_totpEnrollment->generateEnrollmentQR(enrollmentData);
+        
+        if (qrCode.isEmpty()) {
+            emit totpEnrollmentFailed("Failed to generate QR code");
+            return;
+        }
+        
+        // Emit signal with QR code and secret (for manual entry option)
+        emit totpEnrollmentStarted(qrCode, m_pendingTOTPSecret);
+        
+        qDebug() << "TOTP enrollment started for user:" << username;
+        
+    } catch (const std::exception& e) {
+        emit totpEnrollmentFailed(QString("Enrollment failed: %1").arg(e.what()));
+    }
+}
+
+void AuthService::completeTOTPEnrollment(const QString& userCode) {
+    if (m_pendingTOTPSecret.isEmpty()) {
+        emit totpEnrollmentFailed("No enrollment in progress");
+        return;
+    }
+    
+    try {
+        // Verify the user-entered code against the pending secret
+        bool isValid = m_totpEnrollment->verifySetupCode(m_pendingTOTPSecret, userCode);
+        
+        if (isValid) {
+            // Save secret to secure storage only after successful verification
+            m_settings->setValue("totp/secret", m_pendingTOTPSecret);
+            m_settings->setValue("totp/username", m_pendingUsername);
+            m_settings->setValue("totp/enabled_at", QDateTime::currentDateTimeUtc());
+            m_settings->sync();  // Force write to disk
+            
+            // Clear temporary data
+            m_pendingTOTPSecret.clear();
+            m_pendingUsername.clear();
+            
+            emit totpEnrollmentCompleted(true);
+            emit totpStatusChanged(true);  // Notify that TOTP is now enabled
+            
+            qDebug() << "TOTP enrollment completed successfully";
+            
+        } else {
+            emit totpEnrollmentCompleted(false);
+            qDebug() << "TOTP enrollment failed: Invalid verification code";
+        }
+        
+    } catch (const std::exception& e) {
+        emit totpEnrollmentFailed(QString("Verification failed: %1").arg(e.what()));
+    }
+}
+
+void AuthService::cancelTOTPEnrollment() {
+    if (!m_pendingTOTPSecret.isEmpty()) {
+        m_pendingTOTPSecret.clear();
+        m_pendingUsername.clear();
+        qDebug() << "TOTP enrollment cancelled";
+    }
+}
+
+bool AuthService::hasTOTPEnabled() const {
+    return !m_settings->value("totp/secret").toString().isEmpty();
+}
+
+void AuthService::disableTOTP() {
+    m_settings->remove("totp/secret");
+    m_settings->remove("totp/username");  
+    m_settings->remove("totp/enabled_at");
+    m_settings->sync();
+    
+    emit totpStatusChanged(false);
+    qDebug() << "TOTP disabled";
 }
 
 void AuthService::handleResponseReceived(int status, const QJsonObject& data) {

@@ -20,9 +20,9 @@ TOTP::TOTP(const std::string& base32Secret,
     if (digits_ < 6 || digits_ > 8)
         throw std::invalid_argument("digits must be 6-8");
 }
-
+    
 std::string TOTP::generate(std::uint64_t unixTime) const
-{
+{   
     if (unixTime == 0)
         unixTime = duration_cast<seconds>(
                        system_clock::now().time_since_epoch()).count();

@@ -3,21 +3,44 @@
 #include <QObject>
 #include <QString>
 #include <QByteArray>
+#include <QDateTime>
 #include <memory>
-#include "../../../tofu/QRVerification.h"  // Reuse TOFU's QR infrastructure
-#include "TOTP.h"                          // Your existing TOTP class
+#include "TOTP.h"
 
-// Data structure for TOTP enrollment QR codes
+// Clean TOTP enrollment data structure - no dependencies on TOFU certificates
 struct TOTPEnrollmentData {
     QString issuer;           // "MyShare"
     QString accountName;      // "user@example.com"  
     QString secret;           // Base32-encoded secret
     QString otpauthURL;       // Full otpauth:// URL
-    qint64 timestamp;         // For timeout protection (reuse TOFU's anti-replay)
+    qint64 timestamp;         // For timeout protection
+    QString verificationCode; // 6-digit code for initial verification
     
-    // Serialization (reuse TOFU's secure serialization pattern)
+    // Clean serialization
     QByteArray serialize() const;
     static TOTPEnrollmentData deserialize(const QByteArray& data);
+    bool isValid() const;
+    bool isExpired(int timeoutSeconds = 300) const;
+};
+
+class TOTPQRGenerator : public QObject {
+    Q_OBJECT
+public:
+    explicit TOTPQRGenerator(QObject* parent = nullptr);
+    ~TOTPQRGenerator() = default;
+    
+    // Generate QR code for TOTP enrollment using proven qrencode approach
+    QByteArray generateTOTPQRCode(const TOTPEnrollmentData& data);
+    
+    // Decode QR code back to enrollment data (for testing/validation)
+    TOTPEnrollmentData decodeTOTPQRCode(const QByteArray& qrData);
+    
+    // Configuration
+    void setErrorCorrectionLevel(int level) { errorCorrectionLevel_ = level; }
+    int errorCorrectionLevel() const { return errorCorrectionLevel_; }
+
+private:
+    int errorCorrectionLevel_;  // QR error correction level (0-3, default 3 = highest)
 };
 
 class TOTPEnrollment : public QObject {
@@ -33,28 +56,32 @@ public:
                            const QString& accountName, 
                            const QString& secret) const;
     
-    // Step 3: Generate QR code (reuses TOFU's secure QR generation)
-    QByteArray generateEnrollmentQR(const QString& issuer,
-                                   const QString& accountName, 
-                                   const QString& secret);
+    // Step 3: Generate enrollment data and QR code
+    TOTPEnrollmentData createEnrollmentData(const QString& issuer,
+                                          const QString& accountName, 
+                                          const QString& secret);
     
-    // Step 4: Verify user-entered setup code
-    bool verifySetupCode(const QString& secret, const QString& userCode) const;
+    QByteArray generateEnrollmentQR(const TOTPEnrollmentData& enrollmentData);
     
-    // Configuration (same pattern as TOFU)
+    // Step 4: Verify user-entered setup code with time window tolerance
+    bool verifySetupCode(const QString& secret, const QString& userCode, 
+                        int timeWindowTolerance = 1) const;
+    
+    // Configuration
     void setQRTimeout(int seconds) { qrTimeout_ = seconds; }
     int qrTimeout() const { return qrTimeout_; }
 
 signals:
-    void enrollmentQRGenerated(const QByteArray& qrData);
+    void enrollmentQRGenerated(const QByteArray& qrData, const TOTPEnrollmentData& enrollmentData);
     void setupCodeVerified(bool success);
     void enrollmentFailed(const QString& error);
 
 private:
-    std::unique_ptr<QRVerification> qrGenerator_;  // Reuse TOFU's QR infrastructure
-    int qrTimeout_;                                // Anti-replay timeout (like TOFU)
+    std::unique_ptr<TOTPQRGenerator> qrGenerator_;
+    int qrTimeout_;  // Enrollment timeout (default 5 minutes)
     
     // Helper methods
-    QByteArray encodeBase32(const QByteArray& data) const;  // RFC 4648 base32 encoding
-    bool isEnrollmentExpired(qint64 timestamp) const;       // Reuse TOFU's timeout logic
+    QByteArray encodeBase32(const QByteArray& data) const;
+    QByteArray decodeBase32(const QString& encoded) const;
+    bool isValidBase32(const QString& encoded) const;
 }; 
