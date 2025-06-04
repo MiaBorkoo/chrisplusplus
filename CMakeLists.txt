@@ -161,17 +161,27 @@ add_executable(testSSLforNow
 )
 target_link_libraries(testSSLforNow PRIVATE sockets http_layer)
 
-# add_executable(testFileUploadSimple
-#     tests/testFileUploadSimple.cpp
-# )
-# target_link_libraries(testFileUploadSimple PRIVATE 
-#     Qt6::Core 
-#     Qt6::Widgets 
-#     Qt6::Concurrent
-#     file_transfer 
-#     http_layer 
-#     sockets
-# )
+# TOTP functionality test (simple console-based)
+add_executable(testTOTPSimple
+    tests/testTOTPSimple.cpp
+    services/auth/otp/TOTP.cpp
+    services/auth/otp/TOTPEnrollment.cpp
+)
+target_link_libraries(testTOTPSimple PRIVATE 
+    Qt6::Core 
+    ${QRENCODE_LIBRARIES}
+    OpenSSL::SSL
+    OpenSSL::Crypto
+)
+target_include_directories(testTOTPSimple PRIVATE 
+    ${CMAKE_SOURCE_DIR}/services/auth
+    ${QRENCODE_INCLUDE_DIRS}
+)
+
+# Add library directories for qrencode on macOS
+if(APPLE)
+    target_link_directories(testTOTPSimple PRIVATE /opt/homebrew/lib)
+endif()
 
 # ============================================================================
 # INSTALLATION (updated for ChrisPlusPlus)
