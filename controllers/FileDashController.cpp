@@ -77,6 +77,16 @@ FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileT
 
 void FileDashController::handleSearch(const QString &text) {
     emit searchRequested(text);
+    
+    // Hide rows that don't match the search text
+    for (int row = 0; row < m_fileTable->rowCount(); ++row) {
+        QTableWidgetItem *item = m_fileTable->item(row, 0); 
+        if (item) {
+            bool matches = text.isEmpty() || 
+                         item->text().contains(text, Qt::CaseInsensitive);
+            m_fileTable->setRowHidden(row, !matches);
+        }
+    }
 }
 
 void FileDashController::handleFileSelection(int row, int column) {

@@ -82,6 +82,8 @@ qt_add_executable(ChrisPlusPlus
     main.cpp
     mainwindow.cpp
     mainwindow.h
+    utils/Config.cpp
+    utils/Config.h
     views/LoginView.cpp
     views/LoginView.h
     views/SignUpView.cpp
@@ -172,21 +174,30 @@ endif()
 # MVC Connections Test
 qt_add_executable(testMVCConnections
     tests/testMVCConnections.cpp
+
     models/FileModel.cpp
     models/AccessModel.cpp
     models/SharedFileModel.cpp
     models/LoginModel.cpp
+
+    
+    controllers/AccountController.cpp
+    controllers/FileDashController.cpp
+    controllers/LoginController.cpp
+
+    views/FilesDashView.cpp
+    views/HeaderWidget.cpp
+    views/SideNavWidget.cpp
+    views/LoginView.cpp
+    views/AccountSection.cpp
+
     services/files/FileService.cpp
     services/ApiService.cpp
     services/auth/AuthService.cpp
     services/auth/ValidationService.cpp
     services/auth/otp/TOTP.cpp
-    controllers/FileDashController.cpp
-    controllers/LoginController.cpp
-    views/FilesDashView.cpp
-    views/HeaderWidget.cpp
-    views/SideNavWidget.cpp
-    views/LoginView.cpp
+
+
     network/Client.cpp
     crypto/KeyDerivation.cpp
     crypto/AuthHash.cpp

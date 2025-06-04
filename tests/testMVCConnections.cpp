@@ -35,8 +35,8 @@ private:
 
 private slots:
     void initTestCase() {
-        // Initialize services
-        m_client = std::make_shared<Client>("http://localhost:8000", "test-api-key");
+        // Create dependencies with dummy values
+        m_client = std::make_shared<Client>("http://dummy-url.com");
         m_fileService = std::make_shared<FileService>(m_client);
         m_authService = std::make_shared<AuthService>(m_client);
         
@@ -52,11 +52,155 @@ private slots:
         m_loginController = new LoginController(m_loginModel);
         m_loginController->setView(m_loginView);
         
-        m_fileDashController = new FileDashController(
-            m_filesDashView->getSearchBar(),
-            m_filesDashView->getFileTable(),
-            m_fileModel
-        );
+        // 2. Test file download through view
+        QString testFile = "test.txt";
+        m_view->downloadRequested(testFile);
+        // Simulate successful download response
+        m_fileService->downloadComplete(true, testFile);
+        QVERIFY(downloadCalled);
+        
+        // 3. Test file deletion through view
+        m_view->deleteRequested(testFile);
+        // Simulate successful deletion response
+        m_fileService->deleteComplete(true, testFile);
+        QVERIFY(deleteCalled);
+    }
+
+    void testModelToViewUpdates() {
+        // Test that model updates properly reflect in the view
+        
+        // 1. Clear the view first
+        m_view->clearTable();
+        QCOMPARE(m_view->getFileTable()->rowCount(), 0);
+
+        // 2. Update model with new files
+        QList<FileInfo> dummyFiles;
+        FileInfo file1;
+        file1.name = "test1.txt";
+        file1.size = 1024;
+        file1.uploadDate = "2024-03-20";
+        dummyFiles.append(file1);
+
+        // 3. Simulate server response which updates model
+        m_fileService->fileListReceived(dummyFiles, 1, 1, 1);
+
+        // 4. Verify view was updated through controller
+        QTableWidget* fileTable = m_view->getFileTable();
+        QCOMPARE(fileTable->rowCount(), 1);
+        QCOMPARE(fileTable->item(0, 0)->text(), QString("test1.txt"));
+    }
+
+    void testControllerLogic() {
+        // Test controller's business logic and mediation
+        
+        // 1. Test search filtering
+        m_view->getSearchBar()->setText("test1");
+        m_controller->handleSearch("test1");
+        
+        // Verify view only shows matching files
+        QTableWidget* fileTable = m_view->getFileTable();
+        bool hasOnlyMatchingFiles = true;
+        for(int row = 0; row < fileTable->rowCount(); row++) {
+            QString fileName = fileTable->item(row, 0)->text();
+            if(!fileName.contains("test1", Qt::CaseInsensitive)) {
+                hasOnlyMatchingFiles = false;
+                break;
+            }
+        }
+        QVERIFY(hasOnlyMatchingFiles);
+
+        // 2. Test file selection handling
+        m_controller->handleFileSelection(0, 0);  // Select first file
+        QString selectedFile = m_view->getFileTable()->item(0, 0)->text();
+        QVERIFY(!selectedFile.isEmpty());
+    }
+
+    void testProgressUpdates() {
+        // Reset progress values
+        lastProgressSent = 0;
+        lastProgressTotal = 0;
+        
+        // Simulate upload progress
+        qint64 testSent = 50;
+        qint64 testTotal = 100;
+        m_fileService->uploadProgress(testSent, testTotal);
+        
+        // Verify progress was propagated
+        QCOMPARE(lastProgressSent, testSent);
+        QCOMPARE(lastProgressTotal, testTotal);
+    }
+
+    void testSearchFunctionality() {
+        // Reset flags
+        searchCalled = false;
+        
+        // Clear the table first
+        m_view->clearTable();
+        
+        // Add some test files
+        m_view->addFileRow("test_search.txt", "1024", "2024-03-20");
+        m_view->addFileRow("other_file.txt", "2048", "2024-03-20");
+        m_view->addFileRow("test_search2.txt", "512", "2024-03-20");
+        
+        // Simulate user typing in search bar
+        QString searchText = "test_search";
+        m_view->getSearchBar()->setText(searchText);
+        
+        // Verify search was triggered
+        QVERIFY(searchCalled);
+        
+        // Test search filtering
+        m_controller->handleSearch(searchText);
+        
+        // Verify view only shows matching files
+        QTableWidget *fileTable = m_view->getFileTable();
+        bool hasOnlyMatchingFiles = true;
+        for(int row = 0; row < fileTable->rowCount(); row++) {
+            if (!fileTable->isRowHidden(row)) {
+                QString fileName = fileTable->item(row, 0)->text();
+                if(!fileName.contains(searchText, Qt::CaseInsensitive)) {
+                    hasOnlyMatchingFiles = false;
+                    break;
+                }
+            }
+        }
+        QVERIFY(hasOnlyMatchingFiles);
+    }
+
+    void testFileSelection() {
+        // Reset flags
+        fileSelectedCalled = false;
+        
+        // Clear the table first
+        m_view->clearTable();
+        
+        // Add a test file to the table
+        m_view->addFileRow("test_file.txt", "1024", "2024-03-20");
+        
+        // Simulate file selection
+        m_controller->handleFileSelection(0, 0);
+        
+        // Verify selection was handled
+        QVERIFY(fileSelectedCalled);
+        
+        // Verify correct file was selected
+        QString selectedFile = m_view->getFileTable()->item(0, 0)->text();
+        QCOMPARE(selectedFile, QString("test_file.txt"));
+    }
+
+    void testErrorHandling() {
+        // Reset flags
+        errorHandled = false;
+        
+        // Simulate error in model
+        QString errorMsg = "File not found";
+        m_fileService->errorOccurred(errorMsg);
+        
+        // Verify error was handled
+        QVERIFY(errorHandled);
+        
+        // Test recovery - verify system still works after error
+        testModelToViewUpdates();
     }
 
     void cleanupTestCase() {

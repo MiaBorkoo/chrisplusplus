@@ -23,13 +23,13 @@ public:
     void clearTable();
 
 private:
-    HeaderWidget *m_header;
-    SideNavWidget *m_sideNav;
-    QLineEdit *m_searchBar;
-    QTableWidget *m_fileTable;
+    HeaderWidget *header;
+    SideNavWidget *sideNav;
+    QLineEdit *searchBar;
+    QTableWidget *fileTable;
     AccountSection *accountSection;
     AccountController *accountController;
-    QPushButton *m_uploadButton;
+    QPushButton *uploadButton;
 
 signals:
     void fileOpenRequested(const QString &fileName);
@@ -37,7 +37,6 @@ signals:
     void accessRequested(const QString &fileName);
     void deleteRequested(const QString &fileName);
     void downloadRequested(const QString &fileName);
-
 };
 
 #endif // FILESDASHVIEW_H
