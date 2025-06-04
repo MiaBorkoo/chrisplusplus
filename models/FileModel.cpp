@@ -14,6 +14,10 @@ FileModel::FileModel(std::shared_ptr<FileService> fileService, QObject* parent)
             this, &FileModel::handleFileListReceived);
     connect(m_fileService.get(), &FileService::errorOccurred,
             this, &FileModel::handleError);
+    connect(m_fileService.get(), &FileService::uploadProgress,
+            this, &FileModel::handleUploadProgress);
+    connect(m_fileService.get(), &FileService::downloadProgress,
+            this, &FileModel::handleDownloadProgress);
 }
 
 // File operations

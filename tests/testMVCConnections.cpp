@@ -149,6 +149,14 @@ private slots:
         // Reset flags
         searchCalled = false;
         
+        // Clear the table first
+        m_view->clearTable();
+        
+        // Add some test files
+        m_view->addFileRow("test_search.txt", "1024", "2024-03-20");
+        m_view->addFileRow("other_file.txt", "2048", "2024-03-20");
+        m_view->addFileRow("test_search2.txt", "512", "2024-03-20");
+        
         // Simulate user typing in search bar
         QString searchText = "test_search";
         m_view->getSearchBar()->setText(searchText);
@@ -160,13 +168,15 @@ private slots:
         m_controller->handleSearch(searchText);
         
         // Verify view only shows matching files
-        QTableWidget* fileTable = m_view->getFileTable();
+        QTableWidget *fileTable = m_view->getFileTable();
         bool hasOnlyMatchingFiles = true;
         for(int row = 0; row < fileTable->rowCount(); row++) {
-            QString fileName = fileTable->item(row, 0)->text();
-            if(!fileName.contains(searchText, Qt::CaseInsensitive)) {
-                hasOnlyMatchingFiles = false;
-                break;
+            if (!fileTable->isRowHidden(row)) {
+                QString fileName = fileTable->item(row, 0)->text();
+                if(!fileName.contains(searchText, Qt::CaseInsensitive)) {
+                    hasOnlyMatchingFiles = false;
+                    break;
+                }
             }
         }
         QVERIFY(hasOnlyMatchingFiles);
@@ -175,6 +185,9 @@ private slots:
     void testFileSelection() {
         // Reset flags
         fileSelectedCalled = false;
+        
+        // Clear the table first
+        m_view->clearTable();
         
         // Add a test file to the table
         m_view->addFileRow("test_file.txt", "1024", "2024-03-20");

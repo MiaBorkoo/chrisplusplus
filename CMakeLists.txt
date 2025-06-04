@@ -178,9 +178,11 @@ qt_add_executable(testMVCConnections
     services/files/FileService.cpp
     services/ApiService.cpp
     controllers/FileDashController.cpp
+    controllers/AccountController.cpp
     views/FilesDashView.cpp
     views/HeaderWidget.cpp
     views/SideNavWidget.cpp
+    views/AccountSection.cpp
     network/Client.cpp
 )
 
