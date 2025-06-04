@@ -14,6 +14,7 @@
 #include "controllers/SharedDashController.h"
 #include "models/FileModel.h"
 #include "models/LoginModel.h"
+#include "models/SignUpModel.h"
 #include "services/files/FileService.h"
 #include "services/auth/AuthService.h"
 #include "network/Client.h"
@@ -45,6 +46,7 @@ private:
     std::shared_ptr<FileService> m_fileService;
     std::shared_ptr<FileModel> m_fileModel;
     std::shared_ptr<LoginModel> m_loginModel;
+    std::shared_ptr<SignUpModel> m_signUpModel;
 };
 
 #endif // MAINWINDOW_H

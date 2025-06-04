@@ -2,7 +2,8 @@
 #include <QRegularExpression>
 #include <QDebug>
 
-SignUpController::SignUpController(SignUpView *view, QObject *parent): QObject(parent), view(view)
+SignUpController::SignUpController(SignUpView *view, std::shared_ptr<SignUpModel> model, QObject *parent)
+    : QObject(parent), view(view), m_model(model)
 {
     commonPasswords = QSet<QString>({
         "123456789012", "password1234", "qwertyuiop12",
@@ -14,6 +15,10 @@ SignUpController::SignUpController(SignUpView *view, QObject *parent): QObject(p
     });
 
     connect(view, &SignUpView::signUpRequested, this, &SignUpController::onSignUpClicked);
+    
+    // Connect model signals
+    connect(m_model.get(), &SignUpModel::registrationSuccess, this, &SignUpController::handleRegistrationSuccess);
+    connect(m_model.get(), &SignUpModel::registrationError, this, &SignUpController::handleRegistrationError);
 }
 
 void SignUpController::onSignUpClicked(const QString &username, const QString &password, const QString &confirmPassword) {
@@ -44,8 +49,17 @@ void SignUpController::onSignUpClicked(const QString &username, const QString &p
         return;
     }
 
+    // Forward registration request to model
+    m_model->registerUser(username, password, confirmPassword);
+}
+
+void SignUpController::handleRegistrationSuccess() {
     view->clearFields();
-    view->showError("Sign up successful!"); // we will remove this later when it switches to the new page
+    emit registrationSuccessful();
+}
+
+void SignUpController::handleRegistrationError(const QString &error) {
+    view->showError(error);
 }
 
 bool SignUpController::isUsernameValid(const QString &username, QString &errorMessage) {
