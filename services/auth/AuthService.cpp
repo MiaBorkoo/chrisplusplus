@@ -223,7 +223,7 @@ std::vector<uint8_t> AuthService::generateSalt() const {
 }
 
 std::vector<unsigned char> AuthService::generateMEK() const {
-    return generateMEK();
+    return WrappedMEK::generateMEK();
 }
 
 void AuthService::handleResponseReceived(int status, const QJsonObject& data) {
