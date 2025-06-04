@@ -45,6 +45,15 @@ public:
     bool hasActiveSession() const { return !m_sessionToken.isEmpty(); }
     void invalidateSession();
 
+    // Get authentication salts from server
+    struct AuthSalts {
+        QString authSalt1;
+        QString authSalt2;
+        QString encSalt;
+    };
+    
+    AuthSalts getAuthSalts(const QString& username);
+
 signals:
     void loginCompleted(bool success, const QString& token);
     void registrationCompleted(bool success);
@@ -64,6 +73,8 @@ private:
     void handleLoginResponse(int status, const QJsonObject& data);
     void handleRegisterResponse(int status, const QJsonObject& data);
     void handleChangePasswordResponse(int status, const QJsonObject& data);
+
+    void handleSaltsResponse(int status, const QJsonObject& data, AuthSalts& salts);
 
     // Crypto helpers
     QString deriveAuthHash(const QString& password, const std::vector<uint8_t>& authSalt1, 

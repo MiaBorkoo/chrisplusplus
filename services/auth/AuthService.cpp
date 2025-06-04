@@ -34,34 +34,30 @@ AuthService::AuthService(std::shared_ptr<Client> client, QObject* parent)
 
 
 void AuthService::login(const QString& username, const QString& password) {
-    // Validate inputs
-    QString errorMessage;
-    if (!m_validationService->validateUsername(username, errorMessage)) {
-        emit errorOccurred(errorMessage);
-        return;
-    }
-    if (!m_validationService->validatePassword(password, errorMessage)) {
-        emit errorOccurred(errorMessage);
+    if (!m_client) {
+        emit errorOccurred("AuthService not properly initialized");
         return;
     }
 
     try {
-        // TODO: Get salts from server first
-        std::vector<uint8_t> authSalt1; // = getSaltsFromServer(username).authSalt1;
-        std::vector<uint8_t> authSalt2; // = getSaltsFromServer(username).authSalt2;
-        std::vector<uint8_t> encSalt;   // = getSaltsFromServer(username).encSalt;
-
-        // Derive keys and compute auth hash
-        KeyDerivation kd;
-        DerivedKeys keys = kd.deriveKeysFromPassword(password.toStdString(), authSalt1, encSalt);
-        std::vector<uint8_t> serverAuthKeyVec(keys.serverAuthKey.begin(), keys.serverAuthKey.end());
-        std::vector<uint8_t> authHash = AuthHash::computeAuthHash(serverAuthKeyVec, authSalt2);
-
-        // Convert to base64 and send to server
-        QString authHashB64 = toBase64String(authHash);
-        hashedLogin(username, authHashB64);
+        // Get current salts from server
+        AuthSalts salts = getAuthSalts(username);
+        
+        // Convert salts from base64
+        QByteArray authSalt1Data = QByteArray::fromBase64(salts.authSalt1.toUtf8());
+        QByteArray authSalt2Data = QByteArray::fromBase64(salts.authSalt2.toUtf8());
+        std::vector<uint8_t> authSalt1(authSalt1Data.begin(), authSalt1Data.end());
+        std::vector<uint8_t> authSalt2(authSalt2Data.begin(), authSalt2Data.end());
+        
+        // Derive auth hash using the retrieved salts
+        QString authHash = deriveAuthHash(password, authSalt1, authSalt2);
+        
+        // Proceed with hashed login
+        hashedLogin(username, authHash);
+        
     } catch (const std::exception& e) {
-        emit errorOccurred(QString("Login failed: %1").arg(e.what()));
+        QString errorMessage = QString("Login failed: %1").arg(e.what());
+        emit errorOccurred(errorMessage);
     }
 }
 
@@ -167,7 +163,15 @@ void AuthService::changePassword(const QString& username,
     }
 
     try {
-        // TODO: Get current salts from server
+        // Get current salts from server
+        AuthSalts salts = getAuthSalts(username);
+        
+        // Convert salts from base64
+        QByteArray authSalt1Data = QByteArray::fromBase64(salts.authSalt1.toUtf8());
+        QByteArray authSalt2Data = QByteArray::fromBase64(salts.authSalt2.toUtf8());
+        std::vector<uint8_t> authSalt1(authSalt1Data.begin(), authSalt1Data.end());
+        std::vector<uint8_t> authSalt2(authSalt2Data.begin(), authSalt2Data.end());
+
         std::vector<uint8_t> oldAuthSalt1; // = getCurrentSalts().authSalt1;
         std::vector<uint8_t> oldAuthSalt2; // = getCurrentSalts().authSalt2;
         std::vector<uint8_t> oldEncSalt;   // = getCurrentSalts().encSalt;
@@ -228,13 +232,17 @@ std::vector<unsigned char> AuthService::createMEK() const {
 }
 
 void AuthService::handleResponseReceived(int status, const QJsonObject& data) {
+    // Get the endpoint from the response or context
     QString endpoint = data.value("endpoint").toString();
-    
-    if (endpoint == "/login") {
+
+    if (endpoint == "/auth/salts") {
+        AuthSalts salts;
+        handleSaltsResponse(status, data, salts);
+    } else if (endpoint == "/auth/login") {
         handleLoginResponse(status, data);
-    } else if (endpoint == "/register") {
+    } else if (endpoint == "/auth/register") {
         handleRegisterResponse(status, data);
-    } else if (endpoint == "/change_password") {
+    } else if (endpoint == "/auth/change-password") {
         handleChangePasswordResponse(status, data);
     }
 }
@@ -275,4 +283,38 @@ void AuthService::handleChangePasswordResponse(int status, const QJsonObject& da
 
 void AuthService::invalidateSession() {
     m_sessionToken.clear();
+}
+
+AuthService::AuthSalts AuthService::getAuthSalts(const QString& username) {
+    if (!m_client) {
+        throw std::runtime_error("AuthService not properly initialized");
+    }
+
+    AuthSalts salts;
+    QJsonObject payload;
+    payload["username"] = username;
+
+    // Make synchronous request for salts
+    m_client->sendRequest("/auth/salts", "GET", payload);
+
+    // Response will be handled by handleResponseReceived and routed to handleSaltsResponse
+    return salts;
+}
+
+void AuthService::handleSaltsResponse(int status, const QJsonObject& data, AuthSalts& salts) {
+    if (status != 200) {
+        QString errorMessage = data.value("error").toString("Failed to get authentication salts");
+        emit errorOccurred(errorMessage);
+        return;
+    }
+
+    // Extract salts from response
+    salts.authSalt1 = data.value("auth_salt1").toString();
+    salts.authSalt2 = data.value("auth_salt2").toString();
+    salts.encSalt = data.value("enc_salt").toString();
+
+    if (salts.authSalt1.isEmpty() || salts.authSalt2.isEmpty() || salts.encSalt.isEmpty()) {
+        emit errorOccurred("Invalid salt data received from server");
+        return;
+    }
 }
