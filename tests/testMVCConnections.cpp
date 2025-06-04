@@ -7,6 +7,7 @@
 #include "../controllers/FileDashController.h"
 #include "../controllers/LoginController.h"
 #include "../views/LoginView.h"
+#include "../views/FilesDashView.h"
 #include "../network/Client.h"
 
 class TestMVCConnections: public QObject
@@ -25,8 +26,7 @@ private:
     
     // Views
     LoginView* m_loginView;
-    QLineEdit* m_searchBar;
-    QTableWidget* m_fileTable;
+    FilesDashView* m_filesDashView;
     
     // Controllers
     LoginController* m_loginController;
@@ -59,14 +59,17 @@ private slots:
         
         // Initialize views
         m_loginView = new LoginView();
-        m_searchBar = new QLineEdit();
-        m_fileTable = new QTableWidget();
+        m_filesDashView = new FilesDashView();
         
         // Initialize controllers
         m_loginController = new LoginController(m_loginModel);
         m_loginController->setView(m_loginView);
         
-        m_fileDashController = new FileDashController(m_searchBar, m_fileTable, m_fileModel);
+        m_fileDashController = new FileDashController(
+            m_filesDashView->getSearchBar(),
+            m_filesDashView->getFileTable(),
+            m_fileModel
+        );
 
         // Connect file model signals
         connect(m_fileModel.get(), &FileModel::fileUploaded,
@@ -108,8 +111,7 @@ private slots:
 
     void cleanupTestCase() {
         delete m_loginView;
-        delete m_searchBar;
-        delete m_fileTable;
+        delete m_filesDashView;
         delete m_loginController;
         delete m_fileDashController;
     }
@@ -201,8 +203,8 @@ private slots:
         const QString searchText = "test";
         
         // Act
-        m_searchBar->setText(searchText);
-        QTest::keyClick(m_searchBar, Qt::Key_Return);
+        m_filesDashView->getSearchBar()->setText(searchText);
+        QTest::keyClick(m_filesDashView->getSearchBar(), Qt::Key_Return);
         
         // Assert
         QCOMPARE(searchSpy.count(), 1);
