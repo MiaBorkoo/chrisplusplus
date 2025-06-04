@@ -16,8 +16,9 @@ signals:
     void loginSuccess();
     void loginError(const QString& error);
 
-public slots:
+private slots:
     void handleLoginCompleted(bool success, const QString& token);
+    void handleError(const QString& error);
 
 private:
     std::shared_ptr<AuthService> m_authService;

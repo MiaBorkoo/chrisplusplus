@@ -17,8 +17,9 @@ signals:
     void registrationSuccess();
     void registrationError(const QString& error);
 
-public slots:
+private slots:
     void handleRegistrationCompleted(bool success);
+    void handleError(const QString& error);
 
 private:
     std::shared_ptr<AuthService> m_authService;

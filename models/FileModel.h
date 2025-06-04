@@ -16,22 +16,12 @@ public:
     void deleteFile(const QString& fileName);
     void listFiles(int page = 1, int pageSize = 50);
 
-    // Access control
-    void grantAccess(const QString& fileName, const QString& username);
-    void revokeAccess(const QString& fileName, const QString& username);
-    void getUsersWithAccess(const QString& fileName);
-
 signals:
     // Operation results
     void fileUploaded(bool success, const QString& fileName);
     void fileDownloaded(bool success, const QString& fileName);
     void fileDeleted(bool success, const QString& fileName);
     void fileListUpdated(const QList<FileInfo>& files, int totalFiles, int currentPage, int totalPages);
-    
-    // Access control results
-    void accessGranted(bool success, const QString& fileName, const QString& username);
-    void accessRevoked(bool success, const QString& fileName, const QString& username);
-    void usersWithAccessReceived(const QString& fileName, const QStringList& users);
     
     // Progress updates
     void uploadProgress(qint64 bytesSent, qint64 bytesTotal);
@@ -46,11 +36,6 @@ private slots:
     void handleDownloadComplete(bool success, const QString& fileName);
     void handleDeleteComplete(bool success, const QString& fileName);
     void handleFileListReceived(const QList<FileInfo>& files, int totalFiles, int currentPage, int totalPages);
-    
-    // Access control handlers
-    void handleAccessGranted(bool success, const QString& fileName, const QString& username);
-    void handleAccessRevoked(bool success, const QString& fileName, const QString& username);
-    void handleUsersWithAccessReceived(const QString& fileName, const QStringList& users);
     
     // Progress handlers
     void handleUploadProgress(qint64 bytesSent, qint64 bytesTotal);

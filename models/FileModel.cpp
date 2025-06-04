@@ -13,14 +13,6 @@ FileModel::FileModel(std::shared_ptr<FileService> fileService, QObject* parent)
     connect(m_fileService.get(), &FileService::fileListReceived,
             this, &FileModel::handleFileListReceived);
             
-    // Connect access control signals
-    connect(m_fileService.get(), &FileService::accessGranted,
-            this, &FileModel::handleAccessGranted);
-    connect(m_fileService.get(), &FileService::accessRevoked,
-            this, &FileModel::handleAccessRevoked);
-    connect(m_fileService.get(), &FileService::usersWithAccessReceived,
-            this, &FileModel::handleUsersWithAccessReceived);
-            
     // Connect progress signals
     connect(m_fileService.get(), &FileService::uploadProgress,
             this, &FileModel::handleUploadProgress);
@@ -49,19 +41,6 @@ void FileModel::listFiles(int page, int pageSize) {
     m_fileService->listFiles(page, pageSize);
 }
 
-// Access control operations
-void FileModel::grantAccess(const QString& fileName, const QString& username) {
-    m_fileService->grantAccess(fileName, username);
-}
-
-void FileModel::revokeAccess(const QString& fileName, const QString& username) {
-    m_fileService->revokeAccess(fileName, username);
-}
-
-void FileModel::getUsersWithAccess(const QString& fileName) {
-    m_fileService->getUsersWithAccess(fileName);
-}
-
 // File operation handlers
 void FileModel::handleUploadComplete(bool success, const QString& fileName) {
     emit fileUploaded(success, fileName);
@@ -77,19 +56,6 @@ void FileModel::handleDeleteComplete(bool success, const QString& fileName) {
 
 void FileModel::handleFileListReceived(const QList<FileInfo>& files, int totalFiles, int currentPage, int totalPages) {
     emit fileListUpdated(files, totalFiles, currentPage, totalPages);
-}
-
-// Access control handlers
-void FileModel::handleAccessGranted(bool success, const QString& fileName, const QString& username) {
-    emit accessGranted(success, fileName, username);
-}
-
-void FileModel::handleAccessRevoked(bool success, const QString& fileName, const QString& username) {
-    emit accessRevoked(success, fileName, username);
-}
-
-void FileModel::handleUsersWithAccessReceived(const QString& fileName, const QStringList& users) {
-    emit usersWithAccessReceived(fileName, users);
 }
 
 // Progress handlers

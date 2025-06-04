@@ -6,6 +6,7 @@
 #include <QJsonObject>
 #include <QSettings>
 #include <memory>
+#include "ValidationService.h"
 
 class AuthService : public ApiService {
     Q_OBJECT
@@ -13,8 +14,11 @@ public:
     explicit AuthService(std::shared_ptr<Client> client = nullptr, QObject* parent = nullptr);
     ~AuthService() override = default;
 
-    // Auth operations
-    void login(const QString& username, const QString& authHash);
+    // Auth operations with function overloading
+    void login(const QString& username, const QString& password);
+    void hashedLogin(const QString& username, const QString& authHash);
+
+    void registerUser(const QString& username, const QString& password, const QString& confirmPassword);
     void registerUser(const QString& username,
                      const QString& authHash,
                      const QString& encryptedMEK,
@@ -23,12 +27,15 @@ public:
                      const QString& encSalt,
                      const QString& mekIV,
                      const QString& mekTag);
+
+    void changePassword(const QString& username,
+                       const QString& oldPassword,
+                       const QString& newPassword);
     void changePassword(const QString& username,
                        const QString& oldAuthHash,
                        const QString& newAuthHash,
                        const QString& newEncryptedMEK);
 
-    // Implementation of ApiService
     bool isInitialized() const override {
         return m_client != nullptr;
     }
@@ -39,9 +46,10 @@ public:
     void invalidateSession();
 
 signals:
-    void loginCompleted(bool success, const QString& token = QString());
+    void loginCompleted(bool success, const QString& token);
     void registrationCompleted(bool success);
     void passwordChangeCompleted(bool success);
+    void errorOccurred(const QString& error);
 
 private slots:
     void handleResponseReceived(int status, const QJsonObject& data);
@@ -51,8 +59,16 @@ private:
     std::shared_ptr<Client> m_client;
     QString m_sessionToken;
     QScopedPointer<QSettings> m_settings;
+    std::shared_ptr<ValidationService> m_validationService;
     
     void handleLoginResponse(int status, const QJsonObject& data);
     void handleRegisterResponse(int status, const QJsonObject& data);
     void handleChangePasswordResponse(int status, const QJsonObject& data);
-}; 
+
+    // Crypto helpers
+    QString deriveAuthHash(const QString& password, const std::vector<uint8_t>& authSalt1, 
+                         const std::vector<uint8_t>& authSalt2);
+    QString encryptMEK(const std::vector<unsigned char>& mek, const std::vector<uint8_t>& mekWrapperKey);
+    std::vector<uint8_t> generateSalt() const;
+    std::vector<unsigned char> generateMEK() const;
+};
