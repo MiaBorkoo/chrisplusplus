@@ -3,7 +3,7 @@
 FileModel::FileModel(std::shared_ptr<FileService> fileService, QObject* parent)
     : QObject(parent), m_fileService(fileService)
 {
-    // Connect file operation signals
+    // Connect file service signals to model slots
     connect(m_fileService.get(), &FileService::uploadComplete,
             this, &FileModel::handleUploadComplete);
     connect(m_fileService.get(), &FileService::downloadComplete,
@@ -12,24 +12,18 @@ FileModel::FileModel(std::shared_ptr<FileService> fileService, QObject* parent)
             this, &FileModel::handleDeleteComplete);
     connect(m_fileService.get(), &FileService::fileListReceived,
             this, &FileModel::handleFileListReceived);
-            
-    // Connect progress signals
-    connect(m_fileService.get(), &FileService::uploadProgress,
-            this, &FileModel::handleUploadProgress);
-    connect(m_fileService.get(), &FileService::downloadProgress,
-            this, &FileModel::handleDownloadProgress);
-            
-    // Connect error signal
     connect(m_fileService.get(), &FileService::errorOccurred,
             this, &FileModel::handleError);
 }
 
 // File operations
-void FileModel::uploadFile(const QString& filePath) {
+void FileModel::uploadFile(const QString& filePath)
+{
     m_fileService->uploadFile(filePath);
 }
 
-void FileModel::downloadFile(const QString& fileName, const QString& savePath) {
+void FileModel::downloadFile(const QString& fileName, const QString& savePath)
+{
     m_fileService->downloadFile(fileName, savePath);
 }
 

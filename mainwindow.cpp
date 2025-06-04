@@ -4,7 +4,6 @@
 #include "controllers/FileDashController.h"
 #include "controllers/SideNavController.h"
 #include "controllers/SharedDashController.h"
-#include "views/HeaderWidget.h"
 #include "views/AccountSection.h"
 #include "controllers/AccountController.h"
 #include <QScreen>
@@ -38,8 +37,18 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     m_signUpView = new SignUpView(this);
     m_signUpController = new SignUpController(m_signUpView, this);
 
+    // Initialize network client and services
+    auto client = std::make_shared<Client>("http://localhost:8000", "your-api-key");
+    m_fileService = std::make_shared<FileService>(client);
+    m_fileModel = std::make_shared<FileModel>(m_fileService);
+
     m_filesDashView = new FilesDashView(this);
-    m_fileDashController = new FileDashController(m_filesDashView->getSearchBar(), m_filesDashView->getFileTable(), this);
+    m_fileDashController = new FileDashController(
+        m_filesDashView->getSearchBar(), 
+        m_filesDashView->getFileTable(), 
+        m_fileModel,
+        this
+    );
     
     m_accountSection = new AccountSection(this);
 

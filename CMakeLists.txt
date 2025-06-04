@@ -117,9 +117,13 @@ qt_add_executable(ChrisPlusPlus
     ${RESOURCE_FILES}
     # ✅ ADD: Authentication system
     models/LoginModel.cpp
+    models/FileModel.cpp
+    models/AccessModel.cpp
+    models/SharedFileModel.cpp
     network/Client.cpp
     services/auth/AuthService.cpp
     services/ApiService.cpp
+    services/files/FileService.cpp
     services/auth/otp/TOTP.cpp
     services/auth/ValidationService.cpp
 )
@@ -164,6 +168,30 @@ endif()
 # ============================================================================
 # TEST EXECUTABLES
 # ============================================================================
+
+# MVC Connections Test
+add_executable(testMVCConnections
+    tests/testMVCConnections.cpp
+    models/FileModel.cpp
+    models/AccessModel.cpp
+    models/SharedFileModel.cpp
+    services/files/FileService.cpp
+    services/ApiService.cpp
+    controllers/FileDashController.cpp
+    views/FilesDashView.cpp
+    views/HeaderWidget.cpp
+    views/SideNavWidget.cpp
+    network/Client.cpp
+)
+target_link_libraries(testMVCConnections PRIVATE 
+    Qt6::Core 
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+    file_transfer
+    http_layer
+    sockets
+)
 
 # Original test from dev branch
 add_executable(testSSLforNow
