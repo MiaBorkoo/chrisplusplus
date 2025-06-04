@@ -8,6 +8,9 @@
 #include <memory>
 #include "ValidationService.h"
 
+// Forward declaration for QR generation
+class QRVerification;
+
 class AuthService : public ApiService {
     Q_OBJECT
 public:

@@ -3,11 +3,17 @@
 #include "../../crypto/WrappedMEK.h"
 #include "../../crypto/AuthHash.h"
 #include "../../crypto/MEKGenerator.h"
-#include "otp/TOTP.h"          
+#include "otp/TOTP.h"
+#include "../../tofu/QRVerification.h"          
 #include <QJsonObject>
 #include <QSettings>           
 #include <QDebug>
 #include <QByteArray>
+
+// Use qrencode library directly for TOTP QR codes
+extern "C" {
+#include <qrencode.h>
+}
 
 namespace {
     template <size_t N>
@@ -362,14 +368,39 @@ QString AuthService::enableTOTP(const QString& username) {
             m_pendingTOTPSecret.toStdString()   // Secret
         );
         
-        // TODO: Generate QR code using your existing QR system
-        // For now, we'll return the URL as base64 - you can replace this with actual QR generation
-        QByteArray qrData = QString::fromStdString(otpauthURL).toUtf8().toBase64();
+        // Generate actual QR code image using qrencode
+        QRcode* qrcode = QRcode_encodeString(
+            otpauthURL.c_str(),
+            0,                    // Version 0: Auto-select optimal version
+            QR_ECLEVEL_H,        // High error correction (30% recovery)
+            QR_MODE_8,           // 8-bit data mode for URLs
+            1                    // Case sensitive
+        );
+        
+        if (!qrcode) {
+            emit errorOccurred("Failed to generate QR code");
+            return QString();
+        }
+        
+        // Convert QR matrix to image data
+        int size = qrcode->width * qrcode->width;
+        QByteArray qrImageData(reinterpret_cast<const char*>(qrcode->data), size);
+        
+        // Create metadata for QR reconstruction
+        QByteArray metadata;
+        QDataStream metaStream(&metadata, QIODevice::WriteOnly);
+        metaStream << static_cast<qint32>(qrcode->width) << static_cast<qint32>(qrcode->version);
+        
+        QRcode_free(qrcode);
+        
+        // Combine metadata + image data and encode as base64
+        QByteArray qrData = (metadata + qrImageData).toBase64();
         
         emit totpEnabled(qrData);
         qDebug() << "TOTP setup started for user:" << username;
+        qDebug() << "OTP Auth URL:" << QString::fromStdString(otpauthURL);
         
-        return qrData;  // Return QR code as base64
+        return qrData;  // Return actual QR code as base64
         
     } catch (const std::exception& e) {
         emit errorOccurred(QString("TOTP setup failed: %1").arg(e.what()));
@@ -389,7 +420,9 @@ bool AuthService::verifyTOTPSetup(const QString& code) {
         bool isValid = totp.verify(code.toStdString());
         
         if (isValid) {
-            // Save secret to secure storage only after successful verification
+            // TODO: SECURITY ISSUE - Store in encrypted form or OS keychain
+            // Current QSettings storage is NOT SECURE (plain text)
+            // Consider using QKeychain or encrypting with user's master key
             m_settings->setValue("totp/secret", m_pendingTOTPSecret);
             m_settings->setValue("totp/username", m_pendingUsername);
             m_settings->setValue("totp/enabled_at", QDateTime::currentDateTimeUtc());
