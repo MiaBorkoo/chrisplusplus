@@ -1,8 +1,8 @@
 #include "AuthService.h"
-#include "otp/TOTP.h"          // NEW
+#include "otp/TOTP.h"          
 #include "otp/TOTPEnrollment.h"  // NEW
 #include <QJsonObject>
-#include <QSettings>           // ← NEW, used for secure storage
+#include <QSettings>           
 #include <QDebug>
 
 
@@ -20,67 +20,56 @@ AuthService::AuthService(Client* client, QObject* parent)
     , m_settings(new QSettings(this))
     , m_totpEnrollment(std::make_unique<TOTPEnrollment>(this))  // NEW: Initialize enrollment
 {
-    // SIGNAL/SLOT (avoids Qt template issues)
     connect(m_client, SIGNAL(responseReceived(int, QJsonObject)), 
             this, SLOT(handleResponseReceived(int, QJsonObject)));
 
     connect(m_client, SIGNAL(networkError(QString)),
             this, SLOT(handleNetworkError(QString)));
-    
-    // NEW: Connect TOTP enrollment signals
-    connect(m_totpEnrollment.get(), &TOTPEnrollment::enrollmentQRGenerated,
-            this, [this](const QByteArray& qrData) {
-                emit totpEnrollmentStarted(qrData, m_pendingTOTPSecret);
-            });
-    
-    connect(m_totpEnrollment.get(), &TOTPEnrollment::setupCodeVerified,
-            this, [this](bool success) {
-                if (success) {
-                    emit totpEnrollmentCompleted(true);
-                } else {
-                    emit totpEnrollmentFailed("Invalid verification code");
-                }
-            });
-    
-    connect(m_totpEnrollment.get(), &TOTPEnrollment::enrollmentFailed,
-            this, [this](const QString& error) {
-                emit totpEnrollmentFailed(error);
-            });
 }
 
-void AuthService::login(const QString& username, const QString& authKey) {
+void AuthService::login(const QString& username, const QString& authHash) {
     QJsonObject payload;
     payload["username"] = username;
-    payload["auth_key"] = authKey;
+    payload["auth_hash"] = authHash;
     
     const QString secretB32 = m_settings->value("totp/secret").toString();
-    if (!secretB32.isEmpty()) {                 // user has enrolled
-        TOTP totp(secretB32.toStdString());  // Convert QString to std::string
-        const QString otp = QString::fromStdString(totp.generate());  // Uses current time by default
-        payload["otp"] = otp;                   // add 6-digit code
+    if (!secretB32.isEmpty()) {                 
+        TOTP totp(secretB32.toStdString());  
+        const QString otp = QString::fromStdString(totp.generate());  
+        payload["otp"] = otp;                   
     }
     m_client->sendRequest("/login", "POST", payload);
 }
 
-void AuthService::registerUser(const QString& username, const QString& authSalt,
-                              const QString& encSalt, const QString& authKey,
-                              const QString& encryptedMEK) {
+void AuthService::registerUser(const QString& username,
+                             const QString& authHash,
+                             const QString& encryptedMEK,
+                             const QString& authSalt1,
+                             const QString& authSalt2,
+                             const QString& encSalt,
+                             const QString& mekIV,  
+                             const QString& mekTag) {
     QJsonObject payload;
     payload["username"] = username;
-    payload["auth_salt"] = authSalt;
-    payload["enc_salt"] = encSalt;
-    payload["auth_key"] = authKey;
+    payload["auth_hash"] = authHash;
     payload["encrypted_mek"] = encryptedMEK;
+    payload["auth_salt1"] = authSalt1;
+    payload["auth_salt2"] = authSalt2;
+    payload["enc_salt"] = encSalt;
+    payload["mek_iv"] = mekIV;
+    payload["mek_tag"] = mekTag;
     
     m_client->sendRequest("/register", "POST", payload);
 }
 
-void AuthService::changePassword(const QString& username, const QString& oldAuthKey,
-                                const QString& newAuthKey, const QString& newEncryptedMEK) {
+void AuthService::changePassword(const QString& username,
+                               const QString& oldAuthHash,
+                               const QString& newAuthHash,
+                               const QString& newEncryptedMEK) {
     QJsonObject payload;
     payload["username"] = username;
-    payload["old_auth_key"] = oldAuthKey;
-    payload["new_auth_key"] = newAuthKey;
+    payload["old_auth_hash"] = oldAuthHash;
+    payload["new_auth_hash"] = newAuthHash;
     payload["new_encrypted_mek"] = newEncryptedMEK;
     
     m_client->sendRequest("/change_password", "POST", payload);
@@ -234,5 +223,4 @@ void AuthService::handleChangePasswordResponse(int status, const QJsonObject& da
 
 void AuthService::invalidateSession() {
     m_sessionToken.clear();
-    // Session invalidated, but no error
 } 

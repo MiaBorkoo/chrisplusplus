@@ -4,6 +4,9 @@
 #include "controllers/FileDashController.h"
 #include "controllers/SideNavController.h"
 #include "controllers/SharedDashController.h"
+#include "views/HeaderWidget.h"
+#include "views/AccountSection.h"
+#include "controllers/AccountController.h"
 #include <QScreen>
 #include <QApplication>
 #include <QStackedWidget>
@@ -37,7 +40,8 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
     m_filesDashView = new FilesDashView(this);
     m_fileDashController = new FileDashController(m_filesDashView->getSearchBar(), m_filesDashView->getFileTable(), this);
-   
+    
+    m_accountSection = new AccountSection(this);
 
     m_sharedDashView = new SharedDashView(this);
     m_sharedDashController = new SharedDashController(m_sharedDashView, this);

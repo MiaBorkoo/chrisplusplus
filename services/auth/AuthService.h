@@ -13,15 +13,18 @@ public:
     ~AuthService() override = default;
 
     // Interface implementations
-    void login(const QString& username, const QString& authKey) override;
+    void login(const QString& username, const QString& authHash) override;
     void registerUser(const QString& username,
-                    const QString& authSalt,
-                    const QString& encSalt,
-                    const QString& authKey,
-                    const QString& encryptedMEK) override;
+                     const QString& authHash,
+                     const QString& encryptedMEK,
+                     const QString& authSalt1,
+                     const QString& authSalt2,
+                     const QString& encSalt,
+                     const QString& mekIV,
+                     const QString& mekTag) override;
     void changePassword(const QString& username,
-                       const QString& oldAuthKey,
-                       const QString& newAuthKey,
+                       const QString& oldAuthHash,
+                       const QString& newAuthHash,
                        const QString& newEncryptedMEK) override;
     bool isInitialized() const override {
         return m_client != nullptr;

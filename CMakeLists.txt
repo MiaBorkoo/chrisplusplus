@@ -38,6 +38,7 @@ elseif(WIN32)
 else()
     # Linux: Standard paths
     set(CMAKE_PREFIX_PATH 
+        "/home/ruan/Qt/6.9.0/gcc_64"
         "/opt/Qt/6.7.0/gcc_64"
         "/usr/lib/x86_64-linux-gnu/cmake/Qt6"
         ${CMAKE_PREFIX_PATH}
@@ -46,10 +47,16 @@ else()
 endif()
 
 # Find required packages
+
+find_package(OpenSSL REQUIRED)
+
+
 find_package(Qt6 6.5.0 REQUIRED COMPONENTS Core Widgets Network Test Concurrent)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(QRENCODE REQUIRED libqrencode)
+find_package(nlohmann_json REQUIRED)
+
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -64,9 +71,10 @@ qt_standard_project_setup()
 # Add subdirectories for ALL libraries
 # ============================================================================
 add_subdirectory(sockets)    # SSL/TLS layer (shared by both systems)
-add_subdirectory(httpC)      # HTTP protocol layer (YOUR addition)
-add_subdirectory(fileIO)     # File transfer layer (YOUR addition)
-add_subdirectory(tofu)       # TOFU system (NEW)
+add_subdirectory(httpC)      # HTTP protocol layer
+add_subdirectory(fileIO)     # File transfer layer 
+add_subdirectory(crypto)     # Crypto library 
+add_subdirectory(tofu)       # TOFU library
 
 # Main application with authentication
 qt_add_executable(ChrisPlusPlus
@@ -101,8 +109,12 @@ qt_add_executable(ChrisPlusPlus
     controllers/AccessController.cpp
     controllers/AccessController.h
     models/SideNavTabs.h
+    views/AccountSection.cpp
+    views/AccountSection.h
+    controllers/AccountController.cpp
+    controllers/AccountController.h
+
     ${RESOURCE_FILES}
-    
     # ✅ ADD: Authentication system
     models/LoginModel.cpp
     network/Client.cpp
@@ -124,9 +136,10 @@ target_link_libraries(ChrisPlusPlus
         file_transfer
         http_layer
         sockets
-        tofu           # Add TOFU library
+        tofu           
         OpenSSL::SSL
         OpenSSL::Crypto
+        crypto-lib
         ${QRENCODE_LIBRARIES}
 )
 
@@ -142,7 +155,7 @@ target_include_directories(ChrisPlusPlus
         ${CMAKE_SOURCE_DIR}/sockets
         ${CMAKE_SOURCE_DIR}/httpC
         ${CMAKE_SOURCE_DIR}/fileIO
-        ${CMAKE_SOURCE_DIR}/tofu    # Add TOFU include path
+        ${CMAKE_SOURCE_DIR}/tofu   
         ${QRENCODE_INCLUDE_DIRS}
 )
 
@@ -182,6 +195,49 @@ target_include_directories(testTOTPSimple PRIVATE
 if(APPLE)
     target_link_directories(testTOTPSimple PRIVATE /opt/homebrew/lib)
 endif()
+
+add_executable(testNetworkSystemComplete
+    tests/testNetworkSystemComplete.cpp
+)
+target_link_libraries(testNetworkSystemComplete PRIVATE 
+    Qt6::Core 
+    Qt6::Widgets 
+    file_transfer 
+    http_layer 
+    sockets
+)
+
+add_executable(testKeyDerivation
+    tests/testKeyDerivation.cpp
+    crypto/KeyDerivation.cpp
+)
+target_link_libraries(testKeyDerivation PRIVATE crypto-lib)
+target_include_directories(testKeyDerivation PRIVATE
+    ${CMAKE_SOURCE_DIR}/crypto
+)
+
+add_executable(testMEKGenerator
+    tests/testMEKGenerator.cpp
+    crypto/MEKGenerator.cpp
+)
+target_link_libraries(testMEKGenerator PRIVATE OpenSSL::Crypto)
+target_include_directories(testMEKGenerator PRIVATE ${CMAKE_SOURCE_DIR}/crypto)
+
+add_executable(testWrappedMEK
+    tests/testWrappedMEK.cpp
+    crypto/WrappedMEK.cpp
+)
+target_link_libraries(testWrappedMEK PRIVATE OpenSSL::Crypto)
+target_include_directories(testWrappedMEK PRIVATE
+    ${CMAKE_SOURCE_DIR}/crypto
+)
+
+add_executable(testAuthHash
+    tests/testAuthHash.cpp
+    crypto/AuthHash.cpp
+)
+target_link_libraries(testAuthHash PRIVATE crypto-lib)
+target_include_directories(testAuthHash PRIVATE ${CMAKE_SOURCE_DIR}/crypto)
 
 # ============================================================================
 # INSTALLATION (updated for ChrisPlusPlus)

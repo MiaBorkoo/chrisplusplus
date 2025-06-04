@@ -48,7 +48,6 @@ QLineEdit:invalid {
 #signUpPanel {
     background: #1C2526;
     padding: 40px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Sign Up Heading */
@@ -413,4 +412,75 @@ HeaderWidget QPushButton:pressed {
 }
 #revokeButton:pressed {
     background-color: #7F0000;
+}
+/* Account Section Container */
+#accountSection {
+    background-color: #1C2526;
+    padding: 32px 24px;
+    border-radius: 8px;
+}
+
+/* Account Heading */
+#accountHeading {
+    color: #FFFFFF;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Account Labels */
+#accountNameLabel,
+#accountEmailLabel,
+#accountPasswordLabel {
+    color: #B0BEC5;
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 6px;
+}
+
+/* Account Input Fields */
+#accountSection QLineEdit {
+    border: 1px solid #3C4043;
+    background-color: #212121;
+    font-size: 15px;
+    line-height: 1.4;
+    color: #E0E0E0;
+    padding: 6px 8px;
+    border-radius: 4px;
+    height: 42px;
+    margin-bottom: 10px;
+}
+
+#accountSection QLineEdit::placeholder {
+    color: #9E9E9E;
+    font-size: 12px;
+}
+
+/* Save Button */
+#saveAccountButton {
+    background-color: #1E88E5;
+    color: #FFFFFF;
+    font-size: 15px;
+    font-weight: 500;
+    padding: 10px 16px;
+    height: 44px;
+    border: none;
+    border-radius: 6px;
+    margin-top: 16px;
+}
+
+#saveAccountButton:hover {
+    background-color: #1565C0;
+}
+
+#saveAccountButton:pressed {
+    background-color: #0D47A1;
+}
+
+/* Error Message */
+#accountErrorLabel {
+    color: #D32F2F;
+    font-size: 8px;
+    margin-top: 5px;
 }

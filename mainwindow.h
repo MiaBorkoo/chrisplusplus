@@ -31,6 +31,9 @@ private:
     SharedDashView *m_sharedDashView;
     SharedDashController *m_sharedDashController;
     SideNavController *m_sideNavController;
+    HeaderWidget* m_headerWidget;
+    AccountSection* m_accountSection;
+    AccountController* m_accountController;
 };
 
 #endif // MAINWINDOW_H

@@ -15,6 +15,9 @@ SharedDashView::SharedDashView(QWidget *parent) : QWidget(parent) {
     sideNav = new SideNavWidget(this);
     sideNav->setActiveTab(SideNavTab::SharedWithMe); 
 
+    accountSection = new AccountSection(this);
+    accountController = new AccountController(header, accountSection, this);
+
     // This is our main content widget
     QWidget *mainContent = new QWidget(this);
     mainContent->setObjectName("mainContent");

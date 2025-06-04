@@ -11,12 +11,19 @@ public:
     virtual ~IAuthService() = default;
 
     // Pure virtual methods that implementations must override
-    virtual void login(const QString& username, const QString& authKey) = 0;
-    virtual void registerUser(const QString& username, const QString& authSalt,
-                             const QString& encSalt, const QString& authKey,
-                             const QString& encryptedMEK) = 0;
-    virtual void changePassword(const QString& username, const QString& oldAuthKey,
-                               const QString& newAuthKey, const QString& newEncryptedMEK) = 0;
+    virtual void login(const QString& username, const QString& authHash) = 0;
+    virtual void registerUser(const QString& username,
+                            const QString& authHash,
+                            const QString& encryptedMEK,
+                            const QString& authSalt1,
+                            const QString& authSalt2,
+                            const QString& encSalt,
+                            const QString& mekIV,
+                            const QString& mekTag) = 0;
+    virtual void changePassword(const QString& username,
+                              const QString& oldAuthHash,
+                              const QString& newAuthHash,
+                              const QString& newEncryptedMEK) = 0;
     virtual bool isInitialized() const override = 0;
 
 signals:
