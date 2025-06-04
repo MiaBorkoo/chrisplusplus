@@ -28,7 +28,7 @@ private:
 private slots:
     void initTestCase() {
         // Create dependencies with dummy values
-        m_client = std::make_shared<Client>("http://dummy-url.com", "dummy-api-key");
+        m_client = std::make_shared<Client>("http://dummy-url.com");
         m_fileService = std::make_shared<FileService>(m_client);
         m_fileModel = std::make_shared<FileModel>(m_fileService);
         m_view = new FilesDashView();

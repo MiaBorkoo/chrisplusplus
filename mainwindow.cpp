@@ -38,7 +38,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     m_signUpController = new SignUpController(m_signUpView, this);
 
     // Initialize network client and services
-    auto client = std::make_shared<Client>("http://localhost:8000", "your-api-key");
+    auto client = std::make_shared<Client>("http://localhost:8000");
     m_fileService = std::make_shared<FileService>(client);
     m_fileModel = std::make_shared<FileModel>(m_fileService);
 
