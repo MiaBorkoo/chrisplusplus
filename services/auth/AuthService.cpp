@@ -318,3 +318,24 @@ void AuthService::handleSaltsResponse(int status, const QJsonObject& data, AuthS
         return;
     }
 }
+
+QString AuthService::deriveAuthHash(const QString& password,
+                                  const std::vector<uint8_t>& authSalt1,
+                                  const std::vector<uint8_t>& authSalt2) {
+    try {
+        // 1. Derive keys from password and first salt
+        KeyDerivation kd;
+        DerivedKeys keys = kd.deriveKeysFromPassword(password.toStdString(), authSalt1, authSalt1);  // Using authSalt1 twice is fine here
+
+        // 2. Extract server auth key
+        std::vector<uint8_t> serverAuthKeyVec(keys.serverAuthKey.begin(), keys.serverAuthKey.end());
+
+        // 3. Compute auth hash using the server auth key and second salt
+        std::vector<uint8_t> authHash = AuthHash::computeAuthHash(serverAuthKeyVec, authSalt2);
+
+        // 4. Convert to base64 string
+        return toBase64String(authHash);
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to derive auth hash: ") + e.what());
+    }
+}
