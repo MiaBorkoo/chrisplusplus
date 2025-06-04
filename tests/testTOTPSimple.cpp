@@ -8,7 +8,7 @@
 #include "../services/auth/otp/TOTPEnrollment.h"
 #include "../services/auth/otp/TOTP.h"
 
-void testTOTPFunctionality() {
+void testTOTPFunctionality() { //yes
     qDebug() << "=== TOTP Functionality Test ===";
     
     try {
