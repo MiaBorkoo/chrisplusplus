@@ -1,4 +1,7 @@
 #include <QTest>
+#include <QtTest/QtTest>
+#include <QtCore>
+#include <QtWidgets>
 #include "../controllers/FileDashController.h"
 #include "../models/FileModel.h"
 #include "../services/files/FileService.h"
@@ -25,7 +28,7 @@ private:
     qint64 lastProgressSent = 0;
     qint64 lastProgressTotal = 0;
 
-private slots:
+private Q_SLOTS:
     void initTestCase() {
         // Create dependencies with dummy values
         m_client = std::make_shared<Client>("http://dummy-url.com", "dummy-api-key");
