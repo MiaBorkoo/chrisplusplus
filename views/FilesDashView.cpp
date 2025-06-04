@@ -1,89 +1,129 @@
 #include "FilesDashView.h"
-#include "HeaderWidget.h"
-#include "SideNavWidget.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <QLabel>
 #include <QLineEdit>
-#include <QPushButton>
 #include <QTableWidget>
 #include <QHeaderView>
-#include <QLabel>
+#include <QPushButton>
+#include <QIcon>
+#include <QMessageBox>
 
 FilesDashView::FilesDashView(QWidget *parent) : QWidget(parent) {
-    QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(0);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
+    header = new HeaderWidget(this);
+    sideNav = new SideNavWidget(this);
 
-    // Create header
-    m_header = new HeaderWidget(this);
-    mainLayout->addWidget(m_header);
+    accountSection = new AccountSection(this);
+    accountController = new AccountController(header, accountSection, this);
 
-    // Create main content area
-    QHBoxLayout *contentLayout = new QHBoxLayout();
-    contentLayout->setSpacing(0);
-    contentLayout->setContentsMargins(0, 0, 0, 0);
+    // main content widget
+    QWidget *mainContent = new QWidget(this);
+    mainContent->setObjectName("mainContent");
 
-    // Create side navigation
-    m_sideNav = new SideNavWidget(this);
-    contentLayout->addWidget(m_sideNav);
+    QVBoxLayout *mainContentLayout = new QVBoxLayout(mainContent);
+    mainContentLayout->setContentsMargins(16, 16, 16, 16);
+    mainContentLayout->setSpacing(12);
 
-    // Create file dashboard area
-    QWidget *dashArea = new QWidget(this);
-    dashArea->setObjectName("mainContent");
-    QVBoxLayout *dashLayout = new QVBoxLayout(dashArea);
+    //horizontal layout for search bar and upload button
+    QHBoxLayout *topLayout = new QHBoxLayout();
+    topLayout->setSpacing(8);
 
-    // Create search bar
-    m_searchBar = new QLineEdit(this);
-    m_searchBar->setObjectName("searchBar");
-    m_searchBar->setPlaceholderText("Search files...");
-    dashLayout->addWidget(m_searchBar);
+    searchBar = new QLineEdit(mainContent);
+    searchBar->setObjectName("searchBar");
+    searchBar->setPlaceholderText("Search files...");
+    topLayout->addWidget(searchBar, 1);
 
-    // Create upload button
-    m_uploadButton = new QPushButton("Upload", this);
-    m_uploadButton->setObjectName("uploadButton");
-    dashLayout->addWidget(m_uploadButton);
+    // Upload button
+    uploadButton = new QPushButton("Upload File", mainContent);
+    uploadButton->setObjectName("uploadButton");
+    connect(uploadButton, &QPushButton::clicked, this, &FilesDashView::uploadRequested);
+    topLayout->addWidget(uploadButton);
 
-    // Create file table
-    m_fileTable = new QTableWidget(this);
-    m_fileTable->setObjectName("fileTable");
-    m_fileTable->setColumnCount(3);
-    m_fileTable->setHorizontalHeaderLabels({"Name", "Size", "Date"});
-    m_fileTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    m_fileTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_fileTable->setSelectionMode(QAbstractItemView::SingleSelection);
-    dashLayout->addWidget(m_fileTable);
+    mainContentLayout->addLayout(topLayout);
 
-    contentLayout->addWidget(dashArea);
-    mainLayout->addLayout(contentLayout);
+    // File table
+    fileTable = new QTableWidget(mainContent);
+    fileTable->setObjectName("fileTable");
+    fileTable->setAlternatingRowColors(true);
+    fileTable->setColumnCount(4);
+    fileTable->setHorizontalHeaderLabels({"Name", "Size", "Date Uploaded", "Actions"});
+    fileTable->verticalHeader()->setVisible(false);
+    fileTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    fileTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    fileTable->horizontalHeader()->setStretchLastSection(true);
+    fileTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    mainContentLayout->addWidget(fileTable);
 
-    // Connect signals
-    connect(m_uploadButton, &QPushButton::clicked, this, &FilesDashView::uploadRequested);
+    // Horizontal layout for side nav + main content
+    QHBoxLayout *hLayout = new QHBoxLayout();
+    hLayout->setContentsMargins(0, 0, 0, 0);
+    hLayout->setSpacing(0);
+    hLayout->addWidget(sideNav);
+    hLayout->addWidget(mainContent, 1);
+
+    // Vertical layout for header + rest
+    QVBoxLayout *vLayout = new QVBoxLayout(this);
+    vLayout->setContentsMargins(0, 0, 0, 0);
+    vLayout->setSpacing(0);
+    vLayout->addWidget(header);
+    vLayout->addLayout(hLayout, 1);
+
+    setLayout(vLayout);
 }
 
 void FilesDashView::addFileRow(const QString &name, const QString &size, const QString &date) {
-    int row = m_fileTable->rowCount();
-    m_fileTable->insertRow(row);
-    m_fileTable->setItem(row, 0, new QTableWidgetItem(name));
-    m_fileTable->setItem(row, 1, new QTableWidgetItem(size));
-    m_fileTable->setItem(row, 2, new QTableWidgetItem(date));
+    int row = fileTable->rowCount();
+    fileTable->insertRow(row);
+    fileTable->setItem(row, 0, new QTableWidgetItem(name));
+    fileTable->setItem(row, 1, new QTableWidgetItem(size));
+    fileTable->setItem(row, 2, new QTableWidgetItem(date));
+
+    // Create actions widget (download + access + delete)
+    QWidget *actionsWidget = new QWidget();
+    QHBoxLayout *actionsLayout = new QHBoxLayout(actionsWidget);
+    actionsLayout->setContentsMargins(0, 0, 0, 0);
+    actionsLayout->setSpacing(6);
+
+    // Download button
+    QPushButton *downloadButton = new QPushButton("Download");
+    downloadButton->setObjectName("downloadButton");
+    downloadButton->setIcon(QIcon(":/assets/arrow.svg"));
+    downloadButton->setIconSize(QSize(16, 16));
+    connect(downloadButton, &QPushButton::clicked, this, [this, name]() {
+        emit downloadRequested(name);
+    });
+    actionsLayout->addWidget(downloadButton);
+
+    //button to manage access
+    QPushButton *accessButton = new QPushButton("Access");
+    accessButton->setObjectName("accessButton");
+    connect(accessButton, &QPushButton::clicked, this, [this, name]() {
+        emit accessRequested(name);
+    });
+    actionsLayout->addWidget(accessButton);
+
+    actionsLayout->addStretch();
+
+    //delete file button
+    QPushButton *deleteButton = new QPushButton();
+    deleteButton->setToolTip("Delete File");
+    deleteButton->setFixedSize(28, 28);
+    deleteButton->setIcon(QIcon(":/assets/trash.svg"));
+    deleteButton->setIconSize(QSize(18, 18));
+    deleteButton->setObjectName("deleteButton");
+    connect(deleteButton, &QPushButton::clicked, this, [this, name]() {
+        emit deleteRequested(name);
+    });
+    actionsLayout->addWidget(deleteButton);
+
+    fileTable->setCellWidget(row, 3, actionsWidget);
 }
 
 void FilesDashView::clearTable() {
-    m_fileTable->setRowCount(0);
+    fileTable->setRowCount(0);
 }
 
-QLineEdit* FilesDashView::getSearchBar() const {
-    return m_searchBar;
-}
-
-QTableWidget* FilesDashView::getFileTable() const {
-    return m_fileTable;
-}
-
-SideNavWidget* FilesDashView::getSideNav() const {
-    return m_sideNav;
-}
-
-HeaderWidget* FilesDashView::getHeader() const {
-    return m_header;
-}
+QLineEdit* FilesDashView::getSearchBar() const { return searchBar; }
+QTableWidget* FilesDashView::getFileTable() const { return fileTable; }
+SideNavWidget* FilesDashView::getSideNav() const { return sideNav; }
+HeaderWidget* FilesDashView::getHeader() const { return header; }
