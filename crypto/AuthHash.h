@@ -1,8 +1,8 @@
 #ifndef AUTH_HASH_H
 #define AUTH_HASH_H
 
+#include <cstdint>
 #include <vector>
-#include <string>
 
 class AuthHash {
 public:

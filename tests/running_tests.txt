@@ -1,0 +1,3 @@
+run the command
+
+cd tests && ./run_tests.sh

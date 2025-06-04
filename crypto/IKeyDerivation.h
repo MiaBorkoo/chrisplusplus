@@ -1,5 +1,6 @@
 #pragma once
 #include "CryptoTypes.h"
+#include <cstdint>
 #include <string>
 
 class IKeyDerivation {
