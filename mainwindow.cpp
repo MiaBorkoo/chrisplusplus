@@ -148,6 +148,4 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 MainWindow::~MainWindow()
 {
     //destructor cause it wouldnt build without i
-}   
-
-
+} 
