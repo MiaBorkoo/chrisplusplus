@@ -27,20 +27,21 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     QRect screenGeometry = screen->geometry();
     setGeometry(screenGeometry);
 
+    // Initialize services first
+    initializeServices();
+
     m_stack = new QStackedWidget(this);
 
     //creates login view and controller
     m_loginView = new LoginView(this);
-    m_client = std::make_shared<Client>(Config::getInstance().getServerUrl());
-    m_authService = std::make_shared<AuthService>(m_client);
-    m_loginModel = std::make_shared<LoginModel>(m_authService);
     m_loginController = new LoginController(m_loginModel, this);
     m_loginController->setView(m_loginView);
+    m_loginController->setAuthService(m_authService); // Connect to AuthService
 
     //creates sign up view and controller
     m_signUpView = new SignUpView(this);
-    m_signUpModel = std::make_shared<SignUpModel>(m_authService);
-    m_signUpController = new SignUpController(m_signUpView, m_signUpModel, this);
+    m_signUpController = new SignUpController(m_signUpView, this);
+    m_signUpController->setAuthService(m_authService); // Connect to AuthService
 
     // Initialize network client and services using Config
     auto client = std::make_shared<Client>(Config::getInstance().getServerUrl());
@@ -81,16 +82,16 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
         m_stack->setCurrentWidget(m_loginView);
     });
 
+    // Connect registration completion to switch back to login
+    connect(m_signUpController, &SignUpController::registrationCompleted, this, [this]() {
+        QMessageBox::information(this, "Success", "Registration completed! Please log in.");
+        m_stack->setCurrentWidget(m_loginView);
+    });
+
     //switches to files dash view after successful login
     connect(m_loginController, &LoginController::loginSuccessful, this, [this]() {
         m_stack->setCurrentWidget(m_filesDashView);
         m_sideNavController->setActiveTab(SideNavTab::OwnedFiles);
-    });
-    
-    //FIX: Registration success should go to LOGIN page, not files!
-    connect(m_signUpController, &SignUpController::registrationSuccessful, this, [this]() {
-        m_stack->setCurrentWidget(m_loginView);  // ✅ Go to login page
-        // TODO: Show message "Registration successful! Please login with your credentials."
     });
     
     connect(m_filesDashView, &FilesDashView::fileOpenRequested, this, [this](const QString &fileName) {
@@ -142,6 +143,27 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     });
 
    
+}
+
+void MainWindow::initializeServices()
+{
+    // Initialize network client with default values
+    // TODO: These should come from configuration/settings
+    QString baseUrl = "https://chrisplusplus.gobbler.info";  // Default server URL
+    
+    m_client = std::make_shared<Client>(baseUrl, this);
+    
+    // Initialize AuthService with the client
+    m_authService = std::make_shared<AuthService>(m_client, this);
+    
+    // Initialize LoginModel with AuthService
+    m_loginModel = std::make_shared<LoginModel>(m_authService, this);
+    
+    // Initialize SignUpModel with AuthService
+    m_signUpModel = std::make_shared<SignUpModel>(m_authService, this);
+    
+    qDebug() << "Services initialized successfully";
+    qDebug() << "Base URL:" << baseUrl;
 }
 
 MainWindow::~MainWindow()

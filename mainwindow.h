@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QStackedWidget>
+#include <memory>
 #include "views/LoginView.h"
 #include "controllers/LoginController.h"
 #include "views/SignUpView.h"
@@ -16,9 +17,10 @@
 #include "models/LoginModel.h"
 #include "models/SignUpModel.h"
 #include "services/files/FileService.h"
+#include "views/AccountSection.h"
+#include "controllers/AccountController.h"
 #include "services/auth/AuthService.h"
 #include "network/Client.h"
-#include <memory>
 
 class MainWindow : public QMainWindow
 {
@@ -47,6 +49,8 @@ private:
     std::shared_ptr<FileModel> m_fileModel;
     std::shared_ptr<LoginModel> m_loginModel;
     std::shared_ptr<SignUpModel> m_signUpModel;
+
+    void initializeServices();
 };
 
 #endif // MAINWINDOW_H

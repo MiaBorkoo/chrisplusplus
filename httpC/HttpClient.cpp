@@ -15,16 +15,28 @@ HttpClient::HttpClient(SSLContext& ctx,
 
 //Blocking synchronous HTTP request
 HttpResponse HttpClient::sendRequest(const HttpRequest& req) {
-    // 1) Open TLS connection
-    SSLConnection conn(ctx_, host_, port_);
-    conn.setTimeout(30); // Set reasonable timeout
+    try {
+        // 1) Open TLS connection
+        std::cout << "HttpClient: Attempting SSL connection to " << host_ << ":" << port_ << std::endl;
+        SSLConnection conn(ctx_, host_, port_);
+        conn.setTimeout(30); // Set reasonable timeout
 
-    // 2) Serialize & send
-    auto rawReq = req.serialize();
-    conn.send(rawReq.data(), rawReq.size());
+        // 2) Serialize & send
+        auto rawReq = req.serialize();
+        conn.send(rawReq.data(), rawReq.size());
 
-    // 3) Use proper HTTP response reading
-    return receiveResponse(conn);
+        // 3) Use proper HTTP response reading
+        return receiveResponse(conn);
+    } catch (const std::exception& e) {
+        std::cout << "HttpClient: SSL connection failed: " << e.what() << std::endl;
+        
+        // Return an error response instead of crashing
+        HttpResponse errorResponse;
+        errorResponse.statusCode = 0; // Connection error
+        errorResponse.statusMessage = "Connection Failed";
+        errorResponse.body = std::string("SSL connection failed: ") + e.what();
+        return errorResponse;
+    }
 }
 
 //Asynchronous HTTP request (non-blocking - GUI safe)
@@ -49,40 +61,58 @@ void HttpClient::sendAsync(const HttpRequest& req,
 
 //streaming upload (blocking)
 HttpResponse HttpClient::sendRequestWithStreamingBody(const HttpRequest& req, QIODevice& bodySource) {
-    // 1) Open TLS connection
-    SSLConnection conn(ctx_, host_, port_);
-    conn.setTimeout(60); // Longer timeout for uploads
-    conn.optimizeForFileTransfer(); // NEW: Socket-level optimization
-    
-    // 2) Send headers with chunked encoding
-    HttpRequest streamingReq = req;
-    streamingReq.headers["Transfer-Encoding"] = "chunked";
-    streamingReq.body = ""; // No body in headers
-    
-    auto headerData = streamingReq.serialize();
-    conn.send(headerData.data(), headerData.size());
-    
-    // 3) Send body in chunks (HTTP chunked encoding required)
-    if (!sendChunkedBody(conn, bodySource)) {
-        throw std::runtime_error("Failed to send chunked body");
+    try {
+        // 1) Open TLS connection
+        std::cout << "HttpClient: Attempting SSL connection for streaming upload to " << host_ << ":" << port_ << std::endl;
+        SSLConnection conn(ctx_, host_, port_);
+        conn.setTimeout(60); // Longer timeout for uploads
+        conn.optimizeForFileTransfer(); // NEW: Socket-level optimization
+        
+        // 2) Send headers with chunked encoding
+        HttpRequest streamingReq = req;
+        streamingReq.headers["Transfer-Encoding"] = "chunked";
+        streamingReq.body = ""; // No body in headers
+        
+        auto headerData = streamingReq.serialize();
+        conn.send(headerData.data(), headerData.size());
+        
+        // 3) Send body in chunks (HTTP chunked encoding required)
+        if (!sendChunkedBody(conn, bodySource)) {
+            throw std::runtime_error("Failed to send chunked body");
+        }
+        
+        // 4) Receive response with proper HTTP parsing
+        return receiveResponse(conn);
+    } catch (const std::exception& e) {
+        std::cout << "HttpClient: SSL connection failed for streaming upload: " << e.what() << std::endl;
+        
+        // Return an error response instead of crashing
+        HttpResponse errorResponse;
+        errorResponse.statusCode = 0; // Connection error
+        errorResponse.statusMessage = "Connection Failed";
+        errorResponse.body = std::string("SSL connection failed: ") + e.what();
+        return errorResponse;
     }
-    
-    // 4) Receive response with proper HTTP parsing
-    return receiveResponse(conn);
 }
 
 //streaming download (blocking)
 bool HttpClient::downloadToStream(const HttpRequest& req, QIODevice& destination) {
-    // 1) Open TLS connection
-    SSLConnection conn(ctx_, host_, port_);
-    conn.setTimeout(60); // Longer timeout for downloads
-    
-    // 2) Send request
-    auto rawReq = req.serialize();
-    conn.send(rawReq.data(), rawReq.size());
-    
-    // 3) Stream response directly to destination
-    return receiveResponseToStream(conn, destination);
+    try {
+        // 1) Open TLS connection
+        std::cout << "HttpClient: Attempting SSL connection for streaming download to " << host_ << ":" << port_ << std::endl;
+        SSLConnection conn(ctx_, host_, port_);
+        conn.setTimeout(60); // Longer timeout for downloads
+        
+        // 2) Send request
+        auto rawReq = req.serialize();
+        conn.send(rawReq.data(), rawReq.size());
+        
+        // 3) Stream response directly to destination
+        return receiveResponseToStream(conn, destination);
+    } catch (const std::exception& e) {
+        std::cout << "HttpClient: SSL connection failed for streaming download: " << e.what() << std::endl;
+        return false;
+    }
 }
 
 bool HttpClient::sendChunkedBody(SSLConnection& conn, QIODevice& source) {

@@ -15,9 +15,9 @@ namespace ServiceConfig {
         constexpr const char* DEFAULT_HTTP_PORT = "80";
         
         // Production server settings (to be overridden by environment/config)
-        constexpr const char* PRODUCTION_HOST = "api.chrisplusplus.com";
+        constexpr const char* PRODUCTION_HOST = "chrisplusplus.gobbler.info";
         constexpr const char* PRODUCTION_PORT = "443";
-        constexpr const char* PRODUCTION_URL = "https://api.chrisplusplus.com";
+        constexpr const char* PRODUCTION_URL = "https://chrisplusplus.gobbler.info";
     }
     
     // Client configuration

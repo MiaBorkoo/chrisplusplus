@@ -19,7 +19,7 @@ public:
 
     // Auth operations with function overloading
     void login(const QString& username, const QString& password);
-    void hashedLogin(const QString& username, const QString& authHash);
+    void hashedLoginWithTOTP(const QString& username, const QString& authHash, const QString& totpCode);
 
     void registerUser(const QString& username, const QString& password, const QString& confirmPassword);
     void registerUser(const QString& username,
@@ -52,13 +52,12 @@ public:
     QString enableTOTP(const QString& username);  // Returns QR code as base64
     bool verifyTOTPSetup(const QString& code);    // Verify and save secret
     void disableTOTP();                           // Remove TOTP
-    bool hasTOTPEnabled() const;                  // Check if enabled
+    bool hasTOTPEnabled() const;                  // Check if enabled globally
     
     // Enhanced TOTP methods for better user experience
-    bool hasTOTPEnabledForUser(const QString& username) const;
-    bool isFirstTimeLogin(const QString& username) const;
-    void markTOTPSetupCompleted(const QString& username);
-    void hashedLoginWithTOTP(const QString& username, const QString& authHash, const QString& totpCode);
+    bool hasTOTPEnabledForUser(const QString& username) const;  // Check if enabled for specific user
+    bool isFirstTimeLogin(const QString& username) const;  // Check if user needs first-time TOTP setup
+    void markTOTPSetupCompleted(const QString& username);  // Mark that user completed TOTP setup
     void completeTOTPSetupAndLogin(const QString& username, const QString& authHash, const QString& totpCode);
 
     // Get authentication salts from server
@@ -97,11 +96,11 @@ private slots:
 
 private:
     std::shared_ptr<Client> m_client;
-    QString m_sessionToken;
-    QScopedPointer<QSettings> m_settings;
     std::shared_ptr<ValidationService> m_validationService;
+    std::unique_ptr<QSettings> m_settings;
+    QString m_sessionToken;
     
-    // Simple TOTP state
+    // TOTP state
     QString m_pendingTOTPSecret;  // Temporary during setup
     QString m_pendingUsername;    // Username for setup
     
@@ -124,4 +123,7 @@ private:
     QString encryptMEK(const std::vector<unsigned char>& mek, const std::vector<uint8_t>& mekWrapperKey);
     std::vector<uint8_t> generateSalt() const;
     std::vector<unsigned char> createMEK() const;
+    
+    // SECURITY: hashedLogin made private to prevent TOTP bypass
+    void hashedLogin(const QString& username, const QString& authHash);
 };

@@ -39,15 +39,70 @@ SSLConnection::SSLConnection(SSLContext& ctx,
     SSL_set_fd(ssl_, sockfd_);
     std::cout << "Starting SSL handshake..." << std::endl;
 
-    // 5) Perform TLS handshake
-    if (SSL_connect(ssl_) != 1) {
+    // Set socket to non-blocking for timeout control
+    int flags = fcntl(sockfd_, F_GETFL, 0);
+    fcntl(sockfd_, F_SETFL, flags | O_NONBLOCK);
+
+    // 5) Perform TLS handshake with timeout
+    int ssl_result;
+    int max_attempts = 30; // 30 second timeout
+    int attempts = 0;
+    
+    while (attempts < max_attempts) {
+        ssl_result = SSL_connect(ssl_);
+        
+        if (ssl_result == 1) {
+            // Success!
+            break;
+        }
+        
+        int ssl_error = SSL_get_error(ssl_, ssl_result);
+        
+        if (ssl_error == SSL_ERROR_WANT_READ || ssl_error == SSL_ERROR_WANT_WRITE) {
+            // Need to wait for socket to be ready
+            fd_set read_fds, write_fds;
+            FD_ZERO(&read_fds);
+            FD_ZERO(&write_fds);
+            
+            if (ssl_error == SSL_ERROR_WANT_READ) {
+                FD_SET(sockfd_, &read_fds);
+            } else {
+                FD_SET(sockfd_, &write_fds);
+            }
+            
+            struct timeval tv = {1, 0}; // 1 second timeout per attempt
+            int select_result = select(sockfd_ + 1, &read_fds, &write_fds, nullptr, &tv);
+            
+            if (select_result > 0) {
+                // Socket is ready, try again
+                attempts++;
+                continue;
+            } else if (select_result == 0) {
+                // Timeout
+                attempts++;
+                std::cout << "SSL handshake attempt " << attempts << "/" << max_attempts << std::endl;
+                continue;
+            } else {
+                // select() error
+                throw std::runtime_error("select() failed during SSL handshake");
+            }
+        } else {
+            // Actual SSL error
+            break;
+        }
+    }
+    
+    // Restore blocking mode
+    fcntl(sockfd_, F_SETFL, flags);
+    
+    if (ssl_result != 1) {
         unsigned long err = ERR_get_error();
         char buf[256];
         ERR_error_string_n(err, buf, sizeof(buf));
         
         // Get more detailed error information
-        int ssl_error = SSL_get_error(ssl_, -1);
-        std::string detailed_error = "SSL_connect failed: ";
+        int ssl_error = SSL_get_error(ssl_, ssl_result);
+        std::string detailed_error = "SSL_connect failed after " + std::to_string(attempts) + " attempts: ";
         detailed_error += buf;
         detailed_error += " (SSL error code: " + std::to_string(ssl_error) + ")";
         
@@ -60,6 +115,8 @@ SSLConnection::SSLConnection(SSLContext& ctx,
         
         throw std::runtime_error(detailed_error);
     }
+    
+    std::cout << "SSL handshake successful!" << std::endl;
 
     // 6) Only verify certificate if verification is enabled in the context
     int verify_mode = SSL_CTX_get_verify_mode(ctx.get());
