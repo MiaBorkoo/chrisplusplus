@@ -3,7 +3,6 @@
 #include "../../../httpC/HttpClient.h"
 #include "../../../httpC/HttpRequest.h"
 #include "../../../httpC/HttpResponse.h"
-#include "../config/ServiceConfig.h"
 #include <sstream>
 #include <stdexcept>
 #include <iostream>
@@ -11,6 +10,7 @@
 #include <iomanip>
 #include <QFile>
 #include <cstring>
+#include "utils/Config.h"
 
 // TODO: Mia, refactor to use modern socket client
 
@@ -38,7 +38,7 @@ FileUploadResponse FileOperationsClient::upload_file(
         http_request.headers["Host"] = server_host_;
         http_request.headers["Authorization"] = "Bearer " + session_token;
         http_request.headers["Content-Type"] = "multipart/form-data; boundary=" + boundary;
-        http_request.headers["User-Agent"] = ServiceConfig::Client::USER_AGENT;
+        http_request.headers["User-Agent"] = Config::USER_AGENT;
         http_request.body = form_data;
         
         std::cout << "Making file upload request to: " << http_request.path << std::endl;
@@ -78,7 +78,7 @@ FileDownloadResponse FileOperationsClient::download_file(
         http_request.path = "/api/files/" + file_id + "/download";
         http_request.headers["Host"] = server_host_;
         http_request.headers["Authorization"] = "Bearer " + session_token;
-        http_request.headers["User-Agent"] = ServiceConfig::Client::USER_AGENT;
+        http_request.headers["User-Agent"] = Config::USER_AGENT;
         
         std::cout << "Making file download request to: " << http_request.path << std::endl;
         
@@ -228,7 +228,7 @@ bool FileOperationsClient::download_file_stream(
         http_request.path = "/api/files/" + file_id + "/download";
         http_request.headers["Host"] = server_host_;
         http_request.headers["Authorization"] = "Bearer " + session_token;
-        http_request.headers["User-Agent"] = ServiceConfig::Client::USER_AGENT;
+        http_request.headers["User-Agent"] = Config::USER_AGENT;
         
         std::cout << "Making streaming file download request to: " << http_request.path << std::endl;
         
@@ -275,7 +275,7 @@ FileMetadataResponse FileOperationsClient::get_file_metadata(
         http_request.path = "/api/files/" + file_id + "/metadata";
         http_request.headers["Host"] = server_host_;
         http_request.headers["Authorization"] = "Bearer " + session_token;
-        http_request.headers["User-Agent"] = ServiceConfig::Client::USER_AGENT;
+        http_request.headers["User-Agent"] = Config::USER_AGENT;
         
         HttpResponse response = client.sendRequest(http_request);
         
@@ -312,7 +312,7 @@ UserFilesResponse FileOperationsClient::list_files(
         http_request.path = "/api/files?" + query_string;
         http_request.headers["Host"] = server_host_;
         http_request.headers["Authorization"] = "Bearer " + session_token;
-        http_request.headers["User-Agent"] = ServiceConfig::Client::USER_AGENT;
+        http_request.headers["User-Agent"] = Config::USER_AGENT;
         
         HttpResponse response = client.sendRequest(http_request);
         
@@ -343,7 +343,7 @@ bool FileOperationsClient::delete_file(
         http_request.headers["Host"] = server_host_;
         http_request.headers["Authorization"] = "Bearer " + session_token;
         http_request.headers["Content-Type"] = "application/json";
-        http_request.headers["User-Agent"] = ServiceConfig::Client::USER_AGENT;
+        http_request.headers["User-Agent"] = Config::USER_AGENT;
         http_request.body = DataConverter::to_json_string(request);
         
         HttpResponse response = client.sendRequest(http_request);

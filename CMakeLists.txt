@@ -433,6 +433,7 @@ qt_generate_deploy_app_script(
 )
 install(SCRIPT ${deploy_script})
 
+target_sources(file_transfer PRIVATE utils/Config.cpp)
 # Add debug flags for memory debugging
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fno-omit-frame-pointer -g")
