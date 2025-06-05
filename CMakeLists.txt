@@ -133,7 +133,6 @@ qt_add_executable(ChrisPlusPlus
     models/SignUpModel.h
     models/TOTPModel.cpp
     models/TOTPModel.h
-    # Temporarily disabled - depend on FileService which doesn't exist yet
     models/FileModel.cpp
     models/FileModel.h
     models/SharedFileModel.cpp
@@ -159,18 +158,6 @@ qt_add_executable(ChrisPlusPlus
     network/Client.h
 
     ${RESOURCE_FILES}
-    # ✅ ADD: Authentication system
-    models/LoginModel.cpp
-    models/SignUpModel.cpp
-    models/FileModel.cpp
-    models/AccessModel.cpp
-    models/SharedFileModel.cpp
-    network/Client.cpp
-    services/auth/AuthService.cpp
-    services/ApiService.cpp
-    services/files/FileService.cpp
-    services/auth/otp/TOTP.cpp
-    services/auth/ValidationService.cpp
 )
 
 target_link_libraries(ChrisPlusPlus
@@ -236,10 +223,6 @@ target_link_libraries(test_signup_connection
     Qt6::Test
     Qt6::Widgets
     Qt6::Network
-    file_transfer
-    http_layer
-    sockets
-    tofu
     Qt6::Concurrent
     OpenSSL::SSL
     OpenSSL::Crypto
@@ -247,8 +230,20 @@ target_link_libraries(test_signup_connection
     file_transfer
     http_layer
     sockets
+    tofu
     ${QRENCODE_LIBRARIES}
     nlohmann_json::nlohmann_json
+)
+
+target_include_directories(test_signup_connection PRIVATE
+    ${CMAKE_SOURCE_DIR}/models
+    ${CMAKE_SOURCE_DIR}/views
+    ${CMAKE_SOURCE_DIR}/controllers
+    ${CMAKE_SOURCE_DIR}/services
+    ${CMAKE_SOURCE_DIR}/network
+    ${CMAKE_SOURCE_DIR}/crypto
+    ${CMAKE_SOURCE_DIR}/tofu
+    ${QRENCODE_INCLUDE_DIRS}
 )
 
 # Other test executables
@@ -314,20 +309,40 @@ target_link_libraries(test_login_connection PRIVATE
     ${QRENCODE_LIBRARIES}
 )
 
-# Add library directories for qrencode on macOS
+target_include_directories(test_file_connection PRIVATE
+    ${CMAKE_SOURCE_DIR}/models
+    ${CMAKE_SOURCE_DIR}/views
+    ${CMAKE_SOURCE_DIR}/controllers
+    ${CMAKE_SOURCE_DIR}/services
+    ${CMAKE_SOURCE_DIR}/services/files
+    ${CMAKE_SOURCE_DIR}/network
+    ${CMAKE_SOURCE_DIR}/crypto
+    ${QRENCODE_INCLUDE_DIRS}
+)
+
+target_include_directories(test_login_connection PRIVATE
+    ${CMAKE_SOURCE_DIR}/models
+    ${CMAKE_SOURCE_DIR}/views
+    ${CMAKE_SOURCE_DIR}/controllers
+    ${CMAKE_SOURCE_DIR}/services
+    ${CMAKE_SOURCE_DIR}/services/auth
+    ${CMAKE_SOURCE_DIR}/network
+    ${CMAKE_SOURCE_DIR}/crypto
+    ${CMAKE_SOURCE_DIR}/tofu
+    ${QRENCODE_INCLUDE_DIRS}
+)
+
+# Add library directories for qrencode on macOS for test executables
 if(APPLE)
-    target_link_directories(testMVCConnections PRIVATE /opt/homebrew/lib)
+    target_link_directories(test_signup_connection PRIVATE /opt/homebrew/lib)
+    target_link_directories(test_file_connection PRIVATE /opt/homebrew/lib)
+    target_link_directories(test_login_connection PRIVATE /opt/homebrew/lib)
 endif()
 
 # Add test to CTest
 add_test(NAME FileConnectionTests COMMAND test_file_connection)
 add_test(NAME LoginConnectionTests COMMAND test_login_connection)
 add_test(NAME SignUpConnectionTests COMMAND test_signup_connection)
-
-# Add library directories for qrencode on macOS
-if(APPLE)
-    target_link_directories(testMVCConnections PRIVATE /opt/homebrew/lib)
-endif()
 
 # Original test from dev branch
 add_executable(testSSLforNow
