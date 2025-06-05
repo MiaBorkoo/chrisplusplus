@@ -29,6 +29,7 @@ void SignUpController::onSignUpClicked(const QString &username, const QString &p
     QString usernameError;
     if (!isUsernameValid(username, usernameError)) {
         view->showError(usernameError);
+        emit m_model->registrationError(usernameError);
         return;
     }
 
@@ -36,17 +37,22 @@ void SignUpController::onSignUpClicked(const QString &username, const QString &p
     QString passwordError;
     if (!isPasswordValid(password, passwordError)) {
         view->showError(passwordError);
+        emit m_model->registrationError(passwordError);
         return;
     }
 
     if (password != confirmPassword) {
-        view->showError("Passwords do not match.");
+        QString error = "Passwords do not match.";
+        view->showError(error);
+        emit m_model->registrationError(error);
         return;
     }
 
     // Check if password contains username
     if (password.toLower().contains(username.toLower())) {
-        view->showError("Password cannot contain your username.");
+        QString error = "Password cannot contain your username.";
+        view->showError(error);
+        emit m_model->registrationError(error);
         return;
     }
 

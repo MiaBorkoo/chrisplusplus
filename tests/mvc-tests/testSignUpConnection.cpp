@@ -88,6 +88,13 @@ private slots:
         registrationErrorOccurred = false;
         lastErrorMessage.clear();
 
+        // Connect to the model's registration error signal
+        connect(m_signUpModel.get(), &SignUpModel::registrationError,
+                this, [this](const QString& error) {
+                    registrationErrorOccurred = true;
+                    lastErrorMessage = error;
+                });
+
         // Arrange
         QSignalSpy signUpSpy(m_signUpView, SIGNAL(signUpRequested(QString,QString,QString)));
         const QString testUsername = "testuser";
