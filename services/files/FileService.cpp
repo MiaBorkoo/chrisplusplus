@@ -3,6 +3,7 @@
 #include <QJsonDocument>
 #include <QFileInfo>
 #include <QUrl>
+#include <QDateTime>
 #include <iostream>
 #include <QDebug>
 #include "../utils/Config.h"  // Add Config include for server details
@@ -278,7 +279,14 @@ void FileService::handleResponseReceived(int status, const QJsonObject& data) {
 // Keep all existing response handlers exactly the same
 void FileService::handleFileListResponse(const QJsonObject& data, bool isSharedList) {
     QList<FileInfo> files;
-    QJsonArray fileArray = data.value("files").toArray();
+    
+    // FIXED: Parse correct field names from server response
+    QJsonArray fileArray;
+    if (isSharedList) {
+        fileArray = data.value("shared_files").toArray();
+    } else {
+        fileArray = data.value("owned_files").toArray();  // FIXED: was "files"
+    }
     
     int totalFiles = data.value("total_files").toInt();
     int currentPage = data.value("current_page").toInt();
@@ -289,10 +297,16 @@ void FileService::handleFileListResponse(const QJsonObject& data, bool isSharedL
         
         if (isSharedList) {
             SharedFileInfo info;
-            info.name = obj["name"].toString();
-            info.size = obj["size"].toVariant().toLongLong();
-            info.uploadDate = obj["upload_date"].toString();
-            info.sharedBy = obj["shared_by"].toString();  // Get the username of who shared it
+            // FIXED: Use server field names
+            info.name = obj["filename_encrypted"].toString();
+            info.size = obj["file_size_encrypted"].toString().toLongLong();
+            
+            // Convert timestamp to readable date
+            qint64 timestamp = obj["upload_timestamp"].toVariant().toLongLong();
+            QDateTime dateTime = QDateTime::fromSecsSinceEpoch(timestamp);
+            info.uploadDate = dateTime.toString("yyyy-MM-dd hh:mm:ss");
+            
+            info.sharedBy = obj["shared_by"].toString();  // This field may not exist for owned files
             
             if (obj.contains("acl")) {
                 QJsonArray aclArray = obj["acl"].toArray();
@@ -303,9 +317,14 @@ void FileService::handleFileListResponse(const QJsonObject& data, bool isSharedL
             files.append(info);
         } else {
             FileInfo info;
-            info.name = obj["name"].toString();
-            info.size = obj["size"].toVariant().toLongLong();
-            info.uploadDate = obj["upload_date"].toString();
+            // FIXED: Use server field names
+            info.name = obj["filename_encrypted"].toString();
+            info.size = obj["file_size_encrypted"].toString().toLongLong();
+            
+            // Convert timestamp to readable date  
+            qint64 timestamp = obj["upload_timestamp"].toVariant().toLongLong();
+            QDateTime dateTime = QDateTime::fromSecsSinceEpoch(timestamp);
+            info.uploadDate = dateTime.toString("yyyy-MM-dd hh:mm:ss");
             
             if (obj.contains("acl")) {
                 QJsonArray aclArray = obj["acl"].toArray();
