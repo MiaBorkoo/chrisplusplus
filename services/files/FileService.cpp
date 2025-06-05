@@ -29,6 +29,40 @@ FileService::FileService(std::shared_ptr<Client> client, QObject* parent)
     // Initialize secure file handler
     m_secureHandler = std::make_unique<SecureFileHandler>();
     
+    // 🔥 CONNECT SECURE HANDLER SIGNALS to forward async results
+    if (m_secureHandler) {
+        connect(m_secureHandler.get(), &SecureFileHandler::secureUploadCompleted,
+                this, [this](bool success, const QString& fileName, const QString& fileId) {
+                    std::cout << "✅ FILESERVICE: Secure upload completed: " << success << std::endl;
+                    emit uploadComplete(success, fileName);
+                });
+        
+        connect(m_secureHandler.get(), &SecureFileHandler::secureDownloadCompleted,
+                this, [this](bool success, const QString& fileName) {
+                    std::cout << "✅ FILESERVICE: Secure download completed: " << success << std::endl;
+                    emit downloadComplete(success, fileName);
+                });
+        
+        connect(m_secureHandler.get(), &SecureFileHandler::secureUploadProgress,
+                this, [this](const QString& fileName, qint64 processed, qint64 total) {
+                    emit uploadProgress(fileName, processed, total);
+                });
+        
+        connect(m_secureHandler.get(), &SecureFileHandler::secureDownloadProgress,
+                this, [this](const QString& fileName, qint64 processed, qint64 total) {
+                    emit downloadProgress(fileName, processed, total);
+                });
+        
+        connect(m_secureHandler.get(), &SecureFileHandler::secureOperationFailed,
+                this, [this](const QString& fileName, const QString& error) {
+                    std::cout << "❌ FILESERVICE: Secure operation failed: " << error.toStdString() << std::endl;
+                    reportError("Secure operation failed: " + error);
+                    // Determine if it was upload or download based on current operation
+                    emit uploadComplete(false, fileName);
+                    emit downloadComplete(false, fileName);
+                });
+    }
+    
     // FileTransfer will be initialized later when SSLContext is available
     m_fileTransfer = nullptr;
     
@@ -108,18 +142,9 @@ void FileService::uploadFile(const QString& filePath) {
     if (m_secureHandler && m_secureHandler->isInitialized()) {
         std::cout << "🔐 FILESERVICE: Using SECURE upload path" << std::endl;
         
-        auto result = m_secureHandler->uploadFileSecurely(filePath, m_authToken);
-        
-        if (result.success) {
-            std::cout << "✅ FILESERVICE: Secure upload completed successfully!" << std::endl;
-            std::cout << "   File ID: " << result.fileId.toStdString() << std::endl;
-            emit uploadComplete(true, m_currentFileName);
-        } else {
-            std::cout << "❌ FILESERVICE: Secure upload failed: " << result.error.toStdString() << std::endl;
-            reportError("Secure upload failed: " + result.error);
-            emit uploadComplete(false, m_currentFileName);
-        }
-        return;
+        // 🔥 FIXED: Use async streaming upload instead of blocking sync upload
+        m_secureHandler->uploadFileSecurelyAsync(filePath, m_authToken);
+        return; // Completion handled via signals
     }
     
     // FALLBACK PATH: Use legacy FileTransfer (only if secure system unavailable)
@@ -145,17 +170,9 @@ void FileService::downloadFile(const QString& fileName, const QString& savePath)
     if (m_secureHandler && m_secureHandler->isInitialized()) {
         std::cout << "🔐 FILESERVICE: Using SECURE download path" << std::endl;
         
-        auto result = m_secureHandler->downloadFileSecurely(fileName, savePath, m_authToken);
-        
-        if (result.success) {
-            std::cout << "✅ FILESERVICE: Secure download completed successfully!" << std::endl;
-            emit downloadComplete(true, m_currentFileName);
-        } else {
-            std::cout << "❌ FILESERVICE: Secure download failed: " << result.error.toStdString() << std::endl;
-            reportError("Secure download failed: " + result.error);
-            emit downloadComplete(false, m_currentFileName);
-        }
-        return;
+        // 🔥 FIXED: Use async streaming download instead of blocking sync download
+        m_secureHandler->downloadFileSecurelyAsync(fileName, savePath, m_authToken);
+        return; // Completion handled via signals
     }
     
     // FALLBACK PATH: Use legacy FileTransfer
@@ -723,6 +740,13 @@ void FileService::initializeFileTransfer(std::shared_ptr<SSLContext> sslContext)
                 this, &FileService::handleTransferProgress);
         connect(m_fileTransfer.get(), &FileTransfer::transferFailed,
                 this, &FileService::handleNetworkError);
+        
+        // 🔥 PASS FILETRANSFER TO SECURE HANDLER for streaming operations
+        if (m_secureHandler) {
+            std::cout << "🔗 FILESERVICE: Setting FileTransfer on SecureFileHandler" << std::endl;
+            m_secureHandler->setFileTransfer(m_fileTransfer);
+        }
+        
         std::cout << "✅ FILESERVICE: FileTransfer initialization complete" << std::endl;
     } else {
         std::cout << "❌ FILESERVICE: SSLContext is null, cannot initialize FileTransfer" << std::endl;

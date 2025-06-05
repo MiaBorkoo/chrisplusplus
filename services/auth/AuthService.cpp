@@ -35,9 +35,6 @@ AuthService::AuthService(std::shared_ptr<Client> client, QObject* parent)
     // Initialize settings
     m_settings = std::make_unique<QSettings>("Epic", "ChrisPlusPlus");
     
-    // TEMPORARY: Clear all TOTP settings for debugging
-    clearAllTOTPSettings();
-    
     if (m_client) {
         connect(m_client.get(), SIGNAL(responseReceived(int, QJsonObject)), 
                 this, SLOT(handleResponseReceived(int, QJsonObject)));
@@ -751,30 +748,6 @@ void AuthService::disableTOTP() {
     
     emit totpDisabled();
     qDebug() << "TOTP disabled";
-}
-
-// ADDED: Debug method to clear ALL TOTP settings for fresh start
-void AuthService::clearAllTOTPSettings() {
-    qDebug() << "🧹 CLEARING ALL TOTP SETTINGS FOR DEBUG";
-    
-    // Clear global TOTP settings
-    m_settings->remove("totp/enabled");
-    m_settings->remove("totp/username");  
-    m_settings->remove("totp/enabled_at");
-    
-    // Clear all user-specific TOTP settings
-    m_settings->beginGroup("users");
-    QStringList userKeys = m_settings->childGroups();
-    for (const QString& userKey : userKeys) {
-        m_settings->remove(userKey + "/totp_setup_completed");
-        m_settings->remove(userKey + "/totp_setup_completed_at");
-        m_settings->remove(userKey + "/server_otpauth_uri");
-    }
-    m_settings->endGroup();
-    
-    m_settings->sync();
-    
-    qDebug() << "✅ All TOTP settings cleared";
 }
 
 // Enhanced TOTP methods for better user experience

@@ -4,6 +4,7 @@
 #include <QObject>
 #include <memory>
 #include <vector>
+#include <functional>
 
 // Forward declarations to avoid header dependencies
 class FileEncryptionEngine;
@@ -11,6 +12,9 @@ class FileOperationsClient;
 class SharingServiceClient;
 class AuditServiceClient;
 class SSLContext;
+class FileTransfer;
+struct TransferResult;
+struct FileEncryptionContext;
 
 struct SecureUploadResult {
     bool success;
@@ -24,15 +28,20 @@ struct SecureDownloadResult {
     QString filePath;
 };
 
+// Async progress callbacks for encrypted operations
+using EncryptionProgressCallback = std::function<void(qint64 bytesProcessed, qint64 totalBytes)>;
+
 /**
  * SecureFileHandler - Clean abstraction for the secure file system
- * Implements the CS4455-compliant encryption architecture:
- * - Argon2id key derivation for MEK wrapper keys
- * - AES-256-GCM encryption for files and MEK
- * - Fresh DEK per file
- * - Proper HMAC authentication
+ * 🔥 FIXED: Now wraps existing FileTransfer streaming architecture with encryption
+ * instead of doing blocking operations!
+ * 
+ * Architecture:
+ * FileTransfer (async streaming) → Encryption Layer → Secure Network
  */
-class SecureFileHandler {
+class SecureFileHandler : public QObject {
+    Q_OBJECT
+
 public:
     SecureFileHandler();
     ~SecureFileHandler();
@@ -46,15 +55,22 @@ public:
         const QString& encryptionSalt
     );
 
+    // Set the existing FileTransfer for streaming operations
+    void setFileTransfer(std::shared_ptr<FileTransfer> fileTransfer);
+
     // MEK management according to diagram
     bool deriveUserMEK(const QString& password, const QString& salt);
     bool updatePasswordAndReencryptMEK(const QString& oldPassword, const QString& newPassword, const QString& salt);
     bool isInitialized() const;
 
-    // Secure file operations
+    // 🔥 ASYNC secure file operations that wrap FileTransfer streaming
+    void uploadFileSecurelyAsync(const QString& filePath, const QString& authToken);
+    void downloadFileSecurelyAsync(const QString& fileName, const QString& savePath, const QString& authToken);
+    bool deleteFileSecurely(const QString& fileName, const QString& authToken);
+
+    // 🔥 LEGACY SYNC methods for backward compatibility (deprecated)
     SecureUploadResult uploadFileSecurely(const QString& filePath, const QString& authToken);
     SecureDownloadResult downloadFileSecurely(const QString& fileName, const QString& savePath, const QString& authToken);
-    bool deleteFileSecurely(const QString& fileName, const QString& authToken);
 
     // File sharing operations
     bool shareFileSecurely(const QString& fileName, const QString& recipientUsername, const QString& authToken);
@@ -67,12 +83,29 @@ public:
     // Metadata decryption for UI display
     std::string decryptMetadata(const std::string& encryptedData) const;
 
+signals:
+    // Async operation results
+    void secureUploadCompleted(bool success, const QString& fileName, const QString& fileId = "");
+    void secureDownloadCompleted(bool success, const QString& fileName);
+    void secureUploadProgress(const QString& fileName, qint64 bytesProcessed, qint64 totalBytes);
+    void secureDownloadProgress(const QString& fileName, qint64 bytesProcessed, qint64 totalBytes);
+    void secureOperationFailed(const QString& fileName, const QString& error);
+
+private slots:
+    // Handle FileTransfer completion
+    void handleUploadCompleted(bool success, const TransferResult& result);
+    void handleDownloadCompleted(bool success, const TransferResult& result);
+    void handleTransferProgress(qint64 bytesTransferred, qint64 totalBytes);
+
 private:
     // Core encryption components
     std::unique_ptr<FileEncryptionEngine> m_encryptionEngine;
     std::shared_ptr<FileOperationsClient> m_fileOperationsClient;
     std::shared_ptr<SharingServiceClient> m_sharingServiceClient;
     std::shared_ptr<AuditServiceClient> m_auditServiceClient;
+    
+    // 🔥 INTEGRATION: Use existing FileTransfer for streaming
+    std::shared_ptr<FileTransfer> m_fileTransfer;
     
     // User encryption context
     std::vector<uint8_t> m_userMEK;         // Master Encryption Key (256-bit)
@@ -86,12 +119,22 @@ private:
     // Initialization state
     bool m_isInitialized;
     
+    // Current operation tracking
+    QString m_currentFileName;
+    QString m_currentAuthToken;
+    QString m_currentTempFilePath; // Track temp file for cleanup
+    
     // Helper methods for encryption flow
     bool deriveMEKWrapperKey(const QString& password, const QString& salt);
     bool generateOrRecoverMEK();
     bool encryptMEKForStorage();
     bool decryptMEKFromStorage();
     
+    // 🔥 STREAMING ENCRYPTION: Process files in chunks
+    QString createEncryptedTempFile(const QString& sourceFilePath);
+    bool decryptStreamedFile(const QString& encryptedFilePath, const QString& outputPath);
+    std::vector<uint8_t> encryptFileData(const std::vector<uint8_t>& fileData, const FileEncryptionContext& context);
+    
     // Security validation
     bool validateEncryptionComponents() const;
-}; 
+};

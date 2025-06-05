@@ -383,36 +383,50 @@ std::string FileTransfer::buildMultipartFormData(const QString& filePath, const 
     std::cout << "   file_size_encrypted: " << fileSizeEncoded.toStdString() << std::endl;
     std::cout << "   file_data_hmac: temp-hmac" << std::endl;
     
-    std::stringstream formData;
+    // 🔥 FIXED: Use std::vector<char> instead of std::stringstream to handle binary data properly!
+    std::vector<char> formData;
+    
+    // Helper lambda to append strings to vector
+    auto appendString = [&formData](const std::string& str) {
+        formData.insert(formData.end(), str.begin(), str.end());
+    };
+    
+    // Helper lambda to append QByteArray to vector  
+    auto appendByteArray = [&formData](const QByteArray& data) {
+        formData.insert(formData.end(), data.constData(), data.constData() + data.size());
+    };
     
     // Add file field (the main file data)
-    formData << "--" << boundary_ << "\r\n";
-    formData << "Content-Disposition: form-data; name=\"file\"; filename=\"" << filename << "\"\r\n";
-    formData << "Content-Type: application/octet-stream\r\n\r\n";
+    appendString("--" + boundary_ + "\r\n");
+    appendString("Content-Disposition: form-data; name=\"file\"; filename=\"" + filename + "\"\r\n");
+    appendString("Content-Type: application/octet-stream\r\n\r\n");
     
-    // Write file data
-    formData.write(fileData.constData(), fileData.size());
-    formData << "\r\n";
+    // 🔥 CRITICAL: Write binary file data directly to vector (preserves null bytes!)
+    appendByteArray(fileData);
+    appendString("\r\n");
     
     // Add filename_encrypted field (base64 encoded filename)
-    formData << "--" << boundary_ << "\r\n";
-    formData << "Content-Disposition: form-data; name=\"filename_encrypted\"\r\n\r\n";
-    formData << filenameEncoded.toStdString() << "\r\n";
+    appendString("--" + boundary_ + "\r\n");
+    appendString("Content-Disposition: form-data; name=\"filename_encrypted\"\r\n\r\n");
+    appendString(filenameEncoded.toStdString() + "\r\n");
     
     // Add file_size_encrypted field (base64 encoded file size)
-    formData << "--" << boundary_ << "\r\n";
-    formData << "Content-Disposition: form-data; name=\"file_size_encrypted\"\r\n\r\n";
-    formData << fileSizeEncoded.toStdString() << "\r\n";
+    appendString("--" + boundary_ + "\r\n");
+    appendString("Content-Disposition: form-data; name=\"file_size_encrypted\"\r\n\r\n");
+    appendString(fileSizeEncoded.toStdString() + "\r\n");
     
     // Add file_data_hmac field (temporary string for now)
-    formData << "--" << boundary_ << "\r\n";
-    formData << "Content-Disposition: form-data; name=\"file_data_hmac\"\r\n\r\n";
-    formData << "temp-hmac" << "\r\n";
+    appendString("--" + boundary_ + "\r\n");
+    appendString("Content-Disposition: form-data; name=\"file_data_hmac\"\r\n\r\n");
+    appendString("temp-hmac\r\n");
     
     // End boundary
-    formData << "--" << boundary_ << "--\r\n";
+    appendString("--" + boundary_ + "--\r\n");
     
-    std::string result = formData.str();
+    // 🔥 FIXED: Convert vector to string properly (preserves binary data)
+    std::string result(formData.begin(), formData.end());
+    
+    std::cout << "🔧 FILETRANSFER: Built multipart form data, total size: " << result.size() << " bytes" << std::endl;
     
     return result;
 } 
