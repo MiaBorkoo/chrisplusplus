@@ -63,14 +63,14 @@ void AuthService::login(const QString& username, const QString& password) {
         // Derive auth hash
         QString authHash = deriveAuthHash(password, authSalt1, authSalt2);
         
-        // Check TOTP status and handle different scenarios
-        if (hasTOTPEnabled()) {
-            // User has TOTP enabled - require TOTP code
-            qDebug() << "TOTP enabled for user, requiring verification";
+        // Check TOTP status for this specific user
+        if (hasTOTPEnabledForUser(username)) {
+            // This specific user has TOTP enabled - require TOTP code
+            qDebug() << "TOTP enabled for user" << username << ", requiring verification";
             emit totpRequired(username, authHash);
         } else if (isFirstTimeLogin(username)) {
             // FIRST LOGIN AFTER REGISTRATION - Automatically set up TOTP
-            qDebug() << "First time login detected - auto-setting up TOTP";
+            qDebug() << "First time login detected for user" << username << "- auto-setting up TOTP";
             QString qrCode = enableTOTP(username);
             if (!qrCode.isEmpty()) {
                 emit firstLoginTOTPSetupRequired(username, authHash, qrCode);
@@ -394,9 +394,9 @@ QString AuthService::deriveAuthHash(const QString& password,
 // TOTP methods (industry standard approach)
 QString AuthService::enableTOTP(const QString& username) {
     try {
-        // Check if TOTP is already enabled
-        if (hasTOTPEnabled()) {
-            emit errorOccurred("TOTP is already enabled for this account");
+        // Check if TOTP is already enabled for this specific user
+        if (hasTOTPEnabledForUser(username)) {
+            emit errorOccurred("TOTP is already enabled for this user");
             return QString();
         }
         
@@ -496,8 +496,23 @@ bool AuthService::verifyTOTPSetup(const QString& code) {
 }
 
 bool AuthService::hasTOTPEnabled() const {
-    // Check if TOTP is enabled (flag only - no secret stored locally)
-    return m_settings->value("totp/enabled", false).toBool();
+    // Check if TOTP is enabled globally (legacy support)
+    bool globalEnabled = m_settings->value("totp/enabled", false).toBool();
+    
+    // If we have a pending username (during TOTP setup), check for that user
+    if (!m_pendingUsername.isEmpty()) {
+        QString key = QString("users/%1/totp_setup_completed").arg(m_pendingUsername);
+        return m_settings->value(key, false).toBool();
+    }
+    
+    // Otherwise, check if any user has TOTP enabled (for backward compatibility)
+    return globalEnabled;
+}
+
+bool AuthService::hasTOTPEnabledForUser(const QString& username) const {
+    // Check if this specific user has completed TOTP setup
+    QString key = QString("users/%1/totp_setup_completed").arg(username);
+    return m_settings->value(key, false).toBool();
 }
 
 bool AuthService::isFirstTimeLogin(const QString& username) const {

@@ -52,7 +52,8 @@ public:
     QString enableTOTP(const QString& username);  // Returns QR code as base64
     bool verifyTOTPSetup(const QString& code);    // Verify and save secret
     void disableTOTP();                           // Remove TOTP
-    bool hasTOTPEnabled() const;                  // Check if enabled
+    bool hasTOTPEnabled() const;                  // Check if enabled globally
+    bool hasTOTPEnabledForUser(const QString& username) const;  // Check if enabled for specific user
     
     // First-login TOTP detection
     bool isFirstTimeLogin(const QString& username) const;  // Check if user needs first-time TOTP setup
