@@ -23,7 +23,7 @@ FileService::FileService(std::shared_ptr<Client> client, QObject* parent)
 }
 
 void FileService::setAuthToken(const QString& token) {
-    std::cout << "🔑 FILESERVICE: setAuthToken called with token: " << token.left(20) << "..." << std::endl;
+    std::cout << "🔑 FILESERVICE: setAuthToken called with token: " << token.left(20).toStdString() << "..." << std::endl;
     m_authToken = token;
     
     // Set token on the shared client for Authorization headers

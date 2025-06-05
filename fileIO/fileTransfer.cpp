@@ -8,7 +8,6 @@
 #include <QDateTime>
 #include <sstream>
 #include "../utils/Config.h"  // Add Config include for server details
-#include <iostream>
 
 // Simple progress tracking wrapper
 class ProgressTrackingFile : public QFile {
@@ -45,8 +44,6 @@ FileTransfer::FileTransfer(SSLContext& sslContext, QObject* parent)
 {
     qRegisterMetaType<TransferResult>("TransferResult");
     
-    std::cout << "🔧 FILETRANSFER: Constructor called - maxRetries set to " << maxRetries_ << std::endl;
-    
     // Setup retry timer
     retryTimer_->setSingleShot(true);
     connect(retryTimer_, &QTimer::timeout, this, &FileTransfer::retryUpload);
@@ -54,12 +51,10 @@ FileTransfer::FileTransfer(SSLContext& sslContext, QObject* parent)
 
 void FileTransfer::setHttpClient(std::shared_ptr<HttpClient> httpClient) {
     httpClient_ = httpClient;
-    std::cout << "🔧 FILETRANSFER: HttpClient set - " << (httpClient_ ? "SUCCESS" : "FAILED") << std::endl;
 }
 
 void FileTransfer::setAuthToken(const QString& token) {
     authToken_ = token;
-    std::cout << "🔧 FILETRANSFER: Auth token set - " << token.left(20) << "..." << std::endl;
 }
 
 void FileTransfer::setAllowedMimeTypes(const QSet<QString>& mimeTypes) {
@@ -86,25 +81,11 @@ bool FileTransfer::isFileSizeAllowed(qint64 size) const {
 void FileTransfer::uploadFileAsync(const QString& filePath, 
                                   const std::string& uploadEndpoint,
                                   int maxRetries) {
-    std::cout << "🚀 FILETRANSFER: uploadFileAsync called!" << std::endl;
-    std::cout << "   📁 File: " << filePath.toStdString() << std::endl;
-    std::cout << "   🎯 Endpoint: " << uploadEndpoint << std::endl;
-    std::cout << "   🔄 Max retries: " << maxRetries << std::endl;
-    
-    if (!httpClient_) {
-        std::cout << "❌ FILETRANSFER: HttpClient not configured!" << std::endl;
-        TransferResult result;
-        result.errorMessage = "HttpClient not configured. Call setHttpClient() first.";
-        emit uploadCompleted(false, result);
-        return;
-    }
-    
     maxRetries_ = maxRetries;
     currentAttempt_ = 1;
     currentFilePath_ = filePath;
     currentEndpoint_ = uploadEndpoint;
     
-    std::cout << "✅ FILETRANSFER: Starting upload attempt #" << currentAttempt_ << std::endl;
     performUploadAsync(filePath, uploadEndpoint);
 }
 
@@ -127,88 +108,63 @@ void FileTransfer::downloadFileAsync(const std::string& downloadEndpoint,
 }
 
 void FileTransfer::performUploadAsync(const QString& filePath, const std::string& endpoint) {
-    std::cout << "📤 FILETRANSFER: performUploadAsync called - attempt #" << currentAttempt_ << std::endl;
-    
     // Validate file
     QFileInfo fileInfo(filePath);
     if (!fileInfo.exists() || !fileInfo.isFile()) {
-        std::cout << "❌ FILETRANSFER: File validation failed: " << filePath.toStdString() << std::endl;
         TransferResult result;
         result.errorMessage = "File not found: " + filePath;
         emit uploadCompleted(false, result);
         return;
     }
     
-    std::cout << "📋 FILETRANSFER: File info - Size: " << fileInfo.size() << " bytes, Name: " << fileInfo.fileName().toStdString() << std::endl;
-    
     // Create request WITHOUT body (we'll build multipart body separately)
     HttpRequest request = createUploadRequest(endpoint, fileInfo.fileName(), fileInfo.size());
-    std::cout << "📝 FILETRANSFER: HTTP request created - Method: " << request.method << ", Path: " << request.path << std::endl;
-    std::cout << "📝 FILETRANSFER: Content-Type: " << request.headers["Content-Type"] << std::endl;
     
     // Use QtConcurrent for async operation
     auto self = shared_from_this();
     auto future = QtConcurrent::run([self, request, filePath, fileInfo]() mutable {
-        std::cout << "🧵 FILETRANSFER: Background thread started for upload" << std::endl;
         try {
             // 🔥 NEW: Build multipart form data body (not streaming)
-            std::cout << "🔧 FILETRANSFER: Building multipart form data..." << std::endl;
             std::string multipartBody = self->buildMultipartFormData(filePath, fileInfo.fileName().toStdString());
             request.body = multipartBody;
             
-            std::cout << "📦 FILETRANSFER: Multipart body built - Size: " << multipartBody.size() << " bytes" << std::endl;
-            std::cout << "📡 FILETRANSFER: Calling httpClient_->sendRequest (NOT streaming)..." << std::endl;
-            
             // Use regular sendRequest instead of sendRequestWithStreamingBody
             HttpResponse response = self->httpClient_->sendRequest(request);
-            std::cout << "📥 FILETRANSFER: Got response - Status: " << response.statusCode << ", Message: " << response.statusMessage << std::endl;
-            std::cout << "📄 FILETRANSFER: Response body length: " << response.body.length() << std::endl;
             
             // Back to GUI thread
             QMetaObject::invokeMethod(qApp, [self, response, filePath]() {
-                std::cout << "🖥️ FILETRANSFER: Back on GUI thread - processing response" << std::endl;
                 TransferResult result;
                 if (response.statusCode == 200 && !self->cancelRequested_) {
-                    std::cout << "✅ FILETRANSFER: Upload SUCCESS!" << std::endl;
                     result.success = true;
                     result.bytesTransferred = QFileInfo(filePath).size();
                     result.serverResponse = QString::fromStdString(response.body);
                     emit self->uploadCompleted(true, result);
                 } else {
-                    std::cout << "❌ FILETRANSFER: Upload FAILED - Status: " << response.statusCode << ", Cancelled: " << self->cancelRequested_ << std::endl;
                     result.errorMessage = self->cancelRequested_ ? 
                         QString("Upload cancelled") : 
                         self->extractServerError(response);
                     
-                    std::cout << "🔄 FILETRANSFER: Checking retry logic - attempt " << self->currentAttempt_ << "/" << self->maxRetries_ << std::endl;
-                    
                     // Retry logic
                     if (self->currentAttempt_ < self->maxRetries_ && !self->cancelRequested_) {
                         self->currentAttempt_++;
-                        std::cout << "🔁 FILETRANSFER: Scheduling retry #" << self->currentAttempt_ << " in " << (self->currentAttempt_ * 1000) << "ms" << std::endl;
                         disconnect(self->retryTimer_, nullptr, nullptr, nullptr);
                         connect(self->retryTimer_, &QTimer::timeout, self.get(), &FileTransfer::retryUpload);
                         self->retryTimer_->start(self->currentAttempt_ * 1000);
                     } else {
-                        std::cout << "💀 FILETRANSFER: Max retries exceeded or cancelled - giving up" << std::endl;
                         emit self->uploadCompleted(false, result);
                     }
                 }
             }, Qt::QueuedConnection);
             
         } catch (const std::exception& e) {
-            std::cout << "💥 FILETRANSFER: Exception in background thread: " << e.what() << std::endl;
             // Back to GUI thread for error
             QMetaObject::invokeMethod(qApp, [self, e]() {
-                std::cout << "🖥️ FILETRANSFER: Exception handling on GUI thread" << std::endl;
                 if (self->currentAttempt_ < self->maxRetries_ && !self->cancelRequested_) {
                     self->currentAttempt_++;
-                    std::cout << "🔁 FILETRANSFER: Exception retry #" << self->currentAttempt_ << " in " << (self->currentAttempt_ * 1000) << "ms" << std::endl;
                     disconnect(self->retryTimer_, nullptr, nullptr, nullptr);
                     connect(self->retryTimer_, &QTimer::timeout, self.get(), &FileTransfer::retryUpload);
                     self->retryTimer_->start(self->currentAttempt_ * 1000);
                 } else {
-                    std::cout << "💀 FILETRANSFER: Exception - max retries exceeded" << std::endl;
                     TransferResult result;
                     result.errorMessage = "Upload failed: " + QString::fromStdString(e.what());
                     emit self->uploadCompleted(false, result);
@@ -300,7 +256,6 @@ void FileTransfer::performDownloadAsync(const std::string& endpoint, const QStri
 }
 
 void FileTransfer::retryUpload() {
-    std::cout << "🔁 FILETRANSFER: retryUpload called - attempt #" << currentAttempt_ << std::endl;
     performUploadAsync(currentFilePath_, currentEndpoint_);
 }
 
@@ -347,17 +302,9 @@ HttpRequest FileTransfer::createUploadRequest(const std::string& endpoint,
     std::string boundary = "----ChrisPlusPlus" + std::to_string(QDateTime::currentMSecsSinceEpoch());
     request.headers["Content-Type"] = "multipart/form-data; boundary=" + boundary;
     
-    // ❌ REMOVED: These headers are wrong for multipart uploads
-    // request.headers["Content-Type"] = "application/octet-stream";
-    // request.headers["Transfer-Encoding"] = "chunked";
-    // request.headers["X-File-Name"] = filename.toStdString();
-    // request.headers["X-File-Size"] = std::to_string(fileSize);
-    
     if (!authToken_.isEmpty()) {
         request.headers["Authorization"] = ("Bearer " + authToken_).toStdString();
     }
-    
-    std::cout << "📝 FILETRANSFER: Created multipart request with boundary: " << boundary << std::endl;
     
     // Store boundary for later use in building the multipart body
     boundary_ = boundary;
@@ -405,8 +352,6 @@ bool FileTransfer::isPathSafe(const QString& basePath, const QString& targetPath
 
 // NEW: Build multipart form data for file uploads
 std::string FileTransfer::buildMultipartFormData(const QString& filePath, const std::string& filename) {
-    std::cout << "🔧 FILETRANSFER: Building multipart form data for: " << filename << std::endl;
-    
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
         throw std::runtime_error("Cannot open file for reading: " + file.errorString().toStdString());
@@ -414,8 +359,6 @@ std::string FileTransfer::buildMultipartFormData(const QString& filePath, const 
     
     QByteArray fileData = file.readAll();
     file.close();
-    
-    std::cout << "📁 FILETRANSFER: Read file data - Size: " << fileData.size() << " bytes" << std::endl;
     
     std::stringstream formData;
     
@@ -437,7 +380,6 @@ std::string FileTransfer::buildMultipartFormData(const QString& filePath, const 
     formData << "--" << boundary_ << "--\r\n";
     
     std::string result = formData.str();
-    std::cout << "✅ FILETRANSFER: Multipart form data built - Total size: " << result.size() << " bytes" << std::endl;
     
     return result;
 } 
