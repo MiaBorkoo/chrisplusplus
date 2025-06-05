@@ -206,18 +206,35 @@ endif()
 # MVC Connections Test
 qt_add_executable(testMVCConnections
     tests/testMVCConnections.cpp
+
     models/FileModel.cpp
     models/AccessModel.cpp
     models/SharedFileModel.cpp
-    services/files/FileService.cpp
-    services/ApiService.cpp
-    controllers/FileDashController.cpp
+    models/LoginModel.cpp
+
+    
     controllers/AccountController.cpp
+    controllers/FileDashController.cpp
+    controllers/LoginController.cpp
+
     views/FilesDashView.cpp
     views/HeaderWidget.cpp
     views/SideNavWidget.cpp
+    views/LoginView.cpp
     views/AccountSection.cpp
+
+    services/files/FileService.cpp
+    services/ApiService.cpp
+    services/auth/AuthService.cpp
+    services/auth/ValidationService.cpp
+    services/auth/otp/TOTP.cpp
+
+
     network/Client.cpp
+    crypto/KeyDerivation.cpp
+    crypto/AuthHash.cpp
+    crypto/MEKGenerator.cpp
+    crypto/WrappedMEK.cpp
 )
 
 target_link_libraries(testMVCConnections PRIVATE 
@@ -228,6 +245,21 @@ target_link_libraries(testMVCConnections PRIVATE
     file_transfer
     http_layer
     sockets
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    crypto-lib
+    ${QRENCODE_LIBRARIES}
+)
+
+target_include_directories(testMVCConnections PRIVATE
+    ${CMAKE_SOURCE_DIR}/models
+    ${CMAKE_SOURCE_DIR}/views
+    ${CMAKE_SOURCE_DIR}/controllers
+    ${CMAKE_SOURCE_DIR}/services
+    ${CMAKE_SOURCE_DIR}/services/auth
+    ${CMAKE_SOURCE_DIR}/network
+    ${CMAKE_SOURCE_DIR}/crypto
+    ${QRENCODE_INCLUDE_DIRS}
 )
 
 # Add test to CTest

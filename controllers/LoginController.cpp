@@ -3,9 +3,14 @@
 #include <QMessageBox>
 #include <QDebug>
 
-LoginController::LoginController(QObject *parent) 
-    : QObject(parent), m_view(nullptr)
+LoginController::LoginController(std::shared_ptr<LoginModel> model, QObject *parent) 
+    : QObject(parent), m_view(nullptr), m_model(model)
 {
+    // Connect model signals
+    connect(m_model.get(), &LoginModel::loginSuccess,
+            this, &LoginController::handleLoginSuccess);
+    connect(m_model.get(), &LoginModel::loginError,
+            this, &LoginController::handleLoginError);
 }
 
 LoginController::~LoginController()
@@ -26,19 +31,12 @@ void LoginController::setAuthService(std::shared_ptr<AuthService> authService)
 {
     m_authService = authService;
     
-    // Initialize models with AuthService
-    m_model = std::make_unique<LoginModel>(authService, this);
+    // Initialize TOTP model with AuthService
     m_totpModel = std::make_unique<TOTPModel>(authService, this);
     
     // Initialize TOTP controller
     m_totpController = std::make_unique<TOTPController>(this);
     m_totpController->setModel(m_totpModel.get());
-    
-    // Connect model signals
-    connect(m_model.get(), &LoginModel::loginSuccess,
-            this, &LoginController::handleLoginSuccess);
-    connect(m_model.get(), &LoginModel::loginError,
-            this, &LoginController::handleLoginError);
     
     // Connect TOTP model signals
     connect(m_totpModel.get(), &TOTPModel::setupRequired,
@@ -81,7 +79,7 @@ void LoginController::handleLoginAttempt()
     
     qDebug() << "Starting login process for user:" << username;
     
-    // Use the model to perform login
+    // Forward login request to model
     m_model->login(username, password);
 }
 

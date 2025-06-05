@@ -17,7 +17,7 @@ class LoginController : public QObject
     Q_OBJECT
 
 public:
-    explicit LoginController(QObject *parent = nullptr);
+    explicit LoginController(std::shared_ptr<LoginModel> model, QObject *parent = nullptr);
     ~LoginController();
     void setView(LoginView *view);
     void setAuthService(std::shared_ptr<AuthService> authService);
@@ -30,7 +30,7 @@ private slots:
 
 private:
     LoginView *m_view;
-    std::unique_ptr<LoginModel> m_model;
+    std::shared_ptr<LoginModel> m_model;
     std::unique_ptr<TOTPModel> m_totpModel;
     std::unique_ptr<TOTPController> m_totpController;
     std::shared_ptr<AuthService> m_authService;

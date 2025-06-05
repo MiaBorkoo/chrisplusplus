@@ -53,6 +53,7 @@ LoginView::LoginView(QWidget *parent) : QWidget(parent)
     usernameLabel->setObjectName("usernameLabel");
     usernameLabel->setFont(labelFont);
     usernameEdit = new QLineEdit;
+    usernameEdit->setObjectName("usernameEdit");
     usernameEdit->setFont(inputFont);
     usernameEdit->setFixedSize(250, 40);
     usernameEdit->setAlignment(Qt::AlignCenter);
@@ -62,6 +63,7 @@ LoginView::LoginView(QWidget *parent) : QWidget(parent)
     passwordLabel->setObjectName("passwordLabel");
     passwordLabel->setFont(labelFont);
     passwordEdit = new QLineEdit;
+    passwordEdit->setObjectName("passwordEdit");
     passwordEdit->setFont(inputFont);
     passwordEdit->setFixedSize(250, 40);
     passwordEdit->setAlignment(Qt::AlignCenter);
@@ -91,7 +93,6 @@ LoginView::LoginView(QWidget *parent) : QWidget(parent)
     formLayout->addWidget(passwordEdit, 0, Qt::AlignCenter);
     formLayout->addSpacing(10);
     formLayout->addWidget(loginButton, 0, Qt::AlignCenter);
-    formLayout->addWidget(errorLabel, 0, Qt::AlignCenter); // Add error label to form
 
     QVBoxLayout *loginSectionLayout = new QVBoxLayout;
     loginSectionLayout->addWidget(loginHeading);
@@ -216,6 +217,7 @@ void LoginView::handleLogin()
     QString username = usernameEdit->text();
     QString password = passwordEdit->text();
     emit loginAttempted(username, password);
+    clearFields();
 }
 
 void LoginView::handleSignUp()

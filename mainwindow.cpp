@@ -34,7 +34,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
     //creates login view and controller
     m_loginView = new LoginView(this);
-    m_loginController = new LoginController(this);
+    m_loginController = new LoginController(m_loginModel, this);
     m_loginController->setView(m_loginView);
     m_loginController->setAuthService(m_authService); // Connect to AuthService
 
@@ -155,6 +155,9 @@ void MainWindow::initializeServices()
     
     // Initialize AuthService with the client
     m_authService = std::make_shared<AuthService>(m_client, this);
+    
+    // Initialize LoginModel with AuthService
+    m_loginModel = std::make_shared<LoginModel>(m_authService, this);
     
     qDebug() << "Services initialized successfully";
     qDebug() << "Base URL:" << baseUrl;
