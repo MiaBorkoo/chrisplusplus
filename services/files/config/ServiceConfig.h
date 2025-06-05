@@ -6,9 +6,9 @@ namespace ServiceConfig {
     // Server configuration constants
     namespace Server {
         // Default development server settings
-        constexpr const char* DEFAULT_HOST = "localhost";
-        constexpr const char* DEFAULT_PORT = "8000";
-        constexpr const char* DEFAULT_URL = "https://localhost:8000";
+        constexpr const char* DEFAULT_HOST = "chrisplusplus.gobbler.info";
+        constexpr const char* DEFAULT_PORT = "443";
+        constexpr const char* DEFAULT_URL = "https://chrisplusplus.gobbler.info";
         
         // Default SSL ports
         constexpr const char* DEFAULT_HTTPS_PORT = "443";

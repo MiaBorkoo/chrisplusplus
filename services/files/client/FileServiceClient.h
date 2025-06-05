@@ -22,7 +22,7 @@ public:
     ~FileServiceClient(); // Declare but don't default - will be defined in .cpp
 
     // Configuration
-    void set_server(const std::string& host, const std::string& port = "8000");
+    void set_server(const std::string& host, const std::string& port = "443");
     void set_base_url(const std::string& url);
     
     // File operations (delegated to FileOperationsClient)

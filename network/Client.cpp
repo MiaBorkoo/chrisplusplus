@@ -1,83 +1,149 @@
 #include "Client.h"
 #include <QJsonDocument>
 #include <QUrl>
+#include <QDebug>
 
 /**
- * @class Client
- * @brief Handles network requests and responses.
- * @author jjola00
- *
- * This class sends requests to the server and handles responses.
+ * @brief Clean network client for JSON API requests over HTTPS
+ * @author jj
+ * 
+ * This class provides simple, secure JSON communication with REST APIs.
+ * Socket optimizations are automatically applied by the underlying SSL/HTTP layers.
  */
 
 Client::Client(const QString& baseUrl, QObject* parent) 
-    : QObject(parent), m_baseUrl(baseUrl)
+    : QObject(parent), baseUrl_(baseUrl)
 {
-    // uses SSL infrastructure
+    // Initialize SSL infrastructure
     SSLContext::initializeOpenSSL();
-    m_sslContext = std::make_unique<SSLContext>();
+    sslContext_ = std::make_unique<SSLContext>();
     
-    // Extract host and port from baseUrl
+    // Extract host and port from URL
     QUrl url(baseUrl);
     std::string host = url.host().toStdString();
     std::string port = QString::number(url.port(443)).toStdString();
     
-    m_http = std::make_unique<HttpClient>(*m_sslContext, host, port);
+    // Create HTTP client with automatic optimizations
+    httpClient_ = std::make_unique<HttpClient>(*sslContext_, host, port);
+    
+    qDebug() << "Client initialized for:" << baseUrl;
 }
 
-/* ===== helper to build HttpRequest ===== */
-HttpRequest Client::buildRequest(const QString& ep,
-                                 const QString& method,
-                                 const QJsonObject& payload)
+HttpRequest Client::buildRequest(const QString& endpoint,
+                                const QString& method,
+                                const QJsonObject& payload)
 {
-    HttpRequest req;
-    req.method = method.toStdString();
-    req.path   = ep.toStdString();
+    HttpRequest request;
+    request.method = method.toStdString();
+    request.path = endpoint.toStdString();
 
-    QUrl u(m_baseUrl);
-    req.headers["Host"]        = u.host().toStdString();
-    req.headers["User-Agent"]  = "ChrisPlusPlus/1.0";
-    req.headers["Content-Type"]= "application/json";
+    // Set standard headers
+    QUrl url(baseUrl_);
+    request.headers["Host"] = url.host().toStdString();
+    request.headers["User-Agent"] = "ChrisPlusPlus/1.0";
+    request.headers["Content-Type"] = "application/json";
+    request.headers["Accept"] = "application/json";
 
-    if (method.compare("POST",Qt::CaseInsensitive)==0 ||
-        method.compare("PUT", Qt::CaseInsensitive)==0)
-    {
-        QJsonDocument d(payload);
-        req.body = d.toJson(QJsonDocument::Compact).toStdString();
+    // Add JSON body for POST/PUT requests
+    if (method.compare("POST", Qt::CaseInsensitive) == 0 ||
+        method.compare("PUT", Qt::CaseInsensitive) == 0) {
+        if (!payload.isEmpty()) {
+            QJsonDocument doc(payload);
+            request.body = doc.toJson(QJsonDocument::Compact).toStdString();
+        }
     }
-    return req;
+
+    return request;
 }
 
-/* ===== blocking ===== */
-void Client::sendRequest(const QString& ep,
-                         const QString& method,
-                         const QJsonObject& data)
+void Client::sendRequest(const QString& endpoint, 
+                        const QString& method, 
+                        const QJsonObject& data)
 {
     try {
-        HttpRequest  r  = buildRequest(ep, method, data);
-        HttpResponse resp = m_http->sendRequest(r);
+        HttpRequest request = buildRequest(endpoint, method, data);
+        HttpResponse response = httpClient_->sendRequest(request);
 
-        QJsonObject obj =
-            QJsonDocument::fromJson(QByteArray::fromStdString(resp.body)).object();
-        obj["endpoint"] = ep;
-        emit responseReceived(resp.statusCode, obj);
+        // Parse JSON response
+        QJsonObject responseObj;
+        if (!response.body.empty()) {
+            // DEBUG: Log the raw response
+            qDebug() << "=== RAW SERVER RESPONSE ===";
+            qDebug() << "Status Code:" << response.statusCode;
+            qDebug() << "Response Body:" << QString::fromStdString(response.body);
+            qDebug() << "Response Length:" << response.body.length();
+            qDebug() << "=== END RAW RESPONSE ===";
+            
+            QJsonParseError parseError;
+            QJsonDocument doc = QJsonDocument::fromJson(
+                QByteArray::fromStdString(response.body), &parseError);
+            
+            if (parseError.error == QJsonParseError::NoError) {
+                responseObj = doc.object();
+            } else {
+                qWarning() << "JSON parse error:" << parseError.errorString();
+                qWarning() << "Parse error offset:" << parseError.offset;
+                responseObj["error"] = "Invalid JSON response";
+            }
+        }
+        
+        responseObj["endpoint"] = endpoint;
+        emit responseReceived(response.statusCode, responseObj);
+        
     } catch (const std::exception& ex) {
         emit networkError(QString::fromUtf8(ex.what()));
     }
 }
 
-/* ===== async wrapper ===== */
-void Client::sendAsync(const QString& ep,const QString& method,const QJsonObject& data,
-                       std::function<void(int,const QJsonObject&)> ok,
-                       std::function<void(const QString&)>         err)
+void Client::sendAsync(const QString& endpoint,
+                      const QString& method,
+                      const QJsonObject& payload,
+                      std::function<void(int, const QJsonObject&)> onSuccess,
+                      std::function<void(const QString&)> onError)
 {
-    HttpRequest r = buildRequest(ep, method, data);
-    m_http->sendAsync(r,
-        [ok,ep](const HttpResponse& resp){
-            QJsonObject obj =
-                QJsonDocument::fromJson(QByteArray::fromStdString(resp.body)).object();
-            obj["endpoint"] = ep;
-            ok(resp.statusCode, obj);
+    HttpRequest request = buildRequest(endpoint, method, payload);
+    
+    httpClient_->sendAsync(request,
+        // Success callback
+        [this, endpoint, onSuccess](const HttpResponse& response) {
+            QJsonObject responseObj;
+            if (!response.body.empty()) {
+                // DEBUG: Log the raw response
+                qDebug() << "=== RAW ASYNC SERVER RESPONSE ===";
+                qDebug() << "Status Code:" << response.statusCode;
+                qDebug() << "Response Body:" << QString::fromStdString(response.body);
+                qDebug() << "Response Length:" << response.body.length();
+                qDebug() << "=== END RAW ASYNC RESPONSE ===";
+                
+                QJsonParseError parseError;
+                QJsonDocument doc = QJsonDocument::fromJson(
+                    QByteArray::fromStdString(response.body), &parseError);
+                
+                if (parseError.error == QJsonParseError::NoError) {
+                    responseObj = doc.object();
+                } else {
+                    qWarning() << "JSON parse error:" << parseError.errorString();
+                    qWarning() << "Parse error offset:" << parseError.offset;
+                    responseObj["error"] = "Invalid JSON response";
+                }
+            }
+            
+            responseObj["endpoint"] = endpoint;
+            
+            // Emit signal
+            emit responseReceived(response.statusCode, responseObj);
+            
+            // Call callback if provided
+            if (onSuccess) {
+                onSuccess(response.statusCode, responseObj);
+            }
         },
-        std::move(err));
+        // Error callback
+        [this, onError](const QString& error) {
+            emit networkError(error);
+            if (onError) {
+                onError(error);
+            }
+        }
+    );
 }

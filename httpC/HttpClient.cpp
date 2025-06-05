@@ -52,6 +52,7 @@ HttpResponse HttpClient::sendRequestWithStreamingBody(const HttpRequest& req, QI
     // 1) Open TLS connection
     SSLConnection conn(ctx_, host_, port_);
     conn.setTimeout(60); // Longer timeout for uploads
+    conn.optimizeForFileTransfer(); // NEW: Socket-level optimization
     
     // 2) Send headers with chunked encoding
     HttpRequest streamingReq = req;
@@ -61,7 +62,7 @@ HttpResponse HttpClient::sendRequestWithStreamingBody(const HttpRequest& req, QI
     auto headerData = streamingReq.serialize();
     conn.send(headerData.data(), headerData.size());
     
-    // 3) Send body in chunks
+    // 3) Send body in chunks (HTTP chunked encoding required)
     if (!sendChunkedBody(conn, bodySource)) {
         throw std::runtime_error("Failed to send chunked body");
     }
@@ -343,29 +344,127 @@ bool HttpClient::receiveResponseToStream(SSLConnection& conn, QIODevice& destina
     return true;
 }
 
+bool HttpClient::downloadToStreamWithProgress(const HttpRequest& req, QIODevice& destination,
+                                             std::function<bool(qint64, qint64)> progressCallback) {
+    // 1) Open TLS connection
+    SSLConnection conn(ctx_, host_, port_);
+    conn.setTimeout(60); // Longer timeout for downloads
+    conn.optimizeForFileTransfer(); // NEW: Socket-level optimization
+    
+    // 2) Send request
+    auto rawReq = req.serialize();
+    conn.send(rawReq.data(), rawReq.size());
+    
+    // 3) Read headers until "\r\n\r\n"
+    std::string headers;
+    char buf[1];
+    std::string headerEnd = "\r\n\r\n";
+    
+    while (headers.find(headerEnd) == std::string::npos) {
+        ssize_t n = conn.receive(buf, 1);
+        if (n <= 0) return false;
+        headers.append(buf, 1);
+    }
+    
+    // 4) Parse headers properly
+    std::string statusLine;
+    std::map<std::string, std::string> headerMap;
+    parseHeaders(headers, statusLine, headerMap);
+    
+    // Extract status code
+    int statusCode = 0;
+    std::istringstream statusStream(statusLine);
+    std::string httpVersion;
+    statusStream >> httpVersion >> statusCode;
+    
+    if (statusCode != 200) return false;
+    
+    // 5) Get content length for progress tracking
+    qint64 totalBytes = -1;
+    auto contentLengthIt = headerMap.find("content-length");
+    if (contentLengthIt != headerMap.end()) {
+        totalBytes = std::stoll(contentLengthIt->second);
+    }
+    
+    // 6) Stream with progress tracking
+    const int BUFFER_SIZE = 128 * 1024;
+    char buffer[BUFFER_SIZE];
+    qint64 totalRead = 0;
+    
+    if (totalBytes > 0) {
+        // Known content length - read exactly that amount
+        while (totalRead < totalBytes) {
+            int toRead = std::min(BUFFER_SIZE, static_cast<int>(totalBytes - totalRead));
+            ssize_t n = conn.receive(buffer, toRead);
+            
+            if (n <= 0) return false;
+            if (destination.write(buffer, n) != n) return false;
+            
+            totalRead += n;
+            
+            // Call progress callback
+            if (progressCallback && !progressCallback(totalRead, totalBytes)) {
+                return false; // User cancelled
+            }
+        }
+    } else {
+        // Unknown content length - read until close
+        ssize_t n;
+        while ((n = conn.receive(buffer, BUFFER_SIZE)) > 0) {
+            if (destination.write(buffer, n) != n) return false;
+            totalRead += n;
+            
+            // Call progress callback with unknown total
+            if (progressCallback && !progressCallback(totalRead, -1)) {
+                return false; // User cancelled
+            }
+        }
+    }
+    
+    return true;
+}
+
 void HttpClient::downloadAsync(const HttpRequest& request,
                               const QString& filePath,
                               std::function<void(const HttpResponse&)> onSuccess,
                               std::function<void(const QString&)> onError) {
-    try {
-        // Use existing download method (if it exists)
-        HttpResponse response = sendRequest(request);
-        
-        // Write to file
-        QFile file(filePath);
-        if (file.open(QIODevice::WriteOnly)) {
-            file.write(response.body.c_str(), response.body.size());
-            if (onSuccess) {
-                onSuccess(response);
+    
+    auto self = shared_from_this();
+    QThreadPool::globalInstance()->start([self, request, filePath, onSuccess, onError]{
+        try {
+            // Open file for streaming
+            QFile file(filePath);
+            if (!file.open(QIODevice::WriteOnly)) {
+                QMetaObject::invokeMethod(qApp, [onError, filePath]{
+                    onError("Cannot create file: " + filePath);
+                }, Qt::QueuedConnection);
+                return;
             }
-        } else {
-            if (onError) {
-                onError("Cannot create file: " + file.errorString());
+            
+            // Use streaming download
+            bool success = self->downloadToStream(request, file);
+            file.close();
+            
+            if (success) {
+                // Create a fake response for the callback
+                HttpResponse response;
+                response.statusCode = 200;
+                response.statusMessage = "OK";
+                response.body = ""; // Body is in file, not memory
+                
+                QMetaObject::invokeMethod(qApp, [onSuccess, response]{
+                    onSuccess(response);
+                }, Qt::QueuedConnection);
+            } else {
+                QMetaObject::invokeMethod(qApp, [onError]{
+                    onError("Streaming download failed");
+                }, Qt::QueuedConnection);
             }
+            
+        } catch (const std::exception& e) {
+            QMetaObject::invokeMethod(qApp, [onError, e]{
+                onError(QString::fromStdString(e.what()));
+            }, Qt::QueuedConnection);
         }
-    } catch (const std::exception& e) {
-        if (onError) {
-            onError(QString::fromStdString(e.what()));
-        }
-    }
+    });
 }

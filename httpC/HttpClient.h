@@ -31,6 +31,10 @@ public:
     // Streaming methods
     HttpResponse sendRequestWithStreamingBody(const HttpRequest& req, QIODevice& bodySource);
     bool downloadToStream(const HttpRequest& req, QIODevice& destination);
+    
+    //streaming download with progress callback (blocking)
+    bool downloadToStreamWithProgress(const HttpRequest& req, QIODevice& destination, 
+                                     std::function<bool(qint64, qint64)> progressCallback);
 
     void setChunkSize(size_t size) { chunkSize_ = size; }
     size_t getChunkSize() const { return chunkSize_; }

@@ -8,9 +8,11 @@
 #include <unistd.h>
 #include <fcntl.h>        // Add this for F_GETFL, F_SETFL
 #include <sys/select.h>   // Add this for select()
+#include <netinet/tcp.h>  // Add this for TCP_NODELAY
 #include <stdexcept>
 #include <cstring>
 #include <iostream>
+#include <functional>
 
 SSLConnection::SSLConnection(SSLContext& ctx,
                              const std::string& host,
@@ -203,4 +205,127 @@ void SSLConnection::setTimeout(int seconds) {
         setsockopt(sockfd_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
         setsockopt(sockfd_, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
     }
+}
+
+void SSLConnection::optimizeForFileTransfer() {
+    if (sockfd_ < 0) return;
+    
+    // Optimize for large file transfers
+    setSocketBufferSizes(256 * 1024, 256 * 1024); // 256KB buffers
+    enableTcpNoDelay(true);  // Disable Nagle's algorithm for streaming
+    
+    // Set keep-alive for long transfers
+    int keepalive = 1;
+    setsockopt(sockfd_, SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(keepalive));
+    
+    std::cout << "Socket optimized for file transfer" << std::endl;
+}
+
+void SSLConnection::setSocketBufferSizes(int sendBuffer, int receiveBuffer) {
+    if (sockfd_ < 0) return;
+    
+    if (setsockopt(sockfd_, SOL_SOCKET, SO_SNDBUF, &sendBuffer, sizeof(sendBuffer)) == 0) {
+        std::cout << "Send buffer set to " << sendBuffer << " bytes" << std::endl;
+    }
+    
+    if (setsockopt(sockfd_, SOL_SOCKET, SO_RCVBUF, &receiveBuffer, sizeof(receiveBuffer)) == 0) {
+        std::cout << "Receive buffer set to " << receiveBuffer << " bytes" << std::endl;
+    }
+}
+
+void SSLConnection::enableTcpNoDelay(bool enable) {
+    if (sockfd_ < 0) return;
+    
+    int flag = enable ? 1 : 0;
+    if (setsockopt(sockfd_, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) == 0) {
+        std::cout << "TCP_NODELAY " << (enable ? "enabled" : "disabled") << std::endl;
+    }
+}
+
+ssize_t SSLConnection::sendWithProgress(const void* data, size_t len, 
+                                       std::function<bool(size_t)> progressCallback) {
+    ssize_t result = SSL_write(ssl_, data, static_cast<int>(len));
+    if (result > 0 && progressCallback) {
+        if (!progressCallback(result)) {
+            return -1; // Signal cancellation
+        }
+    }
+    return result;
+}
+
+ssize_t SSLConnection::receiveWithProgress(void* buf, size_t buflen,
+                                         std::function<bool(size_t)> progressCallback) {
+    ssize_t result = SSL_read(ssl_, buf, static_cast<int>(buflen));
+    if (result > 0 && progressCallback) {
+        if (!progressCallback(result)) {
+            return -1; // Signal cancellation
+        }
+    }
+    return result;
+}
+
+bool SSLConnection::streamFromSource(std::function<ssize_t(void*, size_t)> reader,
+                                   std::function<bool(size_t, size_t)> progressCallback) {
+    const size_t BUFFER_SIZE = 128 * 1024; // 128KB chunks
+    char buffer[BUFFER_SIZE];
+    size_t totalSent = 0;
+    
+    while (true) {
+        // Read from source
+        ssize_t bytesRead = reader(buffer, BUFFER_SIZE);
+        if (bytesRead <= 0) break; // EOF or error
+        
+        // Send via SSL
+        ssize_t bytesSent = 0;
+        while (bytesSent < bytesRead) {
+            ssize_t sent = SSL_write(ssl_, buffer + bytesSent, bytesRead - bytesSent);
+            if (sent <= 0) return false;
+            bytesSent += sent;
+        }
+        
+        totalSent += bytesRead;
+        
+        // Progress callback
+        if (progressCallback && !progressCallback(totalSent, 0)) {
+            return false; // Cancelled
+        }
+    }
+    
+    return true;
+}
+
+bool SSLConnection::streamToDestination(std::function<ssize_t(const void*, size_t)> writer,
+                                      size_t expectedBytes,
+                                      std::function<bool(size_t, size_t)> progressCallback) {
+    const size_t BUFFER_SIZE = 128 * 1024; // 128KB chunks
+    char buffer[BUFFER_SIZE];
+    size_t totalReceived = 0;
+    
+    while (expectedBytes == 0 || totalReceived < expectedBytes) {
+        size_t toRead = BUFFER_SIZE;
+        if (expectedBytes > 0) {
+            toRead = std::min(BUFFER_SIZE, expectedBytes - totalReceived);
+        }
+        
+        // Receive via SSL
+        ssize_t bytesReceived = SSL_read(ssl_, buffer, toRead);
+        if (bytesReceived <= 0) {
+            if (expectedBytes == 0) break; // EOF for unknown length
+            return false; // Error for known length
+        }
+        
+        // Write to destination
+        if (writer(buffer, bytesReceived) != bytesReceived) {
+            return false;
+        }
+        
+        totalReceived += bytesReceived;
+        
+        // Progress callback
+        if (progressCallback && !progressCallback(totalReceived, expectedBytes)) {
+            return false; // Cancelled
+        }
+    }
+    
+    return true;
 }

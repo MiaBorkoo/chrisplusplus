@@ -230,6 +230,11 @@ target_include_directories(testMVCConnections PRIVATE
     ${QRENCODE_INCLUDE_DIRS}
 )
 
+# Add library directories for qrencode on macOS
+if(APPLE)
+    target_link_directories(testMVCConnections PRIVATE /opt/homebrew/lib)
+endif()
+
 # Add test to CTest
 add_test(NAME testMVCConnections COMMAND testMVCConnections)
 

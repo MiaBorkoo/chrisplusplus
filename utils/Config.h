@@ -31,8 +31,8 @@ private:
 
     void setDefaults();
 
-    QString m_serverUrl = "http://localhost:8000";  // Default value TODO: change to server url
-    QString m_serverHost = "localhost";
-    QString m_serverPort = "8000";
+    QString m_serverUrl = "https://chrisplusplus.gobbler.info/";  // Default value TODO: change to server url
+    QString m_serverHost = "chrisplusplus";
+    QString m_serverPort = "443";
     std::unique_ptr<QSettings> m_settings;
 }; 
