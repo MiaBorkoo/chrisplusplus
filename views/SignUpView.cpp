@@ -35,6 +35,7 @@ SignUpView::SignUpView(QWidget *parent) : QWidget(parent)
     usernameEdit->setFixedSize(350, 48);
     usernameEdit->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     usernameEdit->setPlaceholderText("Enter username");
+    usernameEdit->setObjectName("usernameEdit");
 
     // Password
     passwordLabel = new QLabel("Password:");
@@ -46,6 +47,7 @@ SignUpView::SignUpView(QWidget *parent) : QWidget(parent)
     passwordEdit->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     passwordEdit->setPlaceholderText("Enter password");
     passwordEdit->setEchoMode(QLineEdit::Password);
+    passwordEdit->setObjectName("passwordEdit");
 
     // Confirm Password
     confirmPasswordLabel = new QLabel("Confirm Password:");
@@ -57,6 +59,7 @@ SignUpView::SignUpView(QWidget *parent) : QWidget(parent)
     confirmPasswordEdit->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     confirmPasswordEdit->setPlaceholderText("Re-enter password");
     confirmPasswordEdit->setEchoMode(QLineEdit::Password);
+    confirmPasswordEdit->setObjectName("confirmPasswordEdit");
 
     // Error label
     errorLabel = new QLabel;
