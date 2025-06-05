@@ -4,6 +4,7 @@
 #include <array>
 #include <vector>
 
+// namespace means you can do this: StringUtils::toBase64String(data)
 namespace StringUtils {
 
 template <size_t N>
