@@ -1,6 +1,9 @@
 #include "AuthService.h"
 #include "../../crypto/KeyDerivation.h"
+#include "../../tofu/DeviceCertificate.h"
+#include "../../tofu/TOFUPromptManager.h"
 #include "../../crypto/WrappedMEK.h"
+#include "../../crypto/Hmac.h"
 #include "../../crypto/AuthHash.h"
 #include "../../crypto/MEKGenerator.h"
 #include "otp/TOTP.h"
@@ -164,37 +167,96 @@ void AuthService::registerUser(const QString& username, const QString& password,
     }
 }
 
-// Low-level registration
 void AuthService::registerUser(const QString& username,
-                             const QString& authHash,
-                             const QString& encryptedMEK,
-                             const QString& authSalt1,
-                             const QString& authSalt2,
-                             const QString& encSalt,
-                             const QString& mekIV,
-                             const QString& mekTag) {
+                               const QString& authHash,
+                               const QString& encryptedMEK,
+                               const QString& authSalt1,
+                               const QString& authSalt2,
+                               const QString& encSalt,
+                               const QString& mekIV,
+                               const QString& mekTag) {
     QJsonObject payload;
     payload["username"] = username;
     payload["auth_key"] = authHash;
     payload["encrypted_mek"] = encryptedMEK;
-    payload["auth_salt"] = authSalt1;      // Server expects "auth_salt" (not "auth_salt1")
-    payload["auth_salt_2"] = authSalt2;    // Server expects "auth_salt_2" (with underscore)
+    payload["auth_salt"] = authSalt1;
+    payload["auth_salt_2"] = authSalt2;
     payload["enc_salt"] = encSalt;
-    
-    // Add the MEK encryption details
     payload["mek_iv"] = mekIV;
     payload["mek_tag"] = mekTag;
+
+    // Generate Ed25519 key pair ===
+    unsigned char privateKeyBuf[ED25519_KEY_SIZE];
+    unsigned char publicKeyBuf[ED25519_KEY_SIZE];
     
-    // Add required fields that server expects
-    QJsonObject publicKey;
-    publicKey["type"] = "RSA";
-    publicKey["key"] = "temp_key_data";
-    payload["public_key"] = publicKey;
+    // Generate Ed25519 key pair
+    EVP_PKEY* pkey = nullptr;
+    EVP_PKEY_CTX* pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, nullptr);
+    if (!pctx) {
+        qDebug() << "Failed to create Ed25519 context";
+        emit errorOccurred("Failed to generate device keys");
+        return;
+    }
     
-    // Generate a simple HMAC for user data validation  
-    payload["user_data_hmac"] = "temp_hmac_data";
+    if (EVP_PKEY_keygen_init(pctx) <= 0 || EVP_PKEY_keygen(pctx, &pkey) <= 0) {
+        EVP_PKEY_CTX_free(pctx);
+        qDebug() << "Failed to generate Ed25519 key pair";
+        emit errorOccurred("Failed to generate device keys");
+        return;
+    }
+    EVP_PKEY_CTX_free(pctx);
     
-    qDebug() << "Fixed registration payload:" << payload;
+    // Extract raw key bytes
+    size_t privateKeyLen = ED25519_KEY_SIZE;
+    size_t publicKeyLen = ED25519_KEY_SIZE;
+    if (EVP_PKEY_get_raw_private_key(pkey, privateKeyBuf, &privateKeyLen) <= 0 ||
+        EVP_PKEY_get_raw_public_key(pkey, publicKeyBuf, &publicKeyLen) <= 0) {
+        EVP_PKEY_free(pkey);
+        qDebug() << "Failed to extract Ed25519 key bytes";
+        emit errorOccurred("Failed to generate device keys");
+        return;
+    }
+    EVP_PKEY_free(pkey);
+    
+    // Convert to QByteArray for certificate generation
+    QByteArray privateKey(reinterpret_cast<char*>(privateKeyBuf), ED25519_KEY_SIZE);
+    QByteArray publicKey(reinterpret_cast<char*>(publicKeyBuf), ED25519_KEY_SIZE);
+
+    // === Generate device certificate ===
+    QString deviceId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    DeviceCertificate cert = DeviceCertificate::generate(username, deviceId, privateKey, publicKey);
+    if (!cert.isValid()) {
+        qDebug() << "Failed to generate device certificate";
+        emit errorOccurred("Failed to generate device certificate");
+        return;
+    }
+
+    // Store certificate for future use
+    m_currentDeviceCert = cert;
+
+    // === Add public key to payload ===
+    QJsonObject publicKeyObj;
+    publicKeyObj["type"] = "Ed25519";
+    publicKeyObj["key"] = QString::fromLatin1(cert.identityPublicKey().toBase64());
+    payload["public_key"] = publicKeyObj;
+
+    // === Generate HMAC of registration data ===
+    QString userDataStr = username + ":" +
+                          authHash + ":" +
+                          encryptedMEK + ":" +
+                          authSalt1 + ":" +
+                          authSalt2 + ":" +
+                          encSalt;
+
+    std::vector<uint8_t> dataBlob = HMACProcessor::dataToBlob(userDataStr.toUtf8().toStdString());
+    std::vector<uint8_t> hmacResult = HMACProcessor::generateHMAC(dataBlob, privateKey.toStdString());
+
+
+
+    QByteArray hmacBytes(reinterpret_cast<const char*>(hmacResult.data()), static_cast<int>(hmacResult.size()));
+    payload["user_data_hmac"] = QString::fromLatin1(hmacBytes.toBase64());
+
+    qDebug() << "Sending registration payload:" << payload;
     m_client->sendRequest("/api/auth/register", "POST", payload);
 }
 

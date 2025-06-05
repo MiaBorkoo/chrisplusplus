@@ -27,6 +27,7 @@ add_library(crypto-lib
     KeyDerivation.cpp
     MEKGenerator.cpp
     WrappedMEK.cpp
+    Hmac.cpp
 )
 
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
