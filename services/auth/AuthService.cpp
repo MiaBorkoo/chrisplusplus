@@ -9,6 +9,7 @@
 #include <QSettings>           
 #include <QDebug>
 #include <QByteArray>
+#include <QTimer>
 
 // Use qrencode library directly for TOTP QR codes
 extern "C" {
@@ -39,6 +40,8 @@ void AuthService::login(const QString& username, const QString& password) {
     }
 
     try {
+        qDebug() << "Attempting login for user:" << username;
+        
         // Get current salts from server
         AuthSalts salts = getAuthSalts(username);
         
@@ -48,29 +51,66 @@ void AuthService::login(const QString& username, const QString& password) {
         std::vector<uint8_t> authSalt1(authSalt1Data.begin(), authSalt1Data.end());
         std::vector<uint8_t> authSalt2(authSalt2Data.begin(), authSalt2Data.end());
         
-        // Derive auth hash using the retrieved salts
+        // Derive auth hash
         QString authHash = deriveAuthHash(password, authSalt1, authSalt2);
         
-        // Proceed with hashed login
-        hashedLogin(username, authHash);
+        // Check TOTP status for this specific user
+        if (hasTOTPEnabledForUser(username)) {
+            // This specific user has TOTP enabled - require TOTP code
+            qDebug() << "TOTP enabled for user" << username << ", requiring verification";
+            emit totpRequired(username, authHash);
+        } else if (isFirstTimeLogin(username)) {
+            // FIRST LOGIN AFTER REGISTRATION - Automatically set up TOTP
+            qDebug() << "First time login detected for user" << username << "- auto-setting up TOTP";
+            QString qrCode = enableTOTP(username);
+            if (!qrCode.isEmpty()) {
+                emit firstLoginTOTPSetupRequired(username, authHash, qrCode);
+            } else {
+                emit errorOccurred("Failed to generate TOTP setup for first login");
+            }
+        } else {
+            // Normal login without TOTP (first-time or TOTP not set up)
+            hashedLogin(username, authHash);
+        }
         
     } catch (const std::exception& e) {
         QString errorMessage = QString("Login failed: %1").arg(e.what());
+        qDebug() << "Login exception:" << errorMessage;
         emit errorOccurred(errorMessage);
+    } catch (...) {
+        qDebug() << "Unknown login error occurred";
+        emit errorOccurred("Login failed: Network connection error. Please check if server is running.");
     }
 }
 
 void AuthService::hashedLogin(const QString& username, const QString& authHash) {
+    // SECURITY: Prevent TOTP bypass - this method should only be called when TOTP is disabled
+    if (hasTOTPEnabled()) {
+        emit errorOccurred("SECURITY ERROR: TOTP is required for this account. Use hashedLoginWithTOTP() instead.");
+        qCritical() << "SECURITY VIOLATION: Attempt to bypass TOTP for user:" << username;
+        return;
+    }
+    
     QJsonObject payload;
     payload["username"] = username;
     payload["auth_hash"] = authHash;
     
-    const QString secretB32 = m_settings->value("totp/secret").toString();
-    if (!secretB32.isEmpty()) {                 
-        TOTP totp(secretB32.toStdString());  
-        const QString otp = QString::fromStdString(totp.generate());  
-        payload["otp"] = otp;                   
+    // No automatic TOTP - user must provide code manually via UI
+    
+    m_client->sendRequest("/login", "POST", payload);
+}
+
+// Method for login with manual TOTP
+void AuthService::hashedLoginWithTOTP(const QString& username, const QString& authHash, const QString& totpCode) {
+    QJsonObject payload;
+    payload["username"] = username;
+    payload["auth_hash"] = authHash;
+    
+    // User-entered TOTP code from Google Authenticator
+    if (!totpCode.isEmpty()) {
+        payload["otp"] = totpCode;
     }
+    
     m_client->sendRequest("/login", "POST", payload);
 }
 
@@ -282,6 +322,7 @@ void AuthService::handleChangePasswordResponse(int status, const QJsonObject& da
 
 void AuthService::invalidateSession() {
     m_sessionToken.clear();
+    // No encryption key to clear - TOTP handled by Google Authenticator
 }
 
 AuthService::AuthSalts AuthService::getAuthSalts(const QString& username) {
@@ -321,6 +362,8 @@ void AuthService::handleSaltsResponse(int status, const QJsonObject& data, AuthS
 QString AuthService::deriveAuthHash(const QString& password,
                                   const std::vector<uint8_t>& authSalt1,
                                   const std::vector<uint8_t>& authSalt2) {
+    // This method is now obsolete - key derivation is handled in login()
+    // Keeping for backward compatibility, but should not be used
     try {
         // 1. Derive keys from password and first salt
         KeyDerivation kd;
@@ -339,12 +382,12 @@ QString AuthService::deriveAuthHash(const QString& password,
     }
 }
 
-// Simple TOTP methods (industry standard approach)
+// TOTP methods (industry standard approach)
 QString AuthService::enableTOTP(const QString& username) {
     try {
-        // Check if TOTP is already enabled
-        if (hasTOTPEnabled()) {
-            emit errorOccurred("TOTP is already enabled for this account");
+        // Check if TOTP is already enabled for this specific user
+        if (hasTOTPEnabledForUser(username)) {
+            emit errorOccurred("TOTP is already enabled for this user");
             return QString();
         }
         
@@ -411,20 +454,24 @@ bool AuthService::verifyTOTPSetup(const QString& code) {
         bool isValid = totp.verify(code.toStdString());
         
         if (isValid) {
-            // TODO: SECURITY ISSUE - Store in encrypted form or OS keychain
-            // Current QSettings storage is NOT SECURE (plain text)
-            // Consider using QKeychain or encrypting with user's master key
-            m_settings->setValue("totp/secret", m_pendingTOTPSecret);
+            // SUCCESS: TOTP setup verified
+            // Secret is stored in Google Authenticator only - no local storage
+            qDebug() << "TOTP setup completed successfully";
+            
+            // Store only a flag that TOTP is enabled (no secret)
+            m_settings->setValue("totp/enabled", true);
             m_settings->setValue("totp/username", m_pendingUsername);
             m_settings->setValue("totp/enabled_at", QDateTime::currentDateTimeUtc());
             m_settings->sync();
+            
+            // Mark that this user has completed TOTP setup (for first-login detection)
+            markTOTPSetupCompleted(m_pendingUsername);
             
             // Clear temporary data
             m_pendingTOTPSecret.clear();
             m_pendingUsername.clear();
             
             emit totpSetupCompleted(true);
-            qDebug() << "TOTP setup completed successfully";
             
         } else {
             emit totpSetupCompleted(false);
@@ -440,11 +487,51 @@ bool AuthService::verifyTOTPSetup(const QString& code) {
 }
 
 bool AuthService::hasTOTPEnabled() const {
-    return !m_settings->value("totp/secret").toString().isEmpty();
+    // Check if TOTP is enabled globally (legacy support)
+    bool globalEnabled = m_settings->value("totp/enabled", false).toBool();
+    
+    // If we have a pending username (during TOTP setup), check for that user
+    if (!m_pendingUsername.isEmpty()) {
+        QString key = QString("users/%1/totp_setup_completed").arg(m_pendingUsername);
+        return m_settings->value(key, false).toBool();
+    }
+    
+    // Otherwise, check if any user has TOTP enabled (for backward compatibility)
+    return globalEnabled;
+}
+
+bool AuthService::hasTOTPEnabledForUser(const QString& username) const {
+    // Check if this specific user has completed TOTP setup
+    QString key = QString("users/%1/totp_setup_completed").arg(username);
+    return m_settings->value(key, false).toBool();
+}
+
+bool AuthService::isFirstTimeLogin(const QString& username) const {
+    // Check if this specific user has ever completed TOTP setup
+    QString key = QString("users/%1/totp_setup_completed").arg(username);
+    bool setupCompleted = m_settings->value(key, false).toBool();
+    
+    qDebug() << "First login check for user:" << username 
+             << "Setup completed:" << setupCompleted;
+    
+    // First time login = this specific user has never completed TOTP setup
+    // Don't check global TOTP status - that's irrelevant for individual users
+    return !setupCompleted;
+}
+
+void AuthService::markTOTPSetupCompleted(const QString& username) {
+    // Mark that this user has completed TOTP setup at least once
+    QString key = QString("users/%1/totp_setup_completed").arg(username);
+    m_settings->setValue(key, true);
+    m_settings->setValue(QString("users/%1/totp_setup_completed_at").arg(username), 
+                        QDateTime::currentDateTimeUtc());
+    m_settings->sync();
+    
+    qDebug() << "Marked TOTP setup as completed for user:" << username;
 }
 
 void AuthService::disableTOTP() {
-    m_settings->remove("totp/secret");
+    m_settings->remove("totp/enabled");
     m_settings->remove("totp/username");  
     m_settings->remove("totp/enabled_at");
     m_settings->sync();
@@ -452,3 +539,6 @@ void AuthService::disableTOTP() {
     emit totpDisabled();
     qDebug() << "TOTP disabled";
 }
+
+// TOTP encryption methods removed - no local secret storage needed
+// Google Authenticator handles all secret storage

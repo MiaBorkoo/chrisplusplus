@@ -19,7 +19,7 @@ public:
 
     // Auth operations with function overloading
     void login(const QString& username, const QString& password);
-    void hashedLogin(const QString& username, const QString& authHash);
+    void hashedLoginWithTOTP(const QString& username, const QString& authHash, const QString& totpCode);
 
     void registerUser(const QString& username, const QString& password, const QString& confirmPassword);
     void registerUser(const QString& username,
@@ -52,7 +52,12 @@ public:
     QString enableTOTP(const QString& username);  // Returns QR code as base64
     bool verifyTOTPSetup(const QString& code);    // Verify and save secret
     void disableTOTP();                           // Remove TOTP
-    bool hasTOTPEnabled() const;                  // Check if enabled
+    bool hasTOTPEnabled() const;                  // Check if enabled globally
+    bool hasTOTPEnabledForUser(const QString& username) const;  // Check if enabled for specific user
+    
+    // First-login TOTP detection
+    bool isFirstTimeLogin(const QString& username) const;  // Check if user needs first-time TOTP setup
+    void markTOTPSetupCompleted(const QString& username);  // Mark that user completed TOTP setup
 
     // Get authentication salts from server
     struct AuthSalts {
@@ -73,6 +78,10 @@ signals:
     void totpEnabled(const QString& qrCodeBase64);
     void totpSetupCompleted(bool success);
     void totpDisabled();
+    void totpRequired(const QString& username, const QString& authHash);
+    
+    // First-login TOTP signal
+    void firstLoginTOTPSetupRequired(const QString& username, const QString& authHash, const QString& qrCodeBase64);
 
 private slots:
     void handleResponseReceived(int status, const QJsonObject& data);
@@ -80,14 +89,14 @@ private slots:
 
 private:
     std::shared_ptr<Client> m_client;
-    QString m_sessionToken;
-    QScopedPointer<QSettings> m_settings;
     std::shared_ptr<ValidationService> m_validationService;
+    std::unique_ptr<QSettings> m_settings;
+    QString m_sessionToken;
+    QString m_pendingTOTPSecret;
+    QString m_pendingUsername;
     
-    // Simple TOTP state
-    QString m_pendingTOTPSecret;  // Temporary during setup
-    QString m_pendingUsername;    // Username for setup
-    
+    // mekWrapperKey removed - no local TOTP secret storage needed
+
     void handleLoginResponse(int status, const QJsonObject& data);
     void handleRegisterResponse(int status, const QJsonObject& data);
     void handleChangePasswordResponse(int status, const QJsonObject& data);
@@ -100,4 +109,9 @@ private:
     QString encryptMEK(const std::vector<unsigned char>& mek, const std::vector<uint8_t>& mekWrapperKey);
     std::vector<uint8_t> generateSalt() const;
     std::vector<unsigned char> createMEK() const;
+    
+    // SECURITY: hashedLogin made private to prevent TOTP bypass
+    void hashedLogin(const QString& username, const QString& authHash);
+    
+    // TOTP encryption methods removed - no local secret storage needed
 };

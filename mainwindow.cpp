@@ -27,6 +27,9 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     QRect screenGeometry = screen->geometry();
     setGeometry(screenGeometry);
 
+    // Initialize services first
+    initializeServices();
+
     m_stack = new QStackedWidget(this);
 
     // Initialize client and auth service
@@ -41,6 +44,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     m_loginView = new LoginView(this);
     m_loginController = new LoginController(m_loginModel, this);
     m_loginController->setView(m_loginView);
+    m_loginController->setAuthService(m_authService); // Connect to AuthService
 
     // Create sign up view and controller
     m_signUpView = new SignUpView(this);
@@ -143,6 +147,24 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     });
 
    
+}
+
+void MainWindow::initializeServices()
+{
+    // Initialize network client with default values
+    // TODO: These should come from configuration/settings
+    QString baseUrl = "https://api.chrisplusplus.com";  // Default server URL
+    
+    m_client = std::make_shared<Client>(baseUrl, this);
+    
+    // Initialize AuthService with the client
+    m_authService = std::make_shared<AuthService>(m_client, this);
+    
+    // Initialize LoginModel with AuthService
+    m_loginModel = std::make_shared<LoginModel>(m_authService, this);
+    
+    qDebug() << "Services initialized successfully";
+    qDebug() << "Base URL:" << baseUrl;
 }
 
 MainWindow::~MainWindow()

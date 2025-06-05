@@ -12,3 +12,4 @@ EncryptedMEK encryptMEKWithWrapperKey(
     const std::vector<uint8_t>& mek,
     const std::vector<uint8_t>& mekWrapperKey
 );
+
