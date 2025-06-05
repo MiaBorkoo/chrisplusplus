@@ -149,7 +149,7 @@ void MainWindow::initializeServices()
 {
     // Initialize network client with default values
     // TODO: These should come from configuration/settings
-    QString baseUrl = "https://api.chrisplusplus.com";  // Default server URL
+    QString baseUrl = "https://chrisplusplus.gobbler.info";  // Default server URL
     
     m_client = std::make_shared<Client>(baseUrl, this);
     
