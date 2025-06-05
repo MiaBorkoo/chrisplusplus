@@ -121,7 +121,7 @@ void AuthService::registerUser(const QString& username, const QString& password,
         emit errorOccurred(errorMessage);
         return;
     }
-    if (!m_validationService->validatePassword(password, errorMessage)) {
+    if (!m_validationService->validatePassword(password, username, errorMessage)) {
         emit errorOccurred(errorMessage);
         return;
     }
@@ -196,7 +196,7 @@ void AuthService::changePassword(const QString& username,
                                const QString& newPassword) {
     // Validate inputs
     QString errorMessage;
-    if (!m_validationService->validatePassword(newPassword, errorMessage)) {
+    if (!m_validationService->validatePassword(newPassword, username, errorMessage)) {
         emit errorOccurred(errorMessage);
         return;
     }

@@ -251,6 +251,33 @@ target_link_libraries(test_signup_connection
     nlohmann_json::nlohmann_json
 )
 
+# Add access connection test
+add_executable(test_access_connection
+    tests/mvc-tests/testAccessConnection.cpp
+    models/AccessModel.cpp
+    controllers/AccessController.cpp
+    views/AccessDialog.cpp
+    services/files/FileService.cpp
+    services/ApiService.cpp
+    network/Client.cpp
+)
+
+target_link_libraries(test_access_connection
+    PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Widgets
+    Qt6::Network
+    Qt6::Concurrent
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    crypto-lib
+    file_transfer
+    http_layer
+    sockets
+    ${QRENCODE_LIBRARIES}
+)
+
 # Other test executables
 add_executable(test_file_connection
     tests/mvc-tests/testFileConnection.cpp
@@ -318,6 +345,7 @@ target_link_libraries(test_login_connection PRIVATE
 add_test(NAME FileConnectionTests COMMAND test_file_connection)
 add_test(NAME LoginConnectionTests COMMAND test_login_connection)
 add_test(NAME SignUpConnectionTests COMMAND test_signup_connection)
+add_test(NAME AccessConnectionTests COMMAND test_access_connection)
 
 # Add library directories for qrencode on macOS
 if(APPLE)
