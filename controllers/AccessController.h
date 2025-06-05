@@ -14,10 +14,6 @@ public:
     void setView(AccessDialog *dialog);
     QStringList getUsers() const;
 
-signals:
-    // Fires every time the local ACL changes
-    void aclChanged(const QString &fileName, const QStringList &newAcl);
-
 private slots:
     void handleAddUser(const QString &fileName, const QString &userEmail);
     void handleRevokeAccess(const QString &fileName, const QString &userEmail);

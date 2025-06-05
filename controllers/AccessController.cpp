@@ -53,7 +53,6 @@ void AccessController::handleAccessGranted(bool success, const QString &fileName
         if (!m_users.contains(username, Qt::CaseInsensitive)) {
             m_users.append(username);
             if (m_dialog) m_dialog->updateUserList(m_users);
-            emit aclChanged(m_fileName, m_users);
         }
     } else {
         QMessageBox::warning(m_dialog, "Error", "Failed to grant access to " + username);
@@ -64,7 +63,6 @@ void AccessController::handleAccessRevoked(bool success, const QString &fileName
     if (success) {
         m_users.removeAll(username);
         if (m_dialog) m_dialog->updateUserList(m_users);
-        emit aclChanged(m_fileName, m_users);
     } else {
         QMessageBox::warning(m_dialog, "Error", "Failed to revoke access from " + username);
     }
@@ -73,7 +71,6 @@ void AccessController::handleAccessRevoked(bool success, const QString &fileName
 void AccessController::handleUsersReceived(const QString &fileName, const QStringList &users) {
     m_users = users;
     if (m_dialog) m_dialog->updateUserList(m_users);
-    emit aclChanged(m_fileName, m_users);
 }
 
 void AccessController::handleError(const QString &error) {

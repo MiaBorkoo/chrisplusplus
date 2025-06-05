@@ -154,11 +154,12 @@ private slots:
         QCOMPARE(m_accessController->getUsers(), updatedUsers);
     }
 
-    void testACLChangedSignal() {
+    void testAccessModelSignals() {
         // Arrange
         const QString testFile = "test.txt";
         const QString testUser = "testuser@example.com";
-        QSignalSpy aclSpy(m_accessController, SIGNAL(aclChanged(QString,QStringList)));
+        QSignalSpy accessGrantedSpy(m_accessModel.get(), SIGNAL(accessGranted(bool,QString,QString)));
+        QSignalSpy usersReceivedSpy(m_accessModel.get(), SIGNAL(usersWithAccessReceived(QString,QStringList)));
 
         // Act
         m_accessModel->grantAccess(testFile, testUser);
@@ -169,10 +170,19 @@ private slots:
         m_fileService->usersWithAccessReceived(testFile, updatedUsers);
 
         // Assert
-        QVERIFY(aclSpy.count() > 0);
-        QList<QVariant> arguments = aclSpy.takeFirst();
-        QCOMPARE(arguments.at(0).toString(), testFile);
-        QCOMPARE(arguments.at(1).toStringList(), updatedUsers);
+        QVERIFY(accessGrantedSpy.count() > 0);
+        QVERIFY(usersReceivedSpy.count() > 0);
+        
+        // Check accessGranted signal
+        QList<QVariant> grantedArgs = accessGrantedSpy.takeFirst();
+        QCOMPARE(grantedArgs.at(0).toBool(), true);
+        QCOMPARE(grantedArgs.at(1).toString(), testFile);
+        QCOMPARE(grantedArgs.at(2).toString(), testUser);
+        
+        // Check usersReceived signal
+        QList<QVariant> usersArgs = usersReceivedSpy.takeFirst();
+        QCOMPARE(usersArgs.at(0).toString(), testFile);
+        QCOMPARE(usersArgs.at(1).toStringList(), updatedUsers);
     }
 
     void cleanupTestCase() {
