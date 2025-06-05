@@ -1,6 +1,8 @@
 #pragma once
 #include "../ApiService.h"
 #include "../../network/Client.h"
+#include "../../tofu/DeviceCertificate.h"
+#include "../../tofu/TOFUPromptManager.h"
 #include <QObject>
 #include <QString>
 #include <QJsonObject>
@@ -35,6 +37,13 @@ public:
                      const QString& encSalt,
                      const QString& mekIV,
                      const QString& mekTag);
+    QString registerDataToBlob(const QString& username,
+                            const QString& publicKey,
+                            const QString& authHash,
+                            const QString& encryptedMEK,
+                            const QString& authSalt1,
+                            const QString& authSalt2,
+                            const QString& encSalt);
 
     void changePassword(const QString& username,
                        const QString& oldPassword,
@@ -81,6 +90,11 @@ public:
     void refreshToken(const QString& refreshToken);
     void logout(const QString& sessionToken);
 
+    // TOFU-related methods
+    DeviceCertificate getCurrentDeviceCertificate() const;
+    bool verifyDeviceCertificate(const DeviceCertificate& cert) const;
+    bool isDeviceTrusted(const QString& userId, const QString& deviceId) const;
+
 signals:
     void loginCompleted(bool success, const QString& token = QString());
     void registrationCompleted(bool success);
@@ -97,6 +111,11 @@ signals:
     void totpEnabled(const QString& qrCodeBase64);
     void totpSetupCompleted(bool success);
     void totpDisabled();
+
+    // TOFU-related signals
+    void deviceCertificateCreated(const DeviceCertificate& cert);
+    void deviceCertificateVerified(bool success);
+    void deviceTrustChanged(const QString& userId, const QString& deviceId, bool trusted);
 
 private slots:
     void handleResponseReceived(int status, const QJsonObject& data);
@@ -116,6 +135,10 @@ private:
     QString m_pendingLoginUsername;
     QString m_pendingLoginPassword;
     bool m_waitingForSalts;
+
+    // TOFU-related members
+    std::unique_ptr<TOFUPromptManager> m_tofuManager;
+    DeviceCertificate m_currentDeviceCert;
     
     void handleLoginResponse(int status, const QJsonObject& data);
     void handleRegisterResponse(int status, const QJsonObject& data);
@@ -134,4 +157,8 @@ private:
     
     // SECURITY: hashedLogin made private to prevent TOTP bypass
     void hashedLogin(const QString& username, const QString& authHash);
+
+    // TOFU helper methods
+    bool initializeDeviceCertificate(const QString& username, const QString& deviceId);
+    void setupTOFUManager();
 };
