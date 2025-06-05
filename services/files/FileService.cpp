@@ -765,35 +765,16 @@ void FileService::initializeFileTransfer(std::shared_ptr<SSLContext> sslContext)
     }
 }
 
-HttpRequest FileService::createSecureRequest(const QString& endpoint, const QString& method, const QJsonObject& payload) {
-    HttpRequest request;
-    request.method = method.toStdString();
-    request.path = endpoint.toStdString();
-    request.headers["Host"] = "chrisplusplus.gobbler.info";
-    request.headers["User-Agent"] = "ChrisPlusPlus-FileService/1.0";
-    request.headers["Authorization"] = ("Bearer " + m_authToken).toStdString();
-    request.headers["Content-Type"] = "application/json";
-    
-    if (!payload.isEmpty()) {
-        QJsonDocument doc(payload);
-        request.body = doc.toJson(QJsonDocument::Compact).toStdString();
-    }
-    
-    return request;
-}
-
 void FileService::sendSecureRequest(const QString& endpoint, const QString& method, const QJsonObject& payload) {
     if (!m_client) {
         std::cout << " FILESERVICE: Client not available" << std::endl;
         return;
     }
     
-    HttpRequest request = createSecureRequest(endpoint, method, payload);
-    
-    m_client->sendAsync(request,
-        [this, endpoint](const HttpResponse& response) {
-            QJsonDocument doc = QJsonDocument::fromJson(QString::fromStdString(response.body).toUtf8());
-            handleResponseReceived(response.statusCode, doc.object());
+    // Use the Client's sendAsync method with correct parameters
+    m_client->sendAsync(endpoint, method, payload,
+        [this](int statusCode, const QJsonObject& data) {
+            handleResponseReceived(statusCode, data);
         },
         [this](const QString& error) {
             handleNetworkError(error);
