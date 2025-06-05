@@ -29,13 +29,13 @@ void FileModel::uploadFile(const QString& filePath)
     std::cout << "✅ FILEMODEL: m_fileService->uploadFile call completed" << std::endl;
 }
 
-void FileModel::downloadFile(const QString& fileName, const QString& savePath)
+void FileModel::downloadFile(const QString& fileId, const QString& savePath)
 {
-    m_fileService->downloadFile(fileName, savePath);
+    m_fileService->downloadFile(fileId, savePath);
 }
 
-void FileModel::deleteFile(const QString& fileName) {
-    m_fileService->deleteFile(fileName);
+void FileModel::deleteFile(const QString& fileId) {
+    m_fileService->deleteFile(fileId);
 }
 
 void FileModel::listFiles(int page, int pageSize) {

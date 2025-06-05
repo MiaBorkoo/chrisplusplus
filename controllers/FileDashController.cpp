@@ -13,6 +13,7 @@ FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileT
     m_view = qobject_cast<FilesDashView*>(m_fileTable->parent()->parent());
     if (m_view) {
         connect(m_view, &FilesDashView::deleteRequested, this, &FileDashController::onDeleteFileRequested);
+        connect(m_view, &FilesDashView::downloadRequested, this, &FileDashController::onDownloadFileRequested);
         connect(m_view, &FilesDashView::uploadRequested, this, [this]() {
             std::cout << "🎯 FILEDASHCONTROLLER: Upload requested from UI" << std::endl;
             QString filePath = QFileDialog::getOpenFileName(m_view,
@@ -26,15 +27,6 @@ FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileT
                 std::cout << "✅ FILEDASHCONTROLLER: m_fileModel->uploadFile call completed" << std::endl;
             } else {
                 std::cout << "❌ FILEDASHCONTROLLER: No file selected" << std::endl;
-            }
-        });
-        connect(m_view, &FilesDashView::downloadRequested, this, [this](const QString &fileName) {
-            QString savePath = QFileDialog::getSaveFileName(m_view,
-                tr("Save File As"),
-                QDir::homePath() + "/" + fileName,
-                tr("All Files (*.*)"));
-            if (!savePath.isEmpty()) {
-                m_fileModel->downloadFile(fileName, savePath);
             }
         });
     }
@@ -74,7 +66,7 @@ FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileT
         [this](const QList<MvcFileInfo>& files, int totalFiles, int currentPage, int totalPages) {
             m_view->clearTable();
             for (const auto &file : files) {
-                m_view->addFileRow(file.name, QString::number(file.size), file.uploadDate);
+                m_view->addFileRow(file.name, QString::number(file.size), file.uploadDate, file.fileId);
             }
     });
 
@@ -111,30 +103,28 @@ void FileDashController::handleFileSelection(int row, int column) {
     }
 }
 
-void FileDashController::onDeleteFileRequested(const QString &fileName) {
+void FileDashController::onDeleteFileRequested(const QString &fileId, const QString &displayName) {
     QMessageBox::StandardButton reply = QMessageBox::question(
         m_view,
         "Delete File",
-        "Are you sure you want to delete this file?",
+        "Are you sure you want to delete '" + displayName + "'?",
         QMessageBox::Yes | QMessageBox::No,
         QMessageBox::Yes
     );
     if (reply == QMessageBox::Yes) {
-        // Remove from m_files
-        auto it = std::remove_if(m_files.begin(), m_files.end(), [&](const FileRow &row) {
-            return row.name == fileName;
-        });
-        m_files.erase(it, m_files.end());
-        repopulateTable();
+        std::cout << "🗑️ FILEDASHCONTROLLER: Deleting file with ID: " << fileId.toStdString() << std::endl;
+        m_fileModel->deleteFile(fileId);  // Use fileId for server operation
     }
 }
 
-void FileDashController::repopulateTable() {
-    if (m_view) m_view->clearTable();
-    for (const auto &file : m_files) {
-        if (m_view) {
-            m_view->addFileRow(file.name, file.size, file.date);
-        }
+void FileDashController::onDownloadFileRequested(const QString &fileId, const QString &displayName) {
+    QString savePath = QFileDialog::getSaveFileName(m_view,
+        tr("Save File As"),
+        QDir::homePath() + "/" + displayName,  // Use display name for default filename
+        tr("All Files (*.*)"));
+    if (!savePath.isEmpty()) {
+        std::cout << "⬇️ FILEDASHCONTROLLER: Downloading file with ID: " << fileId.toStdString() << std::endl;
+        m_fileModel->downloadFile(fileId, savePath);  // Use fileId for server operation
     }
 }
 

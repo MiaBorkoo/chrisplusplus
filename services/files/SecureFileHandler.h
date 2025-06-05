@@ -65,12 +65,12 @@ public:
 
     // 🔥 ASYNC secure file operations that wrap FileTransfer streaming
     void uploadFileSecurelyAsync(const QString& filePath, const QString& authToken);
-    void downloadFileSecurelyAsync(const QString& fileName, const QString& savePath, const QString& authToken);
-    bool deleteFileSecurely(const QString& fileName, const QString& authToken);
+    void downloadFileSecurelyAsync(const QString& fileId, const QString& savePath, const QString& authToken);
+    bool deleteFileSecurely(const QString& fileId, const QString& authToken);
 
     // 🔥 LEGACY SYNC methods for backward compatibility (deprecated)
     SecureUploadResult uploadFileSecurely(const QString& filePath, const QString& authToken);
-    SecureDownloadResult downloadFileSecurely(const QString& fileName, const QString& savePath, const QString& authToken);
+    SecureDownloadResult downloadFileSecurely(const QString& fileId, const QString& savePath, const QString& authToken);
 
     // File sharing operations
     bool shareFileSecurely(const QString& fileName, const QString& recipientUsername, const QString& authToken);
@@ -123,6 +123,7 @@ private:
     QString m_currentFileName;
     QString m_currentAuthToken;
     QString m_currentTempFilePath; // Track temp file for cleanup
+    QString m_currentSavePath;     // Track user's chosen save path for downloads
     
     // Helper methods for encryption flow
     bool deriveMEKWrapperKey(const QString& password, const QString& salt);

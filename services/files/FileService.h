@@ -45,9 +45,9 @@ public:
 
     // File operations - same interface, secure implementation
     void uploadFile(const QString& filePath);
-    void deleteFile(const QString& fileName);
+    void deleteFile(const QString& fileId);
     void listFiles(int page = 1, int pageSize = 50);
-    void downloadFile(const QString& fileName, const QString& savePath);
+    void downloadFile(const QString& fileId, const QString& savePath);
     void listSharedFiles(int page = 1, int pageSize = 50);
     void grantAccess(const QString& fileName, const QString& username);
     void revokeAccess(const QString& fileName, const QString& username);

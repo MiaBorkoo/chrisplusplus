@@ -71,10 +71,16 @@ FilesDashView::FilesDashView(QWidget *parent) : QWidget(parent) {
     setLayout(vLayout);
 }
 
-void FilesDashView::addFileRow(const QString &name, const QString &size, const QString &date) {
+void FilesDashView::addFileRow(const QString &name, const QString &size, const QString &date, const QString &fileId) {
     int row = fileTable->rowCount();
     fileTable->insertRow(row);
-    fileTable->setItem(row, 0, new QTableWidgetItem(name));
+    
+    // Store display name in column 0
+    QTableWidgetItem *nameItem = new QTableWidgetItem(name);
+    // Store fileId as user data for operations
+    nameItem->setData(Qt::UserRole, fileId);
+    fileTable->setItem(row, 0, nameItem);
+    
     fileTable->setItem(row, 1, new QTableWidgetItem(size));
     fileTable->setItem(row, 2, new QTableWidgetItem(date));
 
@@ -84,17 +90,17 @@ void FilesDashView::addFileRow(const QString &name, const QString &size, const Q
     actionsLayout->setContentsMargins(0, 0, 0, 0);
     actionsLayout->setSpacing(6);
 
-    // Download button
+    // Download button - pass fileId for operations, display name for UI
     QPushButton *downloadButton = new QPushButton("Download");
     downloadButton->setObjectName("downloadButton");
     downloadButton->setIcon(QIcon(":/assets/arrow.svg"));
     downloadButton->setIconSize(QSize(16, 16));
-    connect(downloadButton, &QPushButton::clicked, this, [this, name]() {
-        emit downloadRequested(name);
+    connect(downloadButton, &QPushButton::clicked, this, [this, fileId, name]() {
+        emit downloadRequested(fileId, name);
     });
     actionsLayout->addWidget(downloadButton);
 
-    //button to manage access
+    //button to manage access - still uses display name for access management UI
     QPushButton *accessButton = new QPushButton("Access");
     accessButton->setObjectName("accessButton");
     connect(accessButton, &QPushButton::clicked, this, [this, name]() {
@@ -104,15 +110,15 @@ void FilesDashView::addFileRow(const QString &name, const QString &size, const Q
 
     actionsLayout->addStretch();
 
-    //delete file button
+    //delete file button - pass fileId for operations, display name for UI
     QPushButton *deleteButton = new QPushButton();
     deleteButton->setToolTip("Delete File");
     deleteButton->setFixedSize(28, 28);
     deleteButton->setIcon(QIcon(":/assets/trash.svg"));
     deleteButton->setIconSize(QSize(18, 18));
     deleteButton->setObjectName("deleteButton");
-    connect(deleteButton, &QPushButton::clicked, this, [this, name]() {
-        emit deleteRequested(name);
+    connect(deleteButton, &QPushButton::clicked, this, [this, fileId, name]() {
+        emit deleteRequested(fileId, name);
     });
     actionsLayout->addWidget(deleteButton);
 

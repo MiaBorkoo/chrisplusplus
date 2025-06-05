@@ -160,18 +160,18 @@ void FileService::uploadFile(const QString& filePath) {
     m_fileTransfer->uploadFileAsync(filePath, "/api/files/upload");
 }
 
-void FileService::downloadFile(const QString& fileName, const QString& savePath) {
-    std::cout << "⬇️ FILESERVICE: downloadFile called for: " << fileName.toStdString() << std::endl;
+void FileService::downloadFile(const QString& fileId, const QString& savePath) {
+    std::cout << "⬇️ FILESERVICE: downloadFile called for fileId: " << fileId.toStdString() << std::endl;
     
-    // Store current filename for progress tracking
-    m_currentFileName = fileName;
+    // Store current filename for progress tracking (we don't have display name here)
+    m_currentFileName = fileId; // This will be the file ID for progress tracking
     
     // SECURE PATH: Use SecureFileHandler if available
     if (m_secureHandler && m_secureHandler->isInitialized()) {
         std::cout << "🔐 FILESERVICE: Using SECURE download path" << std::endl;
         
         // 🔥 FIXED: Use async streaming download instead of blocking sync download
-        m_secureHandler->downloadFileSecurelyAsync(fileName, savePath, m_authToken);
+        m_secureHandler->downloadFileSecurelyAsync(fileId, savePath, m_authToken);
         return; // Completion handled via signals
     }
     
@@ -183,29 +183,29 @@ void FileService::downloadFile(const QString& fileName, const QString& savePath)
         return;
     }
 
-    // Create download endpoint with filename
-    std::string endpoint = "/api/files/download/" + fileName.toStdString();
+    // Create download endpoint with fileId (UUID format)
+    std::string endpoint = "/api/files/" + fileId.toStdString() + "/download";
     
     // Use async file transfer with SSL
     m_fileTransfer->downloadFileAsync(endpoint, savePath);
 }
 
-void FileService::deleteFile(const QString& fileName) {
-    std::cout << "🗑️ FILESERVICE: deleteFile called for: " << fileName.toStdString() << std::endl;
+void FileService::deleteFile(const QString& fileId) {
+    std::cout << "🗑️ FILESERVICE: deleteFile called for fileId: " << fileId.toStdString() << std::endl;
     
     // SECURE PATH: Use SecureFileHandler if available
     if (m_secureHandler && m_secureHandler->isInitialized()) {
         std::cout << "🔐 FILESERVICE: Using SECURE delete path" << std::endl;
         
-        bool success = m_secureHandler->deleteFileSecurely(fileName, m_authToken);
+        bool success = m_secureHandler->deleteFileSecurely(fileId, m_authToken);
         
         if (success) {
             std::cout << "✅ FILESERVICE: Secure delete completed successfully!" << std::endl;
-            emit deleteComplete(true, fileName);
+            emit deleteComplete(true, fileId);
         } else {
             std::cout << "❌ FILESERVICE: Secure delete failed" << std::endl;
             reportError("Secure delete failed");
-            emit deleteComplete(false, fileName);
+            emit deleteComplete(false, fileId);
         }
         return;
     }
@@ -219,7 +219,7 @@ void FileService::deleteFile(const QString& fileName) {
     }
 
     QJsonObject payload;
-    payload["filename"] = fileName;
+    payload["file_id"] = fileId;  // Use file_id instead of filename
 
     m_client->sendRequest("/api/files/delete", "DELETE", payload);
 }

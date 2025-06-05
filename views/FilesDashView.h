@@ -19,7 +19,7 @@ public:
     QTableWidget* getFileTable() const;
     SideNavWidget* getSideNav() const;
     HeaderWidget* getHeader() const;
-    void addFileRow(const QString &name, const QString &size, const QString &date);
+    void addFileRow(const QString &name, const QString &size, const QString &date, const QString &fileId = "");
     void clearTable();
 
 private:
@@ -35,8 +35,8 @@ signals:
     void fileOpenRequested(const QString &fileName);
     void uploadRequested();
     void accessRequested(const QString &fileName);
-    void deleteRequested(const QString &fileName);
-    void downloadRequested(const QString &fileName);
+    void deleteRequested(const QString &fileId, const QString &displayName);
+    void downloadRequested(const QString &fileId, const QString &displayName);
 };
 
 #endif // FILESDASHVIEW_H

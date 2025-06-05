@@ -74,16 +74,17 @@ private slots:
 
     void testFileOperations() {
         // Test file download through view
-        QString testFile = "test.txt";
-        m_filesDashView->downloadRequested(testFile);
+        QString testFileId = "test-file-uuid-123";
+        QString testDisplayName = "test.txt";
+        m_filesDashView->downloadRequested(testFileId, testDisplayName);
         // Simulate successful download response
-        m_fileService->downloadComplete(true, testFile);
+        m_fileService->downloadComplete(true, testDisplayName);
         QVERIFY(downloadCalled);
         
         // Test file deletion through view
-        m_filesDashView->deleteRequested(testFile);
+        m_filesDashView->deleteRequested(testFileId, testDisplayName);
         // Simulate successful deletion response
-        m_fileService->deleteComplete(true, testFile);
+        m_fileService->deleteComplete(true, testDisplayName);
         QVERIFY(deleteCalled);
     }
 
@@ -168,9 +169,9 @@ private slots:
         m_filesDashView->clearTable();
         
         // Add some test files
-        m_filesDashView->addFileRow("test_search.txt", "1024", "2024-03-20");
-        m_filesDashView->addFileRow("other_file.txt", "2048", "2024-03-20");
-        m_filesDashView->addFileRow("test_search2.txt", "512", "2024-03-20");
+        m_filesDashView->addFileRow("test_search.txt", "1024", "2024-03-20", "uuid-test-search-1");
+        m_filesDashView->addFileRow("other_file.txt", "2048", "2024-03-20", "uuid-other-file-2");
+        m_filesDashView->addFileRow("test_search2.txt", "512", "2024-03-20", "uuid-test-search-3");
         
         // Simulate user typing in search bar
         QString searchText = "test_search";
@@ -209,7 +210,7 @@ private slots:
         m_filesDashView->clearTable();
         
         // Add a test file to the table
-        m_filesDashView->addFileRow("test_file.txt", "1024", "2024-03-20");
+        m_filesDashView->addFileRow("test_file.txt", "1024", "2024-03-20", "uuid-test-file-1");
         
         // Simulate file selection
         m_fileDashController->handleFileSelection(0, 0);
@@ -253,11 +254,11 @@ private slots:
     void testFileDownload() {
         // Arrange
         QSignalSpy downloadSpy(m_fileService.get(), SIGNAL(downloadComplete(bool,QString)));
-        const QString testFile = "test.txt";
+        const QString testFileId = "test-uuid-123";
         const QString savePath = "/tmp/test.txt";
         
         // Act
-        m_fileModel->downloadFile(testFile, savePath);
+        m_fileModel->downloadFile(testFileId, savePath);
         
         // Assert - verify that the operation was forwarded to the service
         QCOMPARE(downloadSpy.count(), 0); // No response yet, which is expected
@@ -266,10 +267,10 @@ private slots:
     void testFileDelete() {
         // Arrange
         QSignalSpy deleteSpy(m_fileService.get(), SIGNAL(deleteComplete(bool,QString)));
-        const QString testFile = "test.txt";
+        const QString testFileId = "test-uuid-456";
         
         // Act
-        m_fileModel->deleteFile(testFile);
+        m_fileModel->deleteFile(testFileId);
         
         // Assert - verify that the operation was forwarded to the service
         QCOMPARE(deleteSpy.count(), 0); // No response yet, which is expected

@@ -34,7 +34,8 @@ signals:
 public slots:
     void handleSearch(const QString &text);
     void handleFileSelection(int row, int column);
-    void onDeleteFileRequested(const QString &fileName);
+    void onDeleteFileRequested(const QString &fileId, const QString &displayName);
+    void onDownloadFileRequested(const QString &fileId, const QString &displayName);
 
 private:
     QLineEdit *m_searchBar;

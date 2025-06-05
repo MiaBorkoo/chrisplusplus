@@ -12,8 +12,8 @@ public:
     
     // File operations
     void uploadFile(const QString& filePath);
-    void downloadFile(const QString& fileName, const QString& savePath);
-    void deleteFile(const QString& fileName);
+    void downloadFile(const QString& fileId, const QString& savePath);
+    void deleteFile(const QString& fileId);
     void listFiles(int page = 1, int pageSize = 50);
 
 signals:
