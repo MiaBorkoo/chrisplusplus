@@ -4,9 +4,9 @@
 #include "controllers/FileDashController.h"
 #include "controllers/SideNavController.h"
 #include "controllers/SharedDashController.h"
-#include "views/HeaderWidget.h"
 #include "views/AccountSection.h"
 #include "controllers/AccountController.h"
+#include "utils/Config.h"
 #include <QScreen>
 #include <QApplication>
 #include <QStackedWidget>
@@ -43,8 +43,18 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     m_signUpController = new SignUpController(m_signUpView, this);
     m_signUpController->setAuthService(m_authService); // Connect to AuthService
 
+    // Initialize network client and services using Config
+    auto client = std::make_shared<Client>(Config::getInstance().getServerUrl());
+    m_fileService = std::make_shared<FileService>(client);
+    m_fileModel = std::make_shared<FileModel>(m_fileService);
+
     m_filesDashView = new FilesDashView(this);
-    m_fileDashController = new FileDashController(m_filesDashView->getSearchBar(), m_filesDashView->getFileTable(), this);
+    m_fileDashController = new FileDashController(
+        m_filesDashView->getSearchBar(), 
+        m_filesDashView->getFileTable(), 
+        m_fileModel,
+        this
+    );
     
     m_accountSection = new AccountSection(this);
 
@@ -140,9 +150,8 @@ void MainWindow::initializeServices()
     // Initialize network client with default values
     // TODO: These should come from configuration/settings
     QString baseUrl = "https://api.chrisplusplus.com";  // Default server URL
-    QString apiKey = "";  // Will be set after login
     
-    m_client = std::make_shared<Client>(baseUrl, apiKey, this);
+    m_client = std::make_shared<Client>(baseUrl, this);
     
     // Initialize AuthService with the client
     m_authService = std::make_shared<AuthService>(m_client, this);

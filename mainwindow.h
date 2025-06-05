@@ -13,6 +13,8 @@
 #include "views/SharedDashView.h"
 #include "controllers/SideNavController.h"
 #include "controllers/SharedDashController.h"
+#include "models/FileModel.h"
+#include "services/files/FileService.h"
 #include "views/AccountSection.h"
 #include "controllers/AccountController.h"
 #include "services/auth/AuthService.h"
@@ -40,6 +42,8 @@ private:
     AccountSection* m_accountSection;
     AccountController* m_accountController;
     std::shared_ptr<Client> m_client;
+    std::shared_ptr<FileService> m_fileService;
+    std::shared_ptr<FileModel> m_fileModel;
     std::shared_ptr<AuthService> m_authService;
 
     void initializeServices();
