@@ -289,11 +289,11 @@ target_link_libraries(test_file_connection PRIVATE
     Qt6::Concurrent
     OpenSSL::SSL
     OpenSSL::Crypto
-    crypto-lib
     file_transfer
     http_layer
     sockets
     file_management           # Secure file management system
+    crypto-lib
     nlohmann_json::nlohmann_json
     ${QRENCODE_LIBRARIES}
 )
@@ -321,6 +321,7 @@ target_include_directories(test_file_connection PRIVATE
     ${CMAKE_SOURCE_DIR}/services/files
     ${CMAKE_SOURCE_DIR}/network
     ${CMAKE_SOURCE_DIR}/crypto
+    ${CMAKE_SOURCE_DIR}/tofu
     ${QRENCODE_INCLUDE_DIRS}
 )
 

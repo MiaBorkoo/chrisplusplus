@@ -12,11 +12,11 @@ public:
     
     // Shared file operations
     void listSharedFiles(int page = 1, int pageSize = 50);
-    void downloadSharedFile(const QString& fileName, const QString& savePath);
+    void downloadSharedFile(const QString& fileId, const QString& savePath);
 
 signals:
     // Operation results
-    void sharedFileListUpdated(const QList<MvcFileInfo>& files, int totalFiles, int currentPage, int totalPages);
+    void sharedFileListUpdated(const QList<MvcSharedFileInfo>& files, int totalFiles, int currentPage, int totalPages);
     void fileDownloaded(bool success, const QString& fileName);
     
     // Progress updates
@@ -26,7 +26,7 @@ signals:
     void errorOccurred(const QString& error);
 
 private slots:
-    void handleSharedFileListReceived(const QList<MvcFileInfo>& files, int totalFiles, int currentPage, int totalPages);
+    void handleSharedFileListReceived(const QList<MvcSharedFileInfo>& files, int totalFiles, int currentPage, int totalPages);
     void handleDownloadComplete(bool success, const QString& fileName);
     void handleDownloadProgress(const QString& fileName, qint64 bytesReceived, qint64 bytesTotal);
     void handleError(const QString& error);

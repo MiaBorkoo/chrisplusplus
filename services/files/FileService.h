@@ -49,8 +49,8 @@ public:
     void listFiles(int page = 1, int pageSize = 50);
     void downloadFile(const QString& fileId, const QString& savePath);
     void listSharedFiles(int page = 1, int pageSize = 50);
-    void grantAccess(const QString& fileName, const QString& username);
-    void revokeAccess(const QString& fileName, const QString& username);
+    void grantAccess(const QString& fileId, const QString& username);
+    void revokeAccess(const QString& fileId, const QString& username);
     void getUsersWithAccess(const QString& fileName);
     void getFileMetadata(const QString& fileId);
     void getFileAuditLogs(const QString& fileId, int limit = 50, int offset = 0);
@@ -75,9 +75,10 @@ signals:
     void deleteComplete(bool success, const QString& fileName);
     void fileListReceived(const QList<MvcFileInfo>& files, int totalFiles, int currentPage, int totalPages);
     void sharedFileListReceived(const QList<MvcFileInfo>& files, int totalFiles, int currentPage, int totalPages);
-    void accessGranted(bool success, const QString& fileName, const QString& username);
-    void accessRevoked(bool success, const QString& fileName, const QString& username);
-    void usersWithAccessReceived(const QString& fileName, const QStringList& users);
+    void sharedFileListReceivedTyped(const QList<MvcSharedFileInfo>& files, int totalFiles, int currentPage, int totalPages);
+    void accessGranted(bool success, const QString& fileId, const QString& username);
+    void accessRevoked(bool success, const QString& fileId, const QString& username);
+    void usersWithAccessReceived(const QString& fileId, const QStringList& users);
     void fileMetadataReceived(const QString& fileId, const QJsonObject& metadata);
     void auditLogsReceived(const QString& fileId, const QJsonArray& logs);
 

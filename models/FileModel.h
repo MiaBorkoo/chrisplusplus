@@ -15,6 +15,10 @@ public:
     void downloadFile(const QString& fileId, const QString& savePath);
     void deleteFile(const QString& fileId);
     void listFiles(int page = 1, int pageSize = 50);
+    
+    // Sharing operations
+    void grantAccess(const QString& fileId, const QString& username);
+    void revokeAccess(const QString& fileId, const QString& username);
 
 signals:
     // Operation results
@@ -22,6 +26,10 @@ signals:
     void fileDownloaded(bool success, const QString& fileName);
     void fileDeleted(bool success, const QString& fileName);
     void fileListUpdated(const QList<MvcFileInfo>& files, int totalFiles, int currentPage, int totalPages);
+    
+    // Sharing results
+    void accessGranted(bool success, const QString& fileId, const QString& username);
+    void accessRevoked(bool success, const QString& fileId, const QString& username);
     
     // Progress updates
     void uploadProgress(qint64 bytesSent, qint64 bytesTotal);
@@ -36,6 +44,10 @@ private slots:
     void handleDownloadComplete(bool success, const QString& fileName);
     void handleDeleteComplete(bool success, const QString& fileName);
     void handleFileListReceived(const QList<MvcFileInfo>& files, int totalFiles, int currentPage, int totalPages);
+    
+    // Sharing handlers
+    void handleAccessGranted(bool success, const QString& fileId, const QString& username);
+    void handleAccessRevoked(bool success, const QString& fileId, const QString& username);
     
     // Progress handlers
     void handleUploadProgress(const QString& fileName, qint64 bytesSent, qint64 bytesTotal);

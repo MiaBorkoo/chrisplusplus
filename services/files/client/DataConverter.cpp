@@ -4,6 +4,8 @@
 #include <chrono>
 #include <algorithm>
 #include <cctype>
+#include <iostream>
+#include <iomanip>
 
 std::string DataConverter::base64_encode(const std::vector<uint8_t>& data) {
     if (data.empty()) {
@@ -70,11 +72,30 @@ std::string DataConverter::build_multipart_form_data(
     
     std::stringstream form_data;
     
+    // DEBUG: Log initial file data size
+    std::cout << "🔍 DATACONVERTER: Building multipart data for " << file_data.size() << " bytes" << std::endl;
+    std::cout << "   First 20 bytes: ";
+    for (size_t i = 0; i < std::min(static_cast<size_t>(20), file_data.size()); ++i) {
+        std::cout << "\\x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<unsigned>(file_data[i]);
+    }
+    std::cout << std::dec << std::endl;
+    
     // Add file data (binary)
     form_data << "--" << boundary << "\r\n";
     form_data << "Content-Disposition: form-data; name=\"file\"; filename=\"encrypted_file\"\r\n";
     form_data << "Content-Type: application/octet-stream\r\n\r\n";
+    
+    // DEBUG: Check position before writing binary data
+    std::streampos pos_before = form_data.tellp();
+    std::cout << "   Position before binary write: " << pos_before << std::endl;
+    
     form_data.write(reinterpret_cast<const char*>(file_data.data()), file_data.size());
+    
+    // DEBUG: Check position after writing binary data
+    std::streampos pos_after = form_data.tellp();
+    std::cout << "   Position after binary write: " << pos_after << std::endl;
+    std::cout << "   Bytes written: " << (pos_after - pos_before) << std::endl;
+    
     form_data << "\r\n";
     
     // Add file_id (if present)
@@ -102,7 +123,22 @@ std::string DataConverter::build_multipart_form_data(
     // End boundary
     form_data << "--" << boundary << "--\r\n";
     
-    return form_data.str();
+    std::string result = form_data.str();
+    
+    // DEBUG: Final verification
+    std::cout << "   Final multipart size: " << result.size() << " bytes" << std::endl;
+    std::cout << "   Checking for null bytes in first " << std::min(static_cast<size_t>(100), result.size()) << " chars..." << std::endl;
+    
+    size_t null_count = 0;
+    for (size_t i = 0; i < std::min(static_cast<size_t>(100), result.size()); ++i) {
+        if (result[i] == '\0') {
+            null_count++;
+            std::cout << "   Found null byte at position " << i << std::endl;
+        }
+    }
+    std::cout << "   Total null bytes in first 100 chars: " << null_count << std::endl;
+    
+    return result;
 }
 
 FileShareRequest DataConverter::to_api_share_request(

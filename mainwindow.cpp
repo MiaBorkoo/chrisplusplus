@@ -53,6 +53,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     // Initialize FileTransfer with SSLContext for secure file operations
     m_fileService->initializeFileTransfer(m_sslContext);
     m_fileModel = std::make_shared<FileModel>(m_fileService);
+    m_sharedFileModel = std::make_shared<SharedFileModel>(m_fileService);
 
     m_filesDashView = new FilesDashView(this);
     m_fileDashController = new FileDashController(
@@ -65,7 +66,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     m_accountSection = new AccountSection(this);
 
     m_sharedDashView = new SharedDashView(this);
-    m_sharedDashController = new SharedDashController(m_sharedDashView, this);
+    m_sharedDashController = new SharedDashController(m_sharedDashView, m_sharedFileModel, this);
 
     // Initialize side nav controller with the FilesDashView's side nav
     m_sideNavController = new SideNavController(m_filesDashView->getSideNav(), this);
@@ -163,6 +164,8 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     connect(m_sideNavController, &SideNavController::sharedFilesRequested, this, [this]() {
         m_stack->setCurrentWidget(m_sharedDashView);
         m_sideNavController->setActiveTab(SideNavTab::SharedWithMe);
+        // Trigger shared files loading
+        m_sharedDashController->setFileService(m_fileService);
     });
 
     connect(m_sideNavController, &SideNavController::inboxRequested, this, [this]() {

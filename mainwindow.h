@@ -12,6 +12,7 @@
 #include "controllers/SideNavController.h"
 #include "controllers/SharedDashController.h"
 #include "models/FileModel.h"
+#include "models/SharedFileModel.h"
 #include "models/LoginModel.h"
 #include "models/SignUpModel.h"
 #include "services/files/FileService.h"
@@ -48,6 +49,7 @@ private:
     std::shared_ptr<AuthService> m_authService;
     std::shared_ptr<FileService> m_fileService;
     std::shared_ptr<FileModel> m_fileModel;
+    std::shared_ptr<SharedFileModel> m_sharedFileModel;
     std::shared_ptr<LoginModel> m_loginModel;
     std::shared_ptr<SignUpModel> m_signUpModel;
 };

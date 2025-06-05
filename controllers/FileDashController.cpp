@@ -4,6 +4,7 @@
 #include "../views/FilesDashView.h"
 #include <QMessageBox>
 #include <QFileDialog>
+#include <QInputDialog>
 #include <QDir>
 #include <iostream>
 
@@ -14,6 +15,7 @@ FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileT
     if (m_view) {
         connect(m_view, &FilesDashView::deleteRequested, this, &FileDashController::onDeleteFileRequested);
         connect(m_view, &FilesDashView::downloadRequested, this, &FileDashController::onDownloadFileRequested);
+        connect(m_view, &FilesDashView::accessRequested, this, &FileDashController::onAccessRequested);
         connect(m_view, &FilesDashView::uploadRequested, this, [this]() {
             std::cout << "🎯 FILEDASHCONTROLLER: Upload requested from UI" << std::endl;
             QString filePath = QFileDialog::getOpenFileName(m_view,
@@ -74,6 +76,19 @@ FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileT
         QMessageBox::warning(m_view, "Error", error);
     });
 
+    // Connect sharing signals
+    connect(m_fileModel.get(), &FileModel::accessGranted, this, [this](bool success, const QString &fileName, const QString &username) {
+        if (success) {
+            QMessageBox::information(m_view, "Share Success", 
+                QString("File '%1' successfully shared with user '%2'!").arg(fileName, username));
+            std::cout << "✅ FILEDASHCONTROLLER: File sharing successful" << std::endl;
+        } else {
+            QMessageBox::warning(m_view, "Share Error", 
+                QString("Failed to share file '%1' with user '%2'").arg(fileName, username));
+            std::cout << "❌ FILEDASHCONTROLLER: File sharing failed" << std::endl;
+        }
+    });
+
     // Connect search bar
     connect(m_searchBar, &QLineEdit::textChanged, this, &FileDashController::handleSearch);
     connect(m_fileTable, &QTableWidget::cellClicked, this, &FileDashController::handleFileSelection);
@@ -125,6 +140,26 @@ void FileDashController::onDownloadFileRequested(const QString &fileId, const QS
     if (!savePath.isEmpty()) {
         std::cout << "⬇️ FILEDASHCONTROLLER: Downloading file with ID: " << fileId.toStdString() << std::endl;
         m_fileModel->downloadFile(fileId, savePath);  // Use fileId for server operation
+    }
+}
+
+void FileDashController::onAccessRequested(const QString &fileId, const QString &displayName) {
+    bool ok;
+    QString username = QInputDialog::getText(m_view, 
+        "Share File", 
+        QString("Enter username to share '%1' with:").arg(displayName),
+        QLineEdit::Normal, 
+        "", 
+        &ok);
+    
+    if (ok && !username.isEmpty()) {
+        std::cout << "🤝 FILEDASHCONTROLLER: Sharing file '" << displayName.toStdString() 
+                  << "' (ID: " << fileId.toStdString() << ") with user: " << username.toStdString() << std::endl;
+        
+        // Use the FileModel to grant access with the actual fileId
+        m_fileModel->grantAccess(fileId, username);
+    } else if (ok) {
+        QMessageBox::warning(m_view, "Invalid Input", "Please enter a valid username.");
     }
 }
 

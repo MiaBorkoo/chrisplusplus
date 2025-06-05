@@ -3,8 +3,8 @@
 SharedFileModel::SharedFileModel(std::shared_ptr<FileService> fileService, QObject* parent)
     : QObject(parent), m_fileService(fileService)
 {
-    // Connect shared file list signal
-    connect(m_fileService.get(), &FileService::sharedFileListReceived,
+    // Connect shared file list signal - use the typed version
+    connect(m_fileService.get(), &FileService::sharedFileListReceivedTyped,
             this, &SharedFileModel::handleSharedFileListReceived);
             
     // Connect download signals
@@ -22,28 +22,13 @@ void SharedFileModel::listSharedFiles(int page, int pageSize) {
     m_fileService->listSharedFiles(page, pageSize);
 }
 
-void SharedFileModel::downloadSharedFile(const QString& fileName, const QString& savePath) {
-    m_fileService->downloadFile(fileName, savePath);
+void SharedFileModel::downloadSharedFile(const QString& fileId, const QString& savePath) {
+    m_fileService->downloadFile(fileId, savePath);
 }
 
-void SharedFileModel::handleSharedFileListReceived(const QList<MvcFileInfo>& files, int totalFiles, int currentPage, int totalPages) {
-    QList<MvcFileInfo> processedFiles;
-    for (const MvcFileInfo& file : files) {
-        // Check if this is a MvcSharedFileInfo
-        const MvcSharedFileInfo* sharedInfo = dynamic_cast<const MvcSharedFileInfo*>(&file);
-        if (sharedInfo) {
-            MvcSharedFileInfo newInfo;
-            newInfo.name = file.name;
-            newInfo.size = file.size;
-            newInfo.uploadDate = file.uploadDate;
-            newInfo.acl = file.acl;
-            newInfo.sharedBy = sharedInfo->sharedBy;
-            processedFiles.append(newInfo);
-        } else {
-            processedFiles.append(file);
-        }
-    }
-    emit sharedFileListUpdated(processedFiles, totalFiles, currentPage, totalPages);
+void SharedFileModel::handleSharedFileListReceived(const QList<MvcSharedFileInfo>& files, int totalFiles, int currentPage, int totalPages) {
+    // No need for dynamic_cast anymore since we have proper typing
+    emit sharedFileListUpdated(files, totalFiles, currentPage, totalPages);
 }
 
 void SharedFileModel::handleDownloadComplete(bool success, const QString& fileName) {

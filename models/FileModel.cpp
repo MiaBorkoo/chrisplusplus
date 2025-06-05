@@ -19,6 +19,12 @@ FileModel::FileModel(std::shared_ptr<FileService> fileService, QObject* parent)
             this, &FileModel::handleUploadProgress);
     connect(m_fileService.get(), &FileService::downloadProgress,
             this, &FileModel::handleDownloadProgress);
+            
+    // Connect sharing signals
+    connect(m_fileService.get(), &FileService::accessGranted,
+            this, &FileModel::handleAccessGranted);
+    connect(m_fileService.get(), &FileService::accessRevoked,
+            this, &FileModel::handleAccessRevoked);
 }
 
 // File operations
@@ -73,4 +79,24 @@ void FileModel::handleDownloadProgress(const QString& fileName, qint64 bytesRece
 // Error handler
 void FileModel::handleError(const QString& error) {
     emit errorOccurred(error);
+}
+
+// Sharing operations
+void FileModel::grantAccess(const QString& fileId, const QString& username) {
+    std::cout << "📋 FILEMODEL: grantAccess called for fileId: " << fileId.toStdString() << " to user: " << username.toStdString() << std::endl;
+    m_fileService->grantAccess(fileId, username);
+}
+
+void FileModel::revokeAccess(const QString& fileId, const QString& username) {
+    std::cout << "📋 FILEMODEL: revokeAccess called for fileId: " << fileId.toStdString() << " from user: " << username.toStdString() << std::endl;
+    m_fileService->revokeAccess(fileId, username);
+}
+
+// Sharing handlers
+void FileModel::handleAccessGranted(bool success, const QString& fileId, const QString& username) {
+    emit accessGranted(success, fileId, username);
+}
+
+void FileModel::handleAccessRevoked(bool success, const QString& fileId, const QString& username) {
+    emit accessRevoked(success, fileId, username);
 } 

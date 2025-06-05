@@ -2,6 +2,7 @@
 
 #include <QString>
 #include <QObject>
+#include <QFuture>
 #include <memory>
 #include <vector>
 #include <functional>
@@ -124,6 +125,10 @@ private:
     QString m_currentAuthToken;
     QString m_currentTempFilePath; // Track temp file for cleanup
     QString m_currentSavePath;     // Track user's chosen save path for downloads
+    
+    // Background operation futures
+    QFuture<void> m_encryptionFuture;
+    QFuture<void> m_decryptionFuture;
     
     // Helper methods for encryption flow
     bool deriveMEKWrapperKey(const QString& password, const QString& salt);

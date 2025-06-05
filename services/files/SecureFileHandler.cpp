@@ -180,7 +180,7 @@ void SecureFileHandler::uploadFileSecurelyAsync(const QString& filePath, const Q
     m_currentTempFilePath.clear();
     
     // 🔥 SIMPLE ENCRYPTION: Do it right in background thread
-    QtConcurrent::run([this, filePath]() {
+    m_encryptionFuture = QtConcurrent::run([this, filePath]() {
         try {
             std::cout << "🔐 SECUREFILEHANDLER: Reading and encrypting file..." << std::endl;
             
@@ -364,7 +364,7 @@ void SecureFileHandler::handleDownloadCompleted(bool success, const TransferResu
     }
     
     // 🔥 FIXED: Actually decrypt and save the file to user's chosen location
-    QtConcurrent::run([this]() {
+    m_decryptionFuture = QtConcurrent::run([this]() {
         try {
             std::cout << "🔓 SECUREFILEHANDLER: Decrypting downloaded file in background thread..." << std::endl;
             std::cout << "   Temp file: " << m_currentTempFilePath.toStdString() << std::endl;

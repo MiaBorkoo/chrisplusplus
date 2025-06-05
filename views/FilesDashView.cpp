@@ -100,11 +100,11 @@ void FilesDashView::addFileRow(const QString &name, const QString &size, const Q
     });
     actionsLayout->addWidget(downloadButton);
 
-    //button to manage access - still uses display name for access management UI
+    //button to manage access - pass fileId for operations, displayName for UI
     QPushButton *accessButton = new QPushButton("Access");
     accessButton->setObjectName("accessButton");
-    connect(accessButton, &QPushButton::clicked, this, [this, name]() {
-        emit accessRequested(name);
+    connect(accessButton, &QPushButton::clicked, this, [this, fileId, name]() {
+        emit accessRequested(fileId, name);
     });
     actionsLayout->addWidget(accessButton);
 

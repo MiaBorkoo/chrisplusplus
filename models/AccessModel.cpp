@@ -36,8 +36,8 @@ void AccessModel::handleAccessRevoked(bool success, const QString& fileName, con
     emit accessRevoked(success, fileName, username);
 }
 
-void AccessModel::handleUsersWithAccessReceived(const QString& fileName, const QStringList& users) {
-    emit usersWithAccessReceived(fileName, users);
+void AccessModel::handleUsersWithAccessReceived(const QString& fileId, const QStringList& users) {
+    emit usersWithAccessReceived(fileId, users);
 }
 
 void AccessModel::handleError(const QString& error) {

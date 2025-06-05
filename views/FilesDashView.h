@@ -34,7 +34,7 @@ private:
 signals:
     void fileOpenRequested(const QString &fileName);
     void uploadRequested();
-    void accessRequested(const QString &fileName);
+    void accessRequested(const QString &fileId, const QString &displayName);
     void deleteRequested(const QString &fileId, const QString &displayName);
     void downloadRequested(const QString &fileId, const QString &displayName);
 };

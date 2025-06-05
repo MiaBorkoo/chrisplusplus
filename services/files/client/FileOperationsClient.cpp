@@ -25,12 +25,23 @@ FileUploadResponse FileOperationsClient::upload_file(
     const FileUploadRequest& metadata,
     const std::string& session_token) {
     try {
+        // DEBUG: Log the file data we're about to upload
+        std::cout << "🔍 FILEOPERATIONSCLIENT: Uploading " << encrypted_file_data.size() << " bytes" << std::endl;
+        std::cout << "   First 20 bytes of encrypted data: ";
+        for (size_t i = 0; i < std::min(static_cast<size_t>(20), encrypted_file_data.size()); ++i) {
+            std::cout << "\\x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<unsigned>(encrypted_file_data[i]);
+        }
+        std::cout << std::dec << std::endl;
+        
         HttpClient client(ssl_context_, server_host_, server_port_);
         
         // Create multipart form data
         std::string boundary = DataConverter::create_multipart_boundary();
         std::string form_data = DataConverter::build_multipart_form_data(
             encrypted_file_data, metadata, boundary);
+        
+        // DEBUG: Check form data size after creation
+        std::cout << "   Multipart form data size: " << form_data.size() << " bytes" << std::endl;
         
         HttpRequest http_request;
         http_request.method = "POST";
@@ -40,6 +51,9 @@ FileUploadResponse FileOperationsClient::upload_file(
         http_request.headers["Content-Type"] = "multipart/form-data; boundary=" + boundary;
         http_request.headers["User-Agent"] = ServiceConfig::Client::USER_AGENT;
         http_request.body = form_data;
+        
+        // DEBUG: Check body size in the request
+        std::cout << "   HttpRequest body size: " << http_request.body.size() << " bytes" << std::endl;
         
         std::cout << "Making file upload request to: " << http_request.path << std::endl;
         std::cout << "Content-Type: " << http_request.headers["Content-Type"] << std::endl;

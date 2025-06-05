@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include <cstdint>
-
+#include <cstddef>
 struct EncryptedMEK {
     std::vector<uint8_t> ciphertext;
     std::vector<uint8_t> iv;

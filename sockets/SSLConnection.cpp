@@ -13,6 +13,7 @@
 #include <cstring>
 #include <iostream>
 #include <functional>
+#include <iomanip>
 
 SSLConnection::SSLConnection(SSLContext& ctx,
                              const std::string& host,
@@ -166,7 +167,38 @@ SSLConnection& SSLConnection::operator=(SSLConnection&& o) noexcept
 
 ssize_t SSLConnection::send(const void* data, size_t len)
 {
-    return SSL_write(ssl_, data, static_cast<int>(len));
+    // DEBUG: Log send operation details
+    std::cout << "🔍 SSLCONNECTION: Sending " << len << " bytes" << std::endl;
+    
+    // Check for null bytes in first 100 bytes to confirm data integrity
+    const char* char_data = static_cast<const char*>(data);
+    size_t null_count = 0;
+    size_t check_len = std::min(len, static_cast<size_t>(100));
+    
+    for (size_t i = 0; i < check_len; ++i) {
+        if (char_data[i] == '\0') {
+            null_count++;
+        }
+    }
+    
+    std::cout << "   Null bytes in first " << check_len << " bytes: " << null_count << std::endl;
+    std::cout << "   First 20 bytes: ";
+    for (size_t i = 0; i < std::min(len, static_cast<size_t>(20)); ++i) {
+        std::cout << "\\x" << std::hex << std::setfill('0') << std::setw(2) 
+                  << static_cast<unsigned char>(char_data[i]);
+    }
+    std::cout << std::dec << std::endl;
+    
+    ssize_t bytes_written = SSL_write(ssl_, data, static_cast<int>(len));
+    
+    std::cout << "   SSL_write returned: " << bytes_written << " bytes" << std::endl;
+    
+    if (bytes_written != static_cast<ssize_t>(len)) {
+        int ssl_error = SSL_get_error(ssl_, bytes_written);
+        std::cout << "   SSL write incomplete! SSL error: " << ssl_error << std::endl;
+    }
+    
+    return bytes_written;
 }
 
 ssize_t SSLConnection::receive(void* buf, size_t buflen)
