@@ -17,6 +17,8 @@
 #include <openssl/rand.h>
 #include <sstream>
 #include <iomanip>
+#include <QUrl>
+#include <QUrlQuery>
 
 // Use qrencode library directly for TOTP QR codes
 extern "C" {
@@ -327,8 +329,9 @@ void AuthService::handleNetworkError(const QString& error) {
 void AuthService::handleLoginResponse(int status, const QJsonObject& data) {
     qDebug() << "Login response - Status:" << status << "Data:" << data;
     
-    const bool success = (status == 200 && data.value("success").toBool());
-    const QString token = data.value("token").toString();
+    // Fix: Server returns access_token on successful login (status 200)
+    const bool success = (status == 200 && data.contains("access_token"));
+    const QString token = data.value("access_token").toString();
     
     emit loginCompleted(success, token);
     if (success) {
@@ -350,22 +353,31 @@ void AuthService::handleRegisterResponse(int status, const QJsonObject& data) {
     if (success) {
         qDebug() << "Registration successful!";
         
-        // Check if server provided TOTP setup info (new flow)
+        // Handle server-provided TOTP setup (server gives us the otpauth_uri)
         if (data.contains("otpauth_uri")) {
             QString otpauthUri = data.value("otpauth_uri").toString();
             QString userId = data.value("user_id").toString();
             
-            qDebug() << "Server provided TOTP setup info for user:" << userId;
+            qDebug() << "Server provided TOTP setup for user:" << userId;
             qDebug() << "OTPAuth URI:" << otpauthUri;
             
-            // TODO: Handle server-provided TOTP setup
-            // For now, just emit success
-            emit registrationCompleted(true);
-        } else {
-            // Standard registration without TOTP
-            emit registrationCompleted(true);
+            // Extract username from otpauth URI (format: otpauth://totp/EPIC-App:username?...)
+            QString username = extractUsernameFromOtpauthUri(otpauthUri);
+            if (username.isEmpty()) {
+                qDebug() << "Could not extract username from otpauth URI";
+                emit registrationCompleted(true);
+                return;
+            }
+            
+            // Store the server-provided otpauth URI using the username for login lookup
+            QString key = QString("users/%1/server_otpauth_uri").arg(username);
+            m_settings->setValue(key, otpauthUri);
+            m_settings->sync();
+            
+            qDebug() << "Stored server TOTP setup for username:" << username;
         }
         
+        emit registrationCompleted(true);
     } else {
         QString errorMsg = data.value("error").toString("Registration failed. Please try again.");
         qDebug() << "Registration failed with error:" << errorMsg;
@@ -496,22 +508,42 @@ void AuthService::handleSaltsResponse(int status, const QJsonObject& data, AuthS
             m_pendingLoginUsername.clear();
             m_pendingLoginPassword.clear();
             
-            // Check TOTP status and proceed accordingly
+            // Check TOTP status - simple approach
             if (hasTOTPEnabledForUser(username)) {
-                qDebug() << "TOTP enabled for user" << username << ", requiring verification";
+                qDebug() << "User" << username << "has completed TOTP setup - requiring authenticator code";
                 emit totpRequired(username, authHash);
-            } else if (isFirstTimeLogin(username)) {
-                qDebug() << "First time login detected for user" << username << "- auto-setting up TOTP";
-                QString qrCode = enableTOTP(username);
-                if (!qrCode.isEmpty()) {
-                    emit firstLoginTOTPSetupRequired(username, authHash, qrCode);
-                } else {
-                    emit errorOccurred("Failed to generate TOTP setup for first login");
-                }
             } else {
-                // Normal login without TOTP
-                qDebug() << "Proceeding with normal login (no TOTP required)";
-                hashedLogin(username, authHash);
+                // Check if server provided TOTP setup during registration
+                QString serverKey = QString("users/%1/server_otpauth_uri").arg(username);
+                QString serverOtpauthUri = m_settings->value(serverKey).toString();
+                
+                if (!serverOtpauthUri.isEmpty()) {
+                    qDebug() << "Found server-provided TOTP for first login - showing QR code";
+                    
+                    // Extract secret from server otpauth URI and set pending state
+                    QString secret = extractSecretFromOtpauthUri(serverOtpauthUri);
+                    if (!secret.isEmpty()) {
+                        m_pendingTOTPSecret = secret;
+                        m_pendingUsername = username;
+                        qDebug() << "Set pending TOTP secret from server for verification";
+                    }
+                    
+                    // Generate QR code from server-provided otpauth URI
+                    QString qrCode = generateQRCodeFromOtpauthUri(serverOtpauthUri);
+                    if (!qrCode.isEmpty()) {
+                        emit firstLoginTOTPSetupRequired(username, authHash, qrCode);
+                    } else {
+                        emit errorOccurred("Failed to generate QR code from server TOTP setup");
+                    }
+                } else {
+                    qDebug() << "No server TOTP found - generating new TOTP setup";
+                    QString qrCode = enableTOTP(username);
+                    if (!qrCode.isEmpty()) {
+                        emit firstLoginTOTPSetupRequired(username, authHash, qrCode);
+                    } else {
+                        emit errorOccurred("Failed to generate TOTP setup for first login");
+                    }
+                }
             }
             
         } catch (const std::exception& e) {
@@ -666,21 +698,20 @@ bool AuthService::hasTOTPEnabled() const {
 }
 
 bool AuthService::hasTOTPEnabledForUser(const QString& username) const {
-    // Check if this specific user has completed TOTP setup
+    // Simple check: Has this user completed TOTP setup once?
     QString key = QString("users/%1/totp_setup_completed").arg(username);
-    return m_settings->value(key, false).toBool();
+    bool hasCompleted = m_settings->value(key, false).toBool();
+    
+    qDebug() << "TOTP check for user:" << username << "Setup completed:" << hasCompleted;
+    return hasCompleted;
 }
 
 bool AuthService::isFirstTimeLogin(const QString& username) const {
-    // Check if this specific user has ever completed TOTP setup
+    // Simple check: First time = user has never completed TOTP setup
     QString key = QString("users/%1/totp_setup_completed").arg(username);
     bool setupCompleted = m_settings->value(key, false).toBool();
     
-    qDebug() << "First login check for user:" << username 
-             << "Setup completed:" << setupCompleted;
-    
-    // First time login = this specific user has never completed TOTP setup
-    // Don't check global TOTP status - that's irrelevant for individual users
+    qDebug() << "First login check for user:" << username << "Setup completed:" << setupCompleted;
     return !setupCompleted;
 }
 
@@ -745,4 +776,81 @@ void AuthService::logout(const QString& sessionToken) {
     payload["session_token"] = sessionToken;
     
     m_client->sendRequest("/api/auth/logout", "POST", payload);
+}
+
+QString AuthService::generateQRCodeFromOtpauthUri(const QString& otpauthUri) {
+    try {
+        // Generate QR code from the server-provided otpauth URI
+        QRcode* qrcode = QRcode_encodeString(
+            otpauthUri.toUtf8().constData(),
+            0,                    // Version 0: Auto-select optimal version
+            QR_ECLEVEL_H,        // High error correction (30% recovery)
+            QR_MODE_8,           // 8-bit data mode for URLs
+            1                    // Case sensitive
+        );
+        
+        if (!qrcode) {
+            qDebug() << "Failed to generate QR code from otpauth URI";
+            return QString();
+        }
+        
+        // Convert QR matrix to image data
+        int size = qrcode->width * qrcode->width;
+        QByteArray qrImageData(reinterpret_cast<const char*>(qrcode->data), size);
+        
+        // Create metadata for QR reconstruction
+        QByteArray metadata;
+        QDataStream metaStream(&metadata, QIODevice::WriteOnly);
+        metaStream << static_cast<qint32>(qrcode->width) << static_cast<qint32>(qrcode->version);
+        
+        QRcode_free(qrcode);
+        
+        // Combine metadata + image data and encode as base64
+        QByteArray qrData = (metadata + qrImageData).toBase64();
+        
+        qDebug() << "Generated QR code from server otpauth URI";
+        return qrData;
+        
+    } catch (const std::exception& e) {
+        qDebug() << "QR code generation failed:" << e.what();
+        return QString();
+    }
+}
+
+QString AuthService::extractUsernameFromOtpauthUri(const QString& otpauthUri) {
+    // Parse otpauth://totp/EPIC-App:username?secret=XXXXX&issuer=EPIC-App
+    // The username is between "EPIC-App:" and "?"
+    QUrl url(otpauthUri);
+    QString path = url.path();
+    
+    // Remove leading "/"
+    if (path.startsWith("/")) {
+        path = path.mid(1);
+    }
+    
+    // Find the username after "EPIC-App:"
+    int colonIndex = path.indexOf(":");
+    if (colonIndex != -1) {
+        QString username = path.mid(colonIndex + 1);
+        qDebug() << "Extracted username from otpauth URI:" << username;
+        return username;
+    }
+    
+    qDebug() << "Could not extract username from otpauth URI:" << otpauthUri;
+    return QString();
+}
+
+QString AuthService::extractSecretFromOtpauthUri(const QString& otpauthUri) {
+    // Parse otpauth://totp/EPIC-App:username?secret=XXXXX&issuer=EPIC-App
+    QUrl url(otpauthUri);
+    QUrlQuery query(url.query());
+    QString secret = query.queryItemValue("secret");
+    
+    if (!secret.isEmpty()) {
+        qDebug() << "Extracted secret from otpauth URI:" << (!secret.isEmpty() ? "present" : "missing");
+        return secret;
+    }
+    
+    qDebug() << "Could not extract secret from otpauth URI:" << otpauthUri;
+    return QString();
 }

@@ -5,8 +5,13 @@
 #include <QString>
 #include <QJsonObject>
 #include <QSettings>   
+#include <QUrl>
+#include <QUrlQuery>
 #include <memory>
 #include "ValidationService.h"
+#include "../../crypto/KeyDerivation.h"
+#include "../../crypto/AuthHash.h"
+#include "otp/TOTP.h"
 
 // Forward declaration for QR generation
 class QRVerification;
@@ -48,18 +53,21 @@ public:
     bool hasActiveSession() const { return !m_sessionToken.isEmpty(); }
     void invalidateSession();
 
-    // Simple TOTP methods (industry standard)
-    QString enableTOTP(const QString& username);  // Returns QR code as base64
-    bool verifyTOTPSetup(const QString& code);    // Verify and save secret
-    void disableTOTP();                           // Remove TOTP
-    bool hasTOTPEnabled() const;                  // Check if enabled globally
-    
-    // Enhanced TOTP methods for better user experience
-    bool hasTOTPEnabledForUser(const QString& username) const;  // Check if enabled for specific user
-    bool isFirstTimeLogin(const QString& username) const;  // Check if user needs first-time TOTP setup
-    void markTOTPSetupCompleted(const QString& username);  // Mark that user completed TOTP setup
+    // TOTP methods
+    QString enableTOTP(const QString& username);
+    bool verifyTOTPSetup(const QString& code);
+    bool hasTOTPEnabled() const;
+    bool hasTOTPEnabledForUser(const QString& username) const;
+    bool isFirstTimeLogin(const QString& username) const;
+    void markTOTPSetupCompleted(const QString& username);
+    void disableTOTP();
     void completeTOTPSetupAndLogin(const QString& username, const QString& authHash, const QString& totpCode);
-
+    
+    // Helper for server-provided TOTP QR code generation
+    QString generateQRCodeFromOtpauthUri(const QString& otpauthUri);
+    QString extractUsernameFromOtpauthUri(const QString& otpauthUri);
+    QString extractSecretFromOtpauthUri(const QString& otpauthUri);
+    
     // Get authentication salts from server
     struct AuthSalts {
         QString authSalt1;
@@ -100,7 +108,7 @@ private:
     std::unique_ptr<QSettings> m_settings;
     QString m_sessionToken;
     
-    // TOTP state
+    // TOTP state (minimal - only for setup flow)
     QString m_pendingTOTPSecret;  // Temporary during setup
     QString m_pendingUsername;    // Username for setup
     

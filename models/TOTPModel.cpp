@@ -1,6 +1,8 @@
 #include "TOTPModel.h"
 #include <QDebug>
 #include <QTimer>
+#include <QSettings>
+#include <QDateTime>
 
 /**
  * @class TOTPModel
@@ -98,6 +100,20 @@ void TOTPModel::handleTOTPSetupCompleted(bool success) {
     if (success) {
         setState(TOTPState::Success);
         emit verificationSuccess();
+        
+        // CRITICAL FIX: Mark user as having completed TOTP setup
+        if (!m_pendingUsername.isEmpty()) {
+            // For server-provided TOTP, mark the user as having completed setup
+            // This will make hasTOTPEnabledForUser() return true for future logins
+            QString userKey = QString("users/%1/totp_setup_completed").arg(m_pendingUsername);
+            QSettings settings;
+            settings.setValue(userKey, true);
+            settings.setValue(QString("users/%1/totp_completed_at").arg(m_pendingUsername), 
+                            QDateTime::currentDateTimeUtc());
+            settings.sync();
+            
+            qDebug() << "Marked TOTP setup as completed for user:" << m_pendingUsername;
+        }
         
         // If this was first-login setup, proceed with actual login
         if (!m_pendingUsername.isEmpty() && !m_pendingAuthHash.isEmpty()) {
