@@ -16,6 +16,7 @@ add_library(tofu
     QRVerification.h
     QRVerification.cpp
 )
+set_target_properties(tofu PROPERTIES LINKER_LANGUAGE CXX)
 
 # Link dependencies
 target_link_libraries(tofu

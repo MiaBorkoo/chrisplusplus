@@ -11,9 +11,6 @@
 #include <QUrlQuery>
 #include <memory>
 #include "ValidationService.h"
-#include "../../crypto/KeyDerivation.h"
-#include "../../crypto/AuthHash.h"
-#include "otp/TOTP.h"
 
 // Forward declaration for QR generation
 class QRVerification;

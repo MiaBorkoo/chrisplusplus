@@ -112,6 +112,61 @@ void AuthService::hashedLoginWithTOTP(const QString& username, const QString& au
     m_client->sendRequest("/api/auth/login", "POST", payload);  // Correct OpenAPI endpoint
 }
 
+void AuthService::registerUser(const QString& username, const QString& password, const QString& confirmPassword) {
+    // Validate inputs
+    QString errorMessage;
+    if (!m_validationService->validateUsername(username, errorMessage)) {
+        emit errorOccurred(errorMessage);
+        return;
+    }
+    if (!m_validationService->validatePassword(password, errorMessage)) {
+        emit errorOccurred(errorMessage);
+        return;
+    }
+    if (!m_validationService->validatePasswordMatch(password, confirmPassword, errorMessage)) {
+        emit errorOccurred(errorMessage);
+        return;
+    }
+
+    try {
+        // 1. Generate salts
+        std::vector<uint8_t> authSalt1 = generateSalt();
+        std::vector<uint8_t> encSalt = generateSalt();
+
+        // 2. Derive keys from password and salts
+        KeyDerivation kd;
+        DerivedKeys keys = kd.deriveKeysFromPassword(password.toStdString(), authSalt1, encSalt);
+
+        // 3. Generate second auth salt and compute auth hash
+        std::vector<uint8_t> authSalt2 = AuthHash::generateSalt();
+        std::vector<uint8_t> serverAuthKeyVec(keys.serverAuthKey.begin(), keys.serverAuthKey.end());
+        std::vector<uint8_t> authHash = AuthHash::computeAuthHash(serverAuthKeyVec, authSalt2);
+
+        // 4. Generate a random MEK
+        std::vector<unsigned char> mek = generateMEK();
+
+        // 5. Encrypt the MEK with the MEK Wrapper Key
+        std::vector<uint8_t> mekWrapperKey(keys.mekWrapperKey.begin(), keys.mekWrapperKey.end());
+        EncryptedMEK encrypted = encryptMEKWithWrapperKey(mek, mekWrapperKey);
+
+        // 6. Convert all binary data to Base64
+        QString authHashB64 = toBase64String(authHash);
+        QString authSalt1B64 = toBase64String(authSalt1);
+        QString authSalt2B64 = toBase64String(authSalt2);
+        QString encSaltB64 = toBase64String(encSalt);
+        QString encryptedMEKB64 = toBase64String(encrypted.ciphertext);
+        QString mekIVB64 = toBase64String(encrypted.iv);
+        QString mekTagB64 = toBase64String(encrypted.tag);
+
+        // 7. Call the low-level registration method
+        registerUser(username, authHashB64, encryptedMEKB64, 
+                    authSalt1B64, authSalt2B64, encSaltB64,
+                    mekIVB64, mekTagB64);
+    } catch (const std::exception& e) {
+        emit errorOccurred(QString("Registration failed: %1").arg(e.what()));
+    }
+}
+
 void AuthService::registerUser(const QString& username,
                                const QString& authHash,
                                const QString& encryptedMEK,
@@ -196,7 +251,7 @@ void AuthService::registerUser(const QString& username,
     std::vector<uint8_t> dataBlob = HMACProcessor::dataToBlob(userDataStr.toUtf8().toStdString());
     std::vector<uint8_t> hmacResult = HMACProcessor::generateHMAC(dataBlob, privateKey.toStdString());
 
-    
+
 
     QByteArray hmacBytes(reinterpret_cast<const char*>(hmacResult.data()), static_cast<int>(hmacResult.size()));
     payload["user_data_hmac"] = QString::fromLatin1(hmacBytes.toBase64());

@@ -414,6 +414,16 @@ add_executable(testAuthHash
 target_link_libraries(testAuthHash PRIVATE crypto-lib)
 target_include_directories(testAuthHash PRIVATE ${CMAKE_SOURCE_DIR}/crypto)
 
+add_executable(testHMAC
+    tests/testHMAC.cpp
+)
+target_link_libraries(testHMAC PRIVATE crypto-lib)
+target_include_directories(testHMAC PRIVATE ${CMAKE_SOURCE_DIR}/crypto)
+
+# Add test to CTest
+add_test(NAME HMACTests COMMAND testHMAC)
+
+
 # ============================================================================
 # INSTALLATION (updated for ChrisPlusPlus)
 # ============================================================================
