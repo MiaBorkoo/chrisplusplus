@@ -38,6 +38,7 @@ elseif(WIN32)
 else()
     # Linux: Standard paths
     set(CMAKE_PREFIX_PATH 
+        "/opt/Qt/6.9.0/gcc_64"
         "/home/ruan/Qt/6.9.0/gcc_64"
         "/opt/Qt/6.7.0/gcc_64"
         "/usr/lib/x86_64-linux-gnu/cmake/Qt6"
@@ -173,6 +174,28 @@ endif()
 # ============================================================================
 
 # MVC tests executables
+add_executable(test_signup_connection
+    tests/mvc-tests/testSignUpConnection.cpp
+    models/SignUpModel.cpp
+    controllers/SignUpController.cpp
+    views/SignUpView.cpp
+    services/auth/AuthService.cpp
+    services/ApiService.cpp
+    services/auth/otp/TOTP.cpp
+    services/auth/ValidationService.cpp
+    network/Client.cpp
+)
+
+target_link_libraries(test_signup_connection
+    PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Widgets
+    OpenSSL::SSL
+    OpenSSL::Crypto
+)
+
+# Other test executables
 add_executable(test_file_connection
     tests/mvc-tests/testFileConnection.cpp
     models/FileModel.cpp
@@ -232,6 +255,7 @@ target_link_libraries(test_login_connection PRIVATE
 # Add test to CTest
 add_test(NAME FileConnectionTests COMMAND test_file_connection)
 add_test(NAME LoginConnectionTests COMMAND test_login_connection)
+add_test(NAME SignUpConnectionTests COMMAND test_signup_connection)
 
 # Original test from dev branch
 add_executable(testSSLforNow
