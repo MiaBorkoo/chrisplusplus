@@ -215,7 +215,7 @@ private:
     }
 
     void section(const QString& t)      { log(QString("\n=== %1 ===").arg(t)); }
-    void log(const QString& m)          { logBox_->append(m); std::cout<<m.toStdString()<<'\n'; }
+    void log(const QString& m)          { logBox_->append(m); }
     void pass(const QString& m="OK")    { log("✅ "+m); }
     void fail(const QString& m)         { log("❌ "+m); }
 

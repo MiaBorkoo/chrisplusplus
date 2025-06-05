@@ -14,9 +14,9 @@ Config::Config() {
 }
 
 void Config::setDefaults() {
-    m_serverUrl = "http://localhost:8000";
-    m_serverHost = "localhost";
-    m_serverPort = "8000";
+    m_serverUrl = "https://chrisplusplus.gobbler.info";
+    m_serverHost = "chrisplusplus.gobbler.info";
+    m_serverPort = "443";
 }
 
 void Config::loadConfig() {
@@ -37,6 +37,7 @@ void Config::saveConfig() {
     m_settings->setValue("server/port", m_serverPort);
     m_settings->sync();
 }
+
 
 void Config::reset() {
     setDefaults();
@@ -61,3 +62,4 @@ QString Config::getServerPort() const { return m_serverPort; }
 void Config::setServerUrl(const QString& url) { m_serverUrl = url; }
 void Config::setServerHost(const QString& host) { m_serverHost = host; }
 void Config::setServerPort(const QString& port) { m_serverPort = port; }
+

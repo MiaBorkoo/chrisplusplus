@@ -1,5 +1,4 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include <QMainWindow>
 #include <QStackedWidget>
@@ -14,6 +13,7 @@
 #include "controllers/SharedDashController.h"
 #include "models/FileModel.h"
 #include "models/LoginModel.h"
+#include "models/SignUpModel.h"
 #include "services/files/FileService.h"
 #include "services/auth/AuthService.h"
 #include "network/Client.h"
@@ -27,6 +27,8 @@ public:
     ~MainWindow();
 
 private:
+    void initializeServices();
+    
     QStackedWidget *m_stack;
     LoginView *m_loginView;
     LoginController *m_loginController;
@@ -45,6 +47,5 @@ private:
     std::shared_ptr<FileService> m_fileService;
     std::shared_ptr<FileModel> m_fileModel;
     std::shared_ptr<LoginModel> m_loginModel;
+    std::shared_ptr<SignUpModel> m_signUpModel;
 };
-
-#endif // MAINWINDOW_H

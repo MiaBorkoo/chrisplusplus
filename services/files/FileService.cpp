@@ -26,7 +26,7 @@ void FileService::uploadFile(const QString& filePath) {
     payload["filename"] = fileInfo.fileName();
     payload["size"] = QString::number(fileInfo.size());
 
-    m_client->sendRequest("/files/upload", "POST", payload);
+    m_client->sendRequest("/api/files/upload", "POST", payload);
 }
 
 void FileService::downloadFile(const QString& fileName, const QString& savePath) {
@@ -34,70 +34,96 @@ void FileService::downloadFile(const QString& fileName, const QString& savePath)
     payload["filename"] = fileName;
     payload["save_path"] = savePath;
 
-    m_client->sendRequest("/files/download", "GET", payload);
+    m_client->sendRequest("/api/files/download", "GET", payload);
 }
 
 void FileService::deleteFile(const QString& fileName) {
     QJsonObject payload;
     payload["filename"] = fileName;
 
-    m_client->sendRequest("/files/delete", "DELETE", payload);
+    m_client->sendRequest("/api/files/delete", "DELETE", payload);
 }
 
 void FileService::listFiles(int page, int pageSize) {
     QJsonObject payload;
-    payload["page"] = page;
-    payload["page_size"] = pageSize;
+    payload["limit"] = pageSize;
+    payload["offset"] = page * pageSize;
 
-    m_client->sendRequest("/files/list", "GET", payload);
+    m_client->sendRequest("/api/files/", "GET", payload);
 }
 
 void FileService::listSharedFiles(int page, int pageSize) {
     QJsonObject payload;
-    payload["page"] = page;
-    payload["page_size"] = pageSize;
+    payload["limit"] = pageSize;
+    payload["offset"] = page * pageSize;
 
-    m_client->sendRequest("/files/shared", "GET", payload);
+    m_client->sendRequest("/api/files/shares/received", "GET", payload);
 }
 
 void FileService::grantAccess(const QString& fileName, const QString& username) {
     QJsonObject payload;
-    payload["username"] = username;
+    payload["recipient_username"] = username;
 
-    m_client->sendRequest("/files/" + QUrl::toPercentEncoding(fileName) + "/access/grant", "POST", payload);
+    m_client->sendRequest("/api/files/share", "POST", payload);
 }
 
 void FileService::revokeAccess(const QString& fileName, const QString& username) {
+    QString shareId = "placeholder_share_id";
     QJsonObject payload;
-    payload["username"] = username;
 
-    m_client->sendRequest("/files/" + QUrl::toPercentEncoding(fileName) + "/access/revoke", "POST", payload);
+    m_client->sendRequest("/api/files/share/" + shareId, "DELETE", payload);
 }
 
 void FileService::getUsersWithAccess(const QString& fileName) {
-    m_client->sendRequest("/files/" + QUrl::toPercentEncoding(fileName) + "/access", "GET", QJsonObject());
+    QString fileId = "placeholder_file_id";
+    m_client->sendRequest("/api/files/" + fileId + "/shares", "GET", QJsonObject());
+}
+
+void FileService::getFileMetadata(const QString& fileId) {
+    QJsonObject payload;
+    
+    QString endpoint = QString("/api/files/%1/metadata").arg(fileId);
+    m_client->sendRequest(endpoint, "GET", payload);
+}
+
+void FileService::getFileAuditLogs(const QString& fileId, int limit, int offset) {
+    QJsonObject payload;
+    payload["limit"] = limit;
+    payload["offset"] = offset;
+    
+    QString endpoint = QString("/api/files/%1/audit").arg(fileId);
+    m_client->sendRequest(endpoint, "GET", payload);
 }
 
 void FileService::handleResponseReceived(int status, const QJsonObject& data) {
     QString endpoint = data.value("endpoint").toString();
 
-    if (endpoint.startsWith("/files/list")) {
+    if (endpoint == "/api/files/" || endpoint.startsWith("/api/files/?")) {
         handleFileListResponse(data, false);
     }
-    else if (endpoint.startsWith("/files/shared")) {
+    else if (endpoint == "/api/files/shares/received" || endpoint.startsWith("/api/files/shares/received?")) {
         handleFileListResponse(data, true);
     }
-    else if (endpoint.contains("/access")) {
+    else if (endpoint.contains("/shares") && !endpoint.contains("received")) {
         handleAccessResponse(data);
     }
-    else if (endpoint == "/files/upload") {
+    else if (endpoint == "/api/files/upload") {
         handleUploadResponse(data);
     }
-    else if (endpoint == "/files/download") {
+    else if (endpoint.contains("/download")) {
         handleDownloadResponse(data);
     }
-    else if (endpoint == "/files/delete") {
+    else if (endpoint == "/api/files/delete") {
         handleDeleteResponse(data);
+    }
+    else if (endpoint.contains("/metadata")) {
+        handleMetadataResponse(data);
+    }
+    else if (endpoint.contains("/audit")) {
+        handleAuditLogsResponse(data);
+    }
+    else if (endpoint == "/api/files/share" || endpoint.contains("/api/files/share/")) {
+        handleAccessResponse(data);
     }
 }
 
@@ -193,4 +219,23 @@ void FileService::handleDeleteResponse(const QJsonObject& data) {
     bool success = data.value("success").toBool();
     QString fileName = data.value("filename").toString();
     emit deleteComplete(success, fileName);
+}
+
+void FileService::handleMetadataResponse(const QJsonObject& data) {
+    QString fileId = data.value("file_id").toString();
+    QJsonObject metadata;
+    metadata["filename_encrypted"] = data.value("filename_encrypted");
+    metadata["file_size_encrypted"] = data.value("file_size_encrypted");
+    metadata["upload_timestamp"] = data.value("upload_timestamp");
+    metadata["file_data_hmac"] = data.value("file_data_hmac");
+    metadata["server_storage_path"] = data.value("server_storage_path");
+    
+    emit fileMetadataReceived(fileId, metadata);
+}
+
+void FileService::handleAuditLogsResponse(const QJsonObject& data) {
+    QString fileId = data.value("file_id").toString();
+    QJsonArray logs = data.value("logs").toArray();
+    
+    emit auditLogsReceived(fileId, logs);
 }
