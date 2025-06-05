@@ -22,7 +22,7 @@ if(APPLE)
         set(CMAKE_PREFIX_PATH "${QT_HOMEBREW_PATH}")
         set(Qt6_DIR "${QT_HOMEBREW_PATH}/lib/cmake/Qt6")
     else()
-        message(STATUS "📦 Homebrew Qt6 not found, using system Qt")
+        message(STATUS " Homebrew Qt6 not found, using system Qt")
     endif()
     
 elseif(WIN32)

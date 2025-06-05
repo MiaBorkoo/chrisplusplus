@@ -29,17 +29,17 @@ FileService::FileService(std::shared_ptr<Client> client, QObject* parent)
     // Initialize secure file handler
     m_secureHandler = std::make_unique<SecureFileHandler>();
     
-    // 🔥 CONNECT SECURE HANDLER SIGNALS to forward async results
+    //  CONNECT SECURE HANDLER SIGNALS to forward async results
     if (m_secureHandler) {
         connect(m_secureHandler.get(), &SecureFileHandler::secureUploadCompleted,
                 this, [this](bool success, const QString& fileName, const QString& fileId) {
-                    std::cout << "✅ FILESERVICE: Secure upload completed: " << success << std::endl;
+                    std::cout << " FILESERVICE: Secure upload completed: " << success << std::endl;
                     emit uploadComplete(success, fileName);
                 });
         
         connect(m_secureHandler.get(), &SecureFileHandler::secureDownloadCompleted,
                 this, [this](bool success, const QString& fileName) {
-                    std::cout << "✅ FILESERVICE: Secure download completed: " << success << std::endl;
+                    std::cout << " FILESERVICE: Secure download completed: " << success << std::endl;
                     emit downloadComplete(success, fileName);
                 });
         
@@ -55,7 +55,7 @@ FileService::FileService(std::shared_ptr<Client> client, QObject* parent)
         
         connect(m_secureHandler.get(), &SecureFileHandler::secureOperationFailed,
                 this, [this](const QString& fileName, const QString& error) {
-                    std::cout << "❌ FILESERVICE: Secure operation failed: " << error.toStdString() << std::endl;
+                    std::cout << " FILESERVICE: Secure operation failed: " << error.toStdString() << std::endl;
                     reportError("Secure operation failed: " + error);
                     // Determine if it was upload or download based on current operation
                     emit uploadComplete(false, fileName);
@@ -66,7 +66,7 @@ FileService::FileService(std::shared_ptr<Client> client, QObject* parent)
     // FileTransfer will be initialized later when SSLContext is available
     m_fileTransfer = nullptr;
     
-    std::cout << "🔐 FILESERVICE: Initialized with secure file handler" << std::endl;
+    std::cout << " FILESERVICE: Initialized with secure file handler" << std::endl;
 }
 
 // Custom destructor needed for forward declarations with unique_ptr
@@ -74,10 +74,10 @@ FileService::~FileService() = default;
 
 void FileService::initializeSecureSystem(std::shared_ptr<SSLContext> sslContext, const QString& userPassword, const QString& userSalt)
 {
-    std::cout << "🔐 FILESERVICE: Initializing secure system with user credentials" << std::endl;
+    std::cout << " FILESERVICE: Initializing secure system with user credentials" << std::endl;
     
     if (!m_secureHandler) {
-        std::cout << "❌ FILESERVICE: Secure handler not available" << std::endl;
+        std::cout << " FILESERVICE: Secure handler not available" << std::endl;
         return;
     }
     
@@ -96,59 +96,59 @@ void FileService::initializeSecureSystem(std::shared_ptr<SSLContext> sslContext,
     );
     
     if (success) {
-        std::cout << "✅ FILESERVICE: Secure system initialized successfully" << std::endl;
+        std::cout << " FILESERVICE: Secure system initialized successfully" << std::endl;
     } else {
-        std::cout << "❌ FILESERVICE: Secure system initialization failed" << std::endl;
+        std::cout << " FILESERVICE: Secure system initialization failed" << std::endl;
     }
 }
 
 void FileService::setAuthToken(const QString& token) {
-    std::cout << "🔑 FILESERVICE: setAuthToken called with token: " << token.left(20).toStdString() << "..." << std::endl;
+    std::cout << " FILESERVICE: setAuthToken called with token: " << token.left(20).toStdString() << "..." << std::endl;
     m_authToken = token;
     
     // Set token on the shared client for Authorization headers
     if (m_client) {
-        std::cout << "🔑 FILESERVICE: Setting auth token on shared Client" << std::endl;
+        std::cout << " FILESERVICE: Setting auth token on shared Client" << std::endl;
         m_client->setAuthToken(token);
     } else {
-        std::cout << "❌ FILESERVICE: Client not available for auth token setting" << std::endl;
+        std::cout << " FILESERVICE: Client not available for auth token setting" << std::endl;
     }
     
     // Also set on FileTransfer if it exists
     if (m_fileTransfer) {
-        std::cout << "🔑 FILESERVICE: Setting auth token on FileTransfer" << std::endl;
+        std::cout << " FILESERVICE: Setting auth token on FileTransfer" << std::endl;
         m_fileTransfer->setAuthToken(token);
         qDebug() << "Set auth token on FileTransfer for secure file operations";
     } else {
-        std::cout << "⚠️ FILESERVICE: FileTransfer not initialized yet, token will be set later" << std::endl;
+        std::cout << " FILESERVICE: FileTransfer not initialized yet, token will be set later" << std::endl;
     }
 }
 
 void FileService::uploadFile(const QString& filePath) {
-    std::cout << "🔥 FILESERVICE: uploadFile called with path: " << filePath.toStdString() << std::endl;
+    std::cout << " FILESERVICE: uploadFile called with path: " << filePath.toStdString() << std::endl;
     
     QFileInfo fileInfo(filePath);
     if (!fileInfo.exists()) {
-        std::cout << "❌ FILESERVICE: File does not exist: " << filePath.toStdString() << std::endl;
+        std::cout << " FILESERVICE: File does not exist: " << filePath.toStdString() << std::endl;
         reportError("File does not exist: " + filePath);
         return;
     }
 
     // Store current filename for progress tracking
     m_currentFileName = fileInfo.fileName();
-    std::cout << "📁 FILESERVICE: Starting SECURE upload for file: " << m_currentFileName.toStdString() << std::endl;
+    std::cout << " FILESERVICE: Starting SECURE upload for file: " << m_currentFileName.toStdString() << std::endl;
     
     // SECURE PATH: Use SecureFileHandler if available and initialized
     if (m_secureHandler && m_secureHandler->isInitialized()) {
-        std::cout << "🔐 FILESERVICE: Using SECURE upload path" << std::endl;
+        std::cout << " FILESERVICE: Using SECURE upload path" << std::endl;
         
-        // 🔥 FIXED: Use async streaming upload instead of blocking sync upload
+        //  FIXED: Use async streaming upload instead of blocking sync upload
         m_secureHandler->uploadFileSecurelyAsync(filePath, m_authToken);
         return; // Completion handled via signals
     }
     
     // FALLBACK PATH: Use legacy FileTransfer (only if secure system unavailable)
-    std::cout << "⚠️ FILESERVICE: Secure system not available, using LEGACY upload" << std::endl;
+    std::cout << " FILESERVICE: Secure system not available, using LEGACY upload" << std::endl;
     
     if (!m_fileTransfer) {
         reportError("FileTransfer not initialized.");
@@ -161,22 +161,22 @@ void FileService::uploadFile(const QString& filePath) {
 }
 
 void FileService::downloadFile(const QString& fileId, const QString& savePath) {
-    std::cout << "⬇️ FILESERVICE: downloadFile called for fileId: " << fileId.toStdString() << std::endl;
+    std::cout << " FILESERVICE: downloadFile called for fileId: " << fileId.toStdString() << std::endl;
     
     // Store current filename for progress tracking (we don't have display name here)
     m_currentFileName = fileId; // This will be the file ID for progress tracking
     
     // SECURE PATH: Use SecureFileHandler if available
     if (m_secureHandler && m_secureHandler->isInitialized()) {
-        std::cout << "🔐 FILESERVICE: Using SECURE download path" << std::endl;
+        std::cout << " FILESERVICE: Using SECURE download path" << std::endl;
         
-        // 🔥 FIXED: Use async streaming download instead of blocking sync download
+        //  FIXED: Use async streaming download instead of blocking sync download
         m_secureHandler->downloadFileSecurelyAsync(fileId, savePath, m_authToken);
         return; // Completion handled via signals
     }
     
     // FALLBACK PATH: Use legacy FileTransfer
-    std::cout << "⚠️ FILESERVICE: Secure system not available, using LEGACY download" << std::endl;
+    std::cout << " FILESERVICE: Secure system not available, using LEGACY download" << std::endl;
     
     if (!m_fileTransfer) {
         reportError("FileTransfer not initialized.");
@@ -195,15 +195,15 @@ void FileService::deleteFile(const QString& fileId) {
     
     // SECURE PATH: Use SecureFileHandler if available
     if (m_secureHandler && m_secureHandler->isInitialized()) {
-        std::cout << "🔐 FILESERVICE: Using SECURE delete path" << std::endl;
+        std::cout << " FILESERVICE: Using SECURE delete path" << std::endl;
         
         bool success = m_secureHandler->deleteFileSecurely(fileId, m_authToken);
         
         if (success) {
-            std::cout << "✅ FILESERVICE: Secure delete completed successfully!" << std::endl;
+            std::cout << " FILESERVICE: Secure delete completed successfully!" << std::endl;
             emit deleteComplete(true, fileId);
         } else {
-            std::cout << "❌ FILESERVICE: Secure delete failed" << std::endl;
+            std::cout << " FILESERVICE: Secure delete failed" << std::endl;
             reportError("Secure delete failed");
             emit deleteComplete(false, fileId);
         }
@@ -211,7 +211,7 @@ void FileService::deleteFile(const QString& fileId) {
     }
     
     // FALLBACK PATH: Use legacy Client
-    std::cout << "⚠️ FILESERVICE: Secure system not available, using LEGACY delete" << std::endl;
+    std::cout << " FILESERVICE: Secure system not available, using LEGACY delete" << std::endl;
     
     if (!m_client) {
         reportError("Client not initialized");
@@ -255,19 +255,19 @@ void FileService::listSharedFiles(int page, int pageSize) {
 }
 
 void FileService::grantAccess(const QString& fileName, const QString& username) {
-    std::cout << "🤝 FILESERVICE: grantAccess called for file: " << fileName.toStdString() << std::endl;
+    std::cout << " FILESERVICE: grantAccess called for file: " << fileName.toStdString() << std::endl;
     
     // SECURE PATH: Use SecureFileHandler if available
     if (m_secureHandler && m_secureHandler->isInitialized()) {
-        std::cout << "🔐 FILESERVICE: Using SECURE grant access path" << std::endl;
+        std::cout << " FILESERVICE: Using SECURE grant access path" << std::endl;
         
         bool success = m_secureHandler->shareFileSecurely(fileName, username, m_authToken);
         
         if (success) {
-            std::cout << "✅ FILESERVICE: Secure file sharing completed successfully!" << std::endl;
+            std::cout << " FILESERVICE: Secure file sharing completed successfully!" << std::endl;
             emit accessGranted(true, fileName, username);
         } else {
-            std::cout << "❌ FILESERVICE: Secure file sharing failed" << std::endl;
+            std::cout << " FILESERVICE: Secure file sharing failed" << std::endl;
             reportError("Secure file sharing failed");
             emit accessGranted(false, fileName, username);
         }
@@ -275,7 +275,7 @@ void FileService::grantAccess(const QString& fileName, const QString& username) 
     }
     
     // FALLBACK PATH: Use legacy Client
-    std::cout << "⚠️ FILESERVICE: Secure system not available, using LEGACY grant access" << std::endl;
+    std::cout << " FILESERVICE: Secure system not available, using LEGACY grant access" << std::endl;
     
     if (!m_client) {
         reportError("Client not initialized");
@@ -289,19 +289,19 @@ void FileService::grantAccess(const QString& fileName, const QString& username) 
 }
 
 void FileService::revokeAccess(const QString& fileName, const QString& username) {
-    std::cout << "🚫 FILESERVICE: revokeAccess called for file: " << fileName.toStdString() << std::endl;
+    std::cout << " FILESERVICE: revokeAccess called for file: " << fileName.toStdString() << std::endl;
     
     // SECURE PATH: Use SecureFileHandler if available
     if (m_secureHandler && m_secureHandler->isInitialized()) {
-        std::cout << "🔐 FILESERVICE: Using SECURE revoke access path" << std::endl;
+        std::cout << " FILESERVICE: Using SECURE revoke access path" << std::endl;
         
         bool success = m_secureHandler->revokeFileAccess(fileName, username, m_authToken);
         
         if (success) {
-            std::cout << "✅ FILESERVICE: Secure access revocation completed successfully!" << std::endl;
+            std::cout << " FILESERVICE: Secure access revocation completed successfully!" << std::endl;
             emit accessRevoked(true, fileName, username);
         } else {
-            std::cout << "❌ FILESERVICE: Secure access revocation failed" << std::endl;
+            std::cout << " FILESERVICE: Secure access revocation failed" << std::endl;
             reportError("Secure access revocation failed");
             emit accessRevoked(false, fileName, username);
         }
@@ -309,7 +309,7 @@ void FileService::revokeAccess(const QString& fileName, const QString& username)
     }
     
     // FALLBACK PATH: Use legacy Client
-    std::cout << "⚠️ FILESERVICE: Secure system not available, using LEGACY revoke access" << std::endl;
+    std::cout << " FILESERVICE: Secure system not available, using LEGACY revoke access" << std::endl;
     
     if (!m_client) {
         reportError("Client not initialized");
@@ -333,23 +333,23 @@ void FileService::getUsersWithAccess(const QString& fileName) {
 }
 
 void FileService::getFileMetadata(const QString& fileId) {
-    std::cout << "📊 FILESERVICE: getFileMetadata called for: " << fileId.toStdString() << std::endl;
+    std::cout << " FILESERVICE: getFileMetadata called for: " << fileId.toStdString() << std::endl;
     
     // SECURE PATH: Use SecureFileHandler if available
     if (m_secureHandler && m_secureHandler->isInitialized()) {
-        std::cout << "🔐 FILESERVICE: Using SECURE metadata path" << std::endl;
+        std::cout << " FILESERVICE: Using SECURE metadata path" << std::endl;
         
         bool success = m_secureHandler->getFileMetadata(fileId, m_authToken);
         
         if (!success) {
-            std::cout << "❌ FILESERVICE: Secure metadata retrieval failed" << std::endl;
+            std::cout << " FILESERVICE: Secure metadata retrieval failed" << std::endl;
             reportError("Secure metadata retrieval failed");
         }
         return;
     }
     
     // FALLBACK PATH: Use legacy Client
-    std::cout << "⚠️ FILESERVICE: Secure system not available, using LEGACY metadata" << std::endl;
+    std::cout << " FILESERVICE: Secure system not available, using LEGACY metadata" << std::endl;
     
     if (!m_client) {
         reportError("Client not initialized");
@@ -363,23 +363,23 @@ void FileService::getFileMetadata(const QString& fileId) {
 }
 
 void FileService::getFileAuditLogs(const QString& fileId, int limit, int offset) {
-    std::cout << "📝 FILESERVICE: getFileAuditLogs called for: " << fileId.toStdString() << std::endl;
+    std::cout << " FILESERVICE: getFileAuditLogs called for: " << fileId.toStdString() << std::endl;
     
     // SECURE PATH: Use SecureFileHandler if available
     if (m_secureHandler && m_secureHandler->isInitialized()) {
-        std::cout << "🔐 FILESERVICE: Using SECURE audit logs path" << std::endl;
+        std::cout << " FILESERVICE: Using SECURE audit logs path" << std::endl;
         
         bool success = m_secureHandler->getFileAuditLogs(fileId, m_authToken);
         
         if (!success) {
-            std::cout << "❌ FILESERVICE: Secure audit logs retrieval failed" << std::endl;
+            std::cout << " FILESERVICE: Secure audit logs retrieval failed" << std::endl;
             reportError("Secure audit logs retrieval failed");
         }
         return;
     }
     
     // FALLBACK PATH: Use legacy Client
-    std::cout << "⚠️ FILESERVICE: Secure system not available, using LEGACY audit logs" << std::endl;
+    std::cout << " FILESERVICE: Secure system not available, using LEGACY audit logs" << std::endl;
     
     if (!m_client) {
         reportError("Client not initialized");
@@ -396,33 +396,33 @@ void FileService::getFileAuditLogs(const QString& fileId, int limit, int offset)
 
 void FileService::deriveUserMEK(const QString& password, const QString& salt)
 {
-    std::cout << "🔑 FILESERVICE: deriveUserMEK called" << std::endl;
+    std::cout << " FILESERVICE: deriveUserMEK called" << std::endl;
     
     if (m_secureHandler) {
         bool success = m_secureHandler->deriveUserMEK(password, salt);
         if (success) {
-            std::cout << "✅ FILESERVICE: User MEK derived successfully" << std::endl;
+            std::cout << " FILESERVICE: User MEK derived successfully" << std::endl;
         } else {
-            std::cout << "❌ FILESERVICE: User MEK derivation failed" << std::endl;
+            std::cout << " FILESERVICE: User MEK derivation failed" << std::endl;
         }
     } else {
-        std::cout << "❌ FILESERVICE: Secure handler not available for MEK derivation" << std::endl;
+        std::cout << " FILESERVICE: Secure handler not available for MEK derivation" << std::endl;
     }
 }
 
 void FileService::updatePasswordAndReencryptMEK(const QString& oldPassword, const QString& newPassword, const QString& salt)
 {
-    std::cout << "🔄 FILESERVICE: updatePasswordAndReencryptMEK called" << std::endl;
+    std::cout << " FILESERVICE: updatePasswordAndReencryptMEK called" << std::endl;
     
     if (m_secureHandler) {
         bool success = m_secureHandler->updatePasswordAndReencryptMEK(oldPassword, newPassword, salt);
         if (success) {
-            std::cout << "✅ FILESERVICE: Password updated and MEK re-encrypted successfully" << std::endl;
+            std::cout << " FILESERVICE: Password updated and MEK re-encrypted successfully" << std::endl;
         } else {
-            std::cout << "❌ FILESERVICE: Password update and MEK re-encryption failed" << std::endl;
+            std::cout << " FILESERVICE: Password update and MEK re-encryption failed" << std::endl;
         }
     } else {
-        std::cout << "❌ FILESERVICE: Secure handler not available for password update" << std::endl;
+        std::cout << " FILESERVICE: Secure handler not available for password update" << std::endl;
     }
 }
 
@@ -460,11 +460,11 @@ void FileService::handleResponseReceived(int status, const QJsonObject& data) {
     // ADDED: Handle server errors gracefully
     if (status >= 500) {
         QString errorMsg = QString("Server error (%1) for endpoint: %2").arg(status).arg(endpoint);
-        std::cout << "❌ FILESERVICE: " << errorMsg.toStdString() << std::endl;
+        std::cout << " FILESERVICE: " << errorMsg.toStdString() << std::endl;
         
         if (endpoint == "/api/files/" || endpoint.startsWith("/api/files/?")) {
             // For file listing errors, emit empty list instead of crashing
-            std::cout << "⚠️ FILESERVICE: File listing failed, emitting empty list to preserve UI" << std::endl;
+            std::cout << " FILESERVICE: File listing failed, emitting empty list to preserve UI" << std::endl;
             QList<MvcFileInfo> emptyFiles;
             emit fileListReceived(emptyFiles, 0, 1, 1);
         } else if (endpoint == "/api/files/shares/received") {
@@ -479,7 +479,7 @@ void FileService::handleResponseReceived(int status, const QJsonObject& data) {
     // ADDED: Handle client errors gracefully  
     if (status >= 400 && status < 500) {
         QString errorMsg = QString("Client error (%1) for endpoint: %2").arg(status).arg(endpoint);
-        std::cout << "❌ FILESERVICE: " << errorMsg.toStdString() << std::endl;
+        std::cout << " FILESERVICE: " << errorMsg.toStdString() << std::endl;
         reportError(errorMsg);
         return;
     }
@@ -546,10 +546,16 @@ void FileService::handleFileListResponse(const QJsonObject& data, bool isSharedL
                         info.encryptedName.toStdString()
                     );
                     info.name = QString::fromStdString(decryptedName);
-                    std::cout << "🔓 DECRYPTED filename: " << info.encryptedName.toStdString().substr(0, 20) 
+                    std::cout << " DECRYPTED filename: " << info.encryptedName.toStdString().substr(0, 20) 
                               << "... -> " << info.name.toStdString() << std::endl;
+                    
+                    //  STORE FILENAME MAPPING for downloads
+                    if (!info.fileId.isEmpty()) {
+                        setOriginalFilename(info.fileId, info.name);
+                    }
+                    
                 } catch (const std::exception& e) {
-                    std::cout << "❌ Failed to decrypt filename: " << e.what() << std::endl;
+                    std::cout << " Failed to decrypt filename: " << e.what() << std::endl;
                     info.name = "[Encrypted: " + info.encryptedName.left(20) + "...]";
                 }
             } else {
@@ -598,10 +604,16 @@ void FileService::handleFileListResponse(const QJsonObject& data, bool isSharedL
                         info.encryptedName.toStdString()
                     );
                     info.name = QString::fromStdString(decryptedName);
-                    std::cout << "🔓 DECRYPTED filename: " << info.encryptedName.toStdString().substr(0, 20) 
+                    std::cout << " DECRYPTED filename: " << info.encryptedName.toStdString().substr(0, 20) 
                               << "... -> " << info.name.toStdString() << std::endl;
+                    
+                    //  STORE FILENAME MAPPING for downloads
+                    if (!info.fileId.isEmpty()) {
+                        setOriginalFilename(info.fileId, info.name);
+                    }
+                    
                 } catch (const std::exception& e) {
-                    std::cout << "❌ Failed to decrypt filename: " << e.what() << std::endl;
+                    std::cout << " Failed to decrypt filename: " << e.what() << std::endl;
                     info.name = "[Encrypted: " + info.encryptedName.left(20) + "...]";
                 }
             } else {
@@ -706,32 +718,32 @@ void FileService::handleAuditLogsResponse(const QJsonObject& data) {
 
 // Initialize FileTransfer when SSLContext becomes available (kept for fallback)
 void FileService::initializeFileTransfer(std::shared_ptr<SSLContext> sslContext) {
-    std::cout << "🔧 FILESERVICE: initializeFileTransfer called" << std::endl;
+    std::cout << " FILESERVICE: initializeFileTransfer called" << std::endl;
     
     if (sslContext) {
-        std::cout << "✅ FILESERVICE: SSLContext available, creating FileTransfer" << std::endl;
+        std::cout << " FILESERVICE: SSLContext available, creating FileTransfer" << std::endl;
         m_fileTransfer = std::make_shared<FileTransfer>(*sslContext);
         
         // Use the SAME HttpClient as the Client for consistent connection
         if (m_client) {
-            std::cout << "🔗 FILESERVICE: Setting HttpClient from shared Client" << std::endl;
+            std::cout << " FILESERVICE: Setting HttpClient from shared Client" << std::endl;
             m_fileTransfer->setHttpClient(m_client->getHttpClient());
             qDebug() << "FileTransfer now uses shared HttpClient from Client";
         } else {
-            std::cout << "❌ FILESERVICE: Client not available for HttpClient sharing" << std::endl;
+            std::cout << " FILESERVICE: Client not available for HttpClient sharing" << std::endl;
         }
         
         // Set auth token if we already have one
         if (!m_authToken.isEmpty()) {
-            std::cout << "🔑 FILESERVICE: Setting existing auth token on FileTransfer" << std::endl;
+            std::cout << " FILESERVICE: Setting existing auth token on FileTransfer" << std::endl;
             m_fileTransfer->setAuthToken(m_authToken);
             qDebug() << "Set existing auth token on newly created FileTransfer";
         } else {
-            std::cout << "⚠️ FILESERVICE: No auth token available during FileTransfer init" << std::endl;
+            std::cout << " FILESERVICE: No auth token available during FileTransfer init" << std::endl;
         }
         
         // Connect FileTransfer signals
-        std::cout << "🔌 FILESERVICE: Connecting FileTransfer signals" << std::endl;
+        std::cout << " FILESERVICE: Connecting FileTransfer signals" << std::endl;
         connect(m_fileTransfer.get(), &FileTransfer::uploadCompleted,
                 this, &FileService::handleUploadCompleted);
         connect(m_fileTransfer.get(), &FileTransfer::downloadCompleted,
@@ -741,14 +753,66 @@ void FileService::initializeFileTransfer(std::shared_ptr<SSLContext> sslContext)
         connect(m_fileTransfer.get(), &FileTransfer::transferFailed,
                 this, &FileService::handleNetworkError);
         
-        // 🔥 PASS FILETRANSFER TO SECURE HANDLER for streaming operations
+        //  PASS FILETRANSFER TO SECURE HANDLER for streaming operations
         if (m_secureHandler) {
-            std::cout << "🔗 FILESERVICE: Setting FileTransfer on SecureFileHandler" << std::endl;
+            std::cout << " FILESERVICE: Setting FileTransfer on SecureFileHandler" << std::endl;
             m_secureHandler->setFileTransfer(m_fileTransfer);
         }
         
-        std::cout << "✅ FILESERVICE: FileTransfer initialization complete" << std::endl;
+        std::cout << " FILESERVICE: FileTransfer initialization complete" << std::endl;
     } else {
-        std::cout << "❌ FILESERVICE: SSLContext is null, cannot initialize FileTransfer" << std::endl;
+        std::cout << " FILESERVICE: SSLContext is null, cannot initialize FileTransfer" << std::endl;
     }
+}
+
+HttpRequest FileService::createSecureRequest(const QString& endpoint, const QString& method, const QJsonObject& payload) {
+    HttpRequest request;
+    request.method = method.toStdString();
+    request.path = endpoint.toStdString();
+    request.headers["Host"] = "chrisplusplus.gobbler.info";
+    request.headers["User-Agent"] = "ChrisPlusPlus-FileService/1.0";
+    request.headers["Authorization"] = ("Bearer " + m_authToken).toStdString();
+    request.headers["Content-Type"] = "application/json";
+    
+    if (!payload.isEmpty()) {
+        QJsonDocument doc(payload);
+        request.body = doc.toJson(QJsonDocument::Compact).toStdString();
+    }
+    
+    return request;
+}
+
+void FileService::sendSecureRequest(const QString& endpoint, const QString& method, const QJsonObject& payload) {
+    if (!m_client) {
+        std::cout << " FILESERVICE: Client not available" << std::endl;
+        return;
+    }
+    
+    HttpRequest request = createSecureRequest(endpoint, method, payload);
+    
+    m_client->sendAsync(request,
+        [this, endpoint](const HttpResponse& response) {
+            QJsonDocument doc = QJsonDocument::fromJson(QString::fromStdString(response.body).toUtf8());
+            handleResponseReceived(response.statusCode, doc.object());
+        },
+        [this](const QString& error) {
+            handleNetworkError(error);
+        }
+    );
+}
+
+//  WORKAROUND: Filename mapping methods
+void FileService::setOriginalFilename(const QString& fileId, const QString& originalName) {
+    m_originalFilenames[fileId] = originalName;
+    std::cout << " FILESERVICE: Stored filename mapping: " << fileId.toStdString() << " -> " << originalName.toStdString() << std::endl;
+}
+
+QString FileService::getOriginalFilename(const QString& fileId) const {
+    auto it = m_originalFilenames.find(fileId);
+    if (it != m_originalFilenames.end()) {
+        std::cout << " FILESERVICE: Found stored filename for " << fileId.toStdString() << ": " << it.value().toStdString() << std::endl;
+        return it.value();
+    }
+    std::cout << " FILESERVICE: No stored filename found for " << fileId.toStdString() << std::endl;
+    return QString();
 }

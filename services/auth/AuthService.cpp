@@ -104,9 +104,9 @@ void AuthService::hashedLoginWithTOTP(const QString& username, const QString& au
     // User-entered TOTP code from Google Authenticator
     if (!totpCode.isEmpty()) {
         payload["otp"] = totpCode;
-        qDebug() << "✅ TOTP code added to payload";
+        qDebug() << " TOTP code added to payload";
     } else {
-        qDebug() << "❌ TOTP code is EMPTY - not adding to payload";
+        qDebug() << " TOTP code is EMPTY - not adding to payload";
     }
     
     qDebug() << "Final login payload:" << payload;
@@ -705,7 +705,7 @@ bool AuthService::hasTOTPEnabledForUser(const QString& username) const {
     bool hasCompleted = m_settings->value(key, false).toBool();
     
     // ADDED: Detailed debugging to understand what's happening
-    qDebug() << "🔍 TOTP DEBUG for user:" << username;
+    qDebug() << " TOTP DEBUG for user:" << username;
     qDebug() << "   Settings key:" << key;
     qDebug() << "   Raw setting value:" << m_settings->value(key, "NOT_SET");
     qDebug() << "   Converted to bool:" << hasCompleted;

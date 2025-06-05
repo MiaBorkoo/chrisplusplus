@@ -15,18 +15,18 @@ FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileT
         connect(m_view, &FilesDashView::deleteRequested, this, &FileDashController::onDeleteFileRequested);
         connect(m_view, &FilesDashView::downloadRequested, this, &FileDashController::onDownloadFileRequested);
         connect(m_view, &FilesDashView::uploadRequested, this, [this]() {
-            std::cout << "🎯 FILEDASHCONTROLLER: Upload requested from UI" << std::endl;
+            std::cout << " FILEDASHCONTROLLER: Upload requested from UI" << std::endl;
             QString filePath = QFileDialog::getOpenFileName(m_view,
                 tr("Select File to Upload"),
                 QDir::homePath(),
                 tr("All Files (*.*)"));
             if (!filePath.isEmpty()) {
-                std::cout << "📁 FILEDASHCONTROLLER: Selected file: " << filePath.toStdString() << std::endl;
-                std::cout << "📤 FILEDASHCONTROLLER: Calling m_fileModel->uploadFile..." << std::endl;
+                std::cout << " FILEDASHCONTROLLER: Selected file: " << filePath.toStdString() << std::endl;
+                std::cout << " FILEDASHCONTROLLER: Calling m_fileModel->uploadFile..." << std::endl;
                 m_fileModel->uploadFile(filePath);
-                std::cout << "✅ FILEDASHCONTROLLER: m_fileModel->uploadFile call completed" << std::endl;
+                std::cout << " FILEDASHCONTROLLER: m_fileModel->uploadFile call completed" << std::endl;
             } else {
-                std::cout << "❌ FILEDASHCONTROLLER: No file selected" << std::endl;
+                std::cout << " FILEDASHCONTROLLER: No file selected" << std::endl;
             }
         });
     }
@@ -55,7 +55,7 @@ FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileT
 
     connect(m_fileModel.get(), &FileModel::fileDeleted, this, [this](bool success, const QString &fileName) {
         if (success) {
-            std::cout << "✅ FILEDASHCONTROLLER: Delete successful, refreshing file list from server" << std::endl;
+            std::cout << " FILEDASHCONTROLLER: Delete successful, refreshing file list from server" << std::endl;
             m_fileModel->listFiles();  // Get fresh data from server
         } else {
             QMessageBox::warning(m_view, "Delete Error", "Failed to delete " + fileName);
@@ -123,7 +123,7 @@ void FileDashController::onDownloadFileRequested(const QString &fileId, const QS
         QDir::homePath() + "/" + displayName,  // Use display name for default filename
         tr("All Files (*.*)"));
     if (!savePath.isEmpty()) {
-        std::cout << "⬇️ FILEDASHCONTROLLER: Downloading file with ID: " << fileId.toStdString() << std::endl;
+        std::cout << " FILEDASHCONTROLLER: Downloading file with ID: " << fileId.toStdString() << std::endl;
         m_fileModel->downloadFile(fileId, savePath);  // Use fileId for server operation
     }
 }

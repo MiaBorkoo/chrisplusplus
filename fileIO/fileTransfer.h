@@ -31,6 +31,7 @@ struct TransferResult {
     QString errorMessage;
     qint64 bytesTransferred;
     QString serverResponse;
+    QString extractedFilename;  // Extracted from Content-Disposition header
     
     TransferResult() : success(false), bytesTransferred(0) {}
 };

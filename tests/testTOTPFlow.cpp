@@ -104,18 +104,18 @@ TEST_F(TOTPFlowTest, GoogleAuthenticatorOnly_Security) {
     QSettings settings;
     QString storedSecret = settings.value("totp/secret").toString();
     EXPECT_TRUE(storedSecret.isEmpty());
-    std::cout << "✅ NO secret stored locally (secure!)" << std::endl;
+    std::cout << " NO secret stored locally (secure!)" << std::endl;
     
     // Verify only flag is stored
     bool enabled = settings.value("totp/enabled", false).toBool();
     EXPECT_TRUE(enabled);
-    std::cout << "✅ Only enabled flag stored" << std::endl;
+    std::cout << " Only enabled flag stored" << std::endl;
     
     // Simulate Google Authenticator usage
     TOTP googleAuth(pendingSecret.toStdString()); // User's phone
     QString phoneCode = QString::fromStdString(googleAuth.generate());
-    std::cout << "✅ Google Authenticator generates: " << phoneCode.toStdString() << std::endl;
-    std::cout << "✅ All secret storage handled by Google Authenticator" << std::endl;
+    std::cout << " Google Authenticator generates: " << phoneCode.toStdString() << std::endl;
+    std::cout << " All secret storage handled by Google Authenticator" << std::endl;
 }
 
 TEST_F(TOTPFlowTest, TOTPGeneration_Performance) {
@@ -175,17 +175,17 @@ TEST_F(TOTPFlowTest, UserExperience_ManualFlow) {
     std::cout << "\n=== MANUAL TOTP USER EXPERIENCE ===" << std::endl;
     
     std::cout << "👤 USER PERSPECTIVE:" << std::endl;
-    std::cout << "1. 📝 Register account → Success" << std::endl;
-    std::cout << "2. 🔒 Click 'Enable 2FA' → QR code appears" << std::endl;
+    std::cout << "1.  Register account → Success" << std::endl;
+    std::cout << "2.  Click 'Enable 2FA' → QR code appears" << std::endl;
     std::cout << "3. 📱 Open Google Authenticator → Scan QR" << std::endl;
     std::cout << "4. 🔢 Type 6-digit code from phone → Setup complete" << std::endl;
-    std::cout << "5. 🔐 Daily login:" << std::endl;
+    std::cout << "5.  Daily login:" << std::endl;
     std::cout << "   - Enter username/password" << std::endl;
     std::cout << "   - App shows '2FA code required'" << std::endl;
     std::cout << "   - Open Google Authenticator" << std::endl;
     std::cout << "   - Type 6-digit code → Login success" << std::endl;
     
-    std::cout << "\n🔧 TECHNICAL IMPLEMENTATION:" << std::endl;
+    std::cout << "\n TECHNICAL IMPLEMENTATION:" << std::endl;
     std::cout << "✓ NO local secret storage (maximum security)" << std::endl;
     std::cout << "✓ Google Authenticator handles ALL secret storage" << std::endl;
     std::cout << "✓ Manual code entry every login (industry standard)" << std::endl;

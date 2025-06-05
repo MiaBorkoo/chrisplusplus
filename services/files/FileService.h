@@ -11,6 +11,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <memory>
+#include <QMap>
 
 // MVC-compatible data structures for UI layer
 struct MvcFileInfo {
@@ -68,6 +69,10 @@ public:
     // Check if secure system is ready
     bool isSecureSystemReady() const;
 
+    //  WORKAROUND: Store original filenames for downloads when server doesn't send Content-Disposition
+    void setOriginalFilename(const QString& fileId, const QString& originalName);
+    QString getOriginalFilename(const QString& fileId) const;
+
 signals:
     // Keep ALL existing signals exactly as they are but use MVC types
     void uploadComplete(bool success, const QString& fileName);
@@ -106,6 +111,9 @@ private:
 
     // SECURE SYSTEM: Clean abstraction - no templates or incomplete types in header
     std::unique_ptr<SecureFileHandler> m_secureHandler;
+    
+    //  WORKAROUND: Map file IDs to original filenames
+    QMap<QString, QString> m_originalFilenames;
     
     // Response parsing (shared between secure and legacy)
     void handleFileListResponse(const QJsonObject& data, bool isSharedList = false);

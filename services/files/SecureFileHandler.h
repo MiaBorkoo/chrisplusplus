@@ -33,7 +33,7 @@ using EncryptionProgressCallback = std::function<void(qint64 bytesProcessed, qin
 
 /**
  * SecureFileHandler - Clean abstraction for the secure file system
- * 🔥 FIXED: Now wraps existing FileTransfer streaming architecture with encryption
+ *  FIXED: Now wraps existing FileTransfer streaming architecture with encryption
  * instead of doing blocking operations!
  * 
  * Architecture:
@@ -58,17 +58,20 @@ public:
     // Set the existing FileTransfer for streaming operations
     void setFileTransfer(std::shared_ptr<FileTransfer> fileTransfer);
 
+    //  WORKAROUND: Set FileService for filename lookup when server doesn't send Content-Disposition
+    void setFileService(class FileService* fileService);
+
     // MEK management according to diagram
     bool deriveUserMEK(const QString& password, const QString& salt);
     bool updatePasswordAndReencryptMEK(const QString& oldPassword, const QString& newPassword, const QString& salt);
     bool isInitialized() const;
 
-    // 🔥 ASYNC secure file operations that wrap FileTransfer streaming
+    //  ASYNC secure file operations that wrap FileTransfer streaming
     void uploadFileSecurelyAsync(const QString& filePath, const QString& authToken);
     void downloadFileSecurelyAsync(const QString& fileId, const QString& savePath, const QString& authToken);
     bool deleteFileSecurely(const QString& fileId, const QString& authToken);
 
-    // 🔥 LEGACY SYNC methods for backward compatibility (deprecated)
+    //  LEGACY SYNC methods for backward compatibility (deprecated)
     SecureUploadResult uploadFileSecurely(const QString& filePath, const QString& authToken);
     SecureDownloadResult downloadFileSecurely(const QString& fileId, const QString& savePath, const QString& authToken);
 
@@ -104,7 +107,7 @@ private:
     std::shared_ptr<SharingServiceClient> m_sharingServiceClient;
     std::shared_ptr<AuditServiceClient> m_auditServiceClient;
     
-    // 🔥 INTEGRATION: Use existing FileTransfer for streaming
+    //  INTEGRATION: Use existing FileTransfer for streaming
     std::shared_ptr<FileTransfer> m_fileTransfer;
     
     // User encryption context
@@ -125,13 +128,16 @@ private:
     QString m_currentTempFilePath; // Track temp file for cleanup
     QString m_currentSavePath;     // Track user's chosen save path for downloads
     
+    //  WORKAROUND: Reference to FileService for filename lookup
+    class FileService* m_fileService;
+    
     // Helper methods for encryption flow
     bool deriveMEKWrapperKey(const QString& password, const QString& salt);
     bool generateOrRecoverMEK();
     bool encryptMEKForStorage();
     bool decryptMEKFromStorage();
     
-    // 🔥 STREAMING ENCRYPTION: Process files in chunks
+    //  STREAMING ENCRYPTION: Process files in chunks
     QString createEncryptedTempFile(const QString& sourceFilePath);
     bool decryptStreamedFile(const QString& encryptedFilePath, const QString& outputPath);
     std::vector<uint8_t> encryptFileData(const std::vector<uint8_t>& fileData, const FileEncryptionContext& context);

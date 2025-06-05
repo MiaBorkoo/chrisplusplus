@@ -21,7 +21,7 @@
 SecureFileHandler::SecureFileHandler()
     : QObject(nullptr), m_isInitialized(false)
 {
-    std::cout << "🔐 SECUREFILEHANDLER: Creating secure file handler" << std::endl;
+    std::cout << "SECUREFILEHANDLER: Creating secure file handler" << std::endl;
 }
 
 SecureFileHandler::~SecureFileHandler() = default;
@@ -33,7 +33,7 @@ bool SecureFileHandler::initializeWithCredentials(
     const QString& userPassword,
     const QString& encryptionSalt)
 {
-    std::cout << "🔐 SECUREFILEHANDLER: Initializing with credentials" << std::endl;
+    std::cout << " SECUREFILEHANDLER: Initializing with credentials" << std::endl;
     
     try {
         // Store server details
@@ -64,41 +64,41 @@ bool SecureFileHandler::initializeWithCredentials(
         
         // STEP 1: Derive MEK wrapper key from password + salt using Argon2id
         if (!deriveMEKWrapperKey(userPassword, encryptionSalt)) {
-            std::cout << "❌ SECUREFILEHANDLER: Failed to derive MEK wrapper key" << std::endl;
+            std::cout << " SECUREFILEHANDLER: Failed to derive MEK wrapper key" << std::endl;
             return false;
         }
         
         // STEP 2: Generate or recover MEK
         if (!generateOrRecoverMEK()) {
-            std::cout << "❌ SECUREFILEHANDLER: Failed to generate/recover MEK" << std::endl;
+            std::cout << " SECUREFILEHANDLER: Failed to generate/recover MEK" << std::endl;
             return false;
         }
         
         // STEP 3: Encrypt MEK for server storage
         if (!encryptMEKForStorage()) {
-            std::cout << "❌ SECUREFILEHANDLER: Failed to encrypt MEK for storage" << std::endl;
+            std::cout << " SECUREFILEHANDLER: Failed to encrypt MEK for storage" << std::endl;
             return false;
         }
         
         // Validate all components
         if (!validateEncryptionComponents()) {
-            std::cout << "❌ SECUREFILEHANDLER: Encryption components validation failed" << std::endl;
+            std::cout << " SECUREFILEHANDLER: Encryption components validation failed" << std::endl;
             return false;
         }
         
         m_isInitialized = true;
-        std::cout << "✅ SECUREFILEHANDLER: Initialization complete" << std::endl;
+        std::cout << " SECUREFILEHANDLER: Initialization complete" << std::endl;
         return true;
         
     } catch (const std::exception& e) {
-        std::cout << "❌ SECUREFILEHANDLER: Initialization failed: " << e.what() << std::endl;
+        std::cout << " SECUREFILEHANDLER: Initialization failed: " << e.what() << std::endl;
         return false;
     }
 }
 
 void SecureFileHandler::setFileTransfer(std::shared_ptr<FileTransfer> fileTransfer)
 {
-    std::cout << "🔗 SECUREFILEHANDLER: Setting FileTransfer for streaming operations" << std::endl;
+    std::cout << " SECUREFILEHANDLER: Setting FileTransfer for streaming operations" << std::endl;
     m_fileTransfer = fileTransfer;
     
     // Connect to FileTransfer signals for async operations
@@ -109,13 +109,13 @@ void SecureFileHandler::setFileTransfer(std::shared_ptr<FileTransfer> fileTransf
                 this, &SecureFileHandler::handleDownloadCompleted);
         connect(m_fileTransfer.get(), &FileTransfer::progressUpdated,
                 this, &SecureFileHandler::handleTransferProgress);
-        std::cout << "✅ SECUREFILEHANDLER: Connected to FileTransfer signals" << std::endl;
+        std::cout << " SECUREFILEHANDLER: Connected to FileTransfer signals" << std::endl;
     }
 }
 
 bool SecureFileHandler::deriveUserMEK(const QString& password, const QString& salt)
 {
-    std::cout << "🔑 SECUREFILEHANDLER: Deriving user MEK" << std::endl;
+    std::cout << " SECUREFILEHANDLER: Deriving user MEK" << std::endl;
     
     // This is called when we already have the MEK wrapper key
     // and need to derive/decrypt the actual MEK
@@ -124,7 +124,7 @@ bool SecureFileHandler::deriveUserMEK(const QString& password, const QString& sa
 
 bool SecureFileHandler::updatePasswordAndReencryptMEK(const QString& oldPassword, const QString& newPassword, const QString& salt)
 {
-    std::cout << "🔄 SECUREFILEHANDLER: Updating password and re-encrypting MEK" << std::endl;
+    std::cout << "�� SECUREFILEHANDLER: Updating password and re-encrypting MEK" << std::endl;
     
     // According to the diagram: "MEK always stays the same, but when password is changed 
     // the MEK gets encrypted with the MEK wrapper key derived from the new password and salt"
@@ -144,11 +144,11 @@ bool SecureFileHandler::updatePasswordAndReencryptMEK(const QString& oldPassword
             return false;
         }
         
-        std::cout << "✅ SECUREFILEHANDLER: MEK re-encrypted with new password" << std::endl;
+        std::cout << " SECUREFILEHANDLER: MEK re-encrypted with new password" << std::endl;
         return true;
         
     } catch (const std::exception& e) {
-        std::cout << "❌ SECUREFILEHANDLER: Password update failed: " << e.what() << std::endl;
+        std::cout << " SECUREFILEHANDLER: Password update failed: " << e.what() << std::endl;
         return false;
     }
 }
@@ -158,11 +158,11 @@ bool SecureFileHandler::isInitialized() const
     return m_isInitialized && validateEncryptionComponents();
 }
 
-// 🔥 NEW ASYNC STREAMING METHODS
+//  NEW ASYNC STREAMING METHODS
 
 void SecureFileHandler::uploadFileSecurelyAsync(const QString& filePath, const QString& authToken)
 {
-    std::cout << "⬆️ SECUREFILEHANDLER: Starting SIMPLE secure upload for: " << filePath.toStdString() << std::endl;
+    std::cout << " SECUREFILEHANDLER: Starting SIMPLE secure upload for: " << filePath.toStdString() << std::endl;
     
     if (!isInitialized()) {
         emit secureOperationFailed(QFileInfo(filePath).fileName(), "Secure file handler not initialized");
@@ -179,10 +179,10 @@ void SecureFileHandler::uploadFileSecurelyAsync(const QString& filePath, const Q
     m_currentAuthToken = authToken;
     m_currentTempFilePath.clear();
     
-    // 🔥 SIMPLE ENCRYPTION: Do it right in background thread
+    //  SIMPLE ENCRYPTION: Do it right in background thread
     QtConcurrent::run([this, filePath]() {
         try {
-            std::cout << "🔐 SECUREFILEHANDLER: Reading and encrypting file..." << std::endl;
+            std::cout << " SECUREFILEHANDLER: Reading and encrypting file..." << std::endl;
             
             // STEP 1: Read the entire file
             QFile file(filePath);
@@ -197,15 +197,15 @@ void SecureFileHandler::uploadFileSecurelyAsync(const QString& filePath, const Q
             file.close();
             
             std::vector<uint8_t> originalFileBytes(fileData.begin(), fileData.end());
-            std::cout << "📄 SECUREFILEHANDLER: Read " << originalFileBytes.size() << " bytes from file" << std::endl;
+            std::cout << " SECUREFILEHANDLER: Read " << originalFileBytes.size() << " bytes from file" << std::endl;
             
             // STEP 2: Generate encryption context (DEK, IV, etc.)
             auto encryptionContext = m_encryptionEngine->encrypt_file(originalFileBytes, m_userMEK);
-            std::cout << "🔐 SECUREFILEHANDLER: Generated encryption context (DEK, IV, auth tag)" << std::endl;
+            std::cout << " SECUREFILEHANDLER: Generated encryption context (DEK, IV, auth tag)" << std::endl;
             
             // STEP 3: Actually encrypt the file data using the DEK
             std::vector<uint8_t> actualEncryptedBytes = encryptFileData(originalFileBytes, encryptionContext);
-            std::cout << "🔒 SECUREFILEHANDLER: Encrypted file data: " << actualEncryptedBytes.size() << " bytes" << std::endl;
+            std::cout << " SECUREFILEHANDLER: Encrypted file data: " << actualEncryptedBytes.size() << " bytes" << std::endl;
             
             // STEP 4: Create the complete encrypted file: IV + encrypted_data + auth_tag
             std::vector<uint8_t> completeEncryptedFile;
@@ -225,7 +225,7 @@ void SecureFileHandler::uploadFileSecurelyAsync(const QString& filePath, const Q
                                        encryptionContext.auth_tag.begin(), 
                                        encryptionContext.auth_tag.end());
             
-            std::cout << "✅ SECUREFILEHANDLER: Complete encrypted file size: " << completeEncryptedFile.size() << " bytes" << std::endl;
+            std::cout << " SECUREFILEHANDLER: Complete encrypted file size: " << completeEncryptedFile.size() << " bytes" << std::endl;
             std::cout << "   Original file: " << originalFileBytes.size() << " bytes" << std::endl;
             std::cout << "   IV: 12 bytes, Encrypted content: " << actualEncryptedBytes.size() << " bytes, Auth tag: 16 bytes" << std::endl;
             
@@ -243,7 +243,7 @@ void SecureFileHandler::uploadFileSecurelyAsync(const QString& filePath, const Q
             
             QString tempPath = tempFile->fileName();
             
-            // 🔥 WRITE THE COMPLETE ENCRYPTED FILE
+            //  WRITE THE COMPLETE ENCRYPTED FILE
             qint64 bytesWritten = tempFile->write(
                 reinterpret_cast<const char*>(completeEncryptedFile.data()), 
                 completeEncryptedFile.size()
@@ -261,12 +261,12 @@ void SecureFileHandler::uploadFileSecurelyAsync(const QString& filePath, const Q
                 return;
             }
             
-            std::cout << "💾 SECUREFILEHANDLER: Wrote " << bytesWritten << " encrypted bytes to temp file" << std::endl;
+            std::cout << " SECUREFILEHANDLER: Wrote " << bytesWritten << " encrypted bytes to temp file" << std::endl;
             
             // STEP 6: Upload the encrypted file
             QMetaObject::invokeMethod(this, [this, tempPath]() {
                 m_currentTempFilePath = tempPath;
-                std::cout << "📤 SECUREFILEHANDLER: Uploading " << m_currentTempFilePath.toStdString() << " to server..." << std::endl;
+                std::cout << " SECUREFILEHANDLER: Uploading " << m_currentTempFilePath.toStdString() << " to server..." << std::endl;
                 m_fileTransfer->uploadFileAsync(tempPath, "/api/files/upload");
             }, Qt::QueuedConnection);
             
@@ -280,7 +280,7 @@ void SecureFileHandler::uploadFileSecurelyAsync(const QString& filePath, const Q
 
 void SecureFileHandler::downloadFileSecurelyAsync(const QString& fileId, const QString& savePath, const QString& authToken)
 {
-    std::cout << "⬇️ SECUREFILEHANDLER: Starting ASYNC secure download for fileId: " << fileId.toStdString() << std::endl;
+    std::cout << " SECUREFILEHANDLER: Starting ASYNC secure download for fileId: " << fileId.toStdString() << std::endl;
     
     if (!isInitialized()) {
         emit secureOperationFailed(fileId, "Secure file handler not initialized");
@@ -314,13 +314,13 @@ void SecureFileHandler::downloadFileSecurelyAsync(const QString& fileId, const Q
     // Store temp path for cleanup and decryption
     m_currentTempFilePath = tempPath;
     
-    std::cout << "📥 SECUREFILEHANDLER: Downloading encrypted file to temp: " << tempPath.toStdString() << std::endl;
-    std::cout << "💾 SECUREFILEHANDLER: Will save decrypted file to: " << savePath.toStdString() << std::endl;
+    std::cout << " SECUREFILEHANDLER: Downloading encrypted file to temp: " << tempPath.toStdString() << std::endl;
+    std::cout << " SECUREFILEHANDLER: Will save decrypted file to: " << savePath.toStdString() << std::endl;
     
-    // 🔥 FIXED: Use correct server endpoint pattern /api/files/{file_id}/download
+    //  FIXED: Use correct server endpoint pattern /api/files/{file_id}/download
     // fileId parameter is the UUID from the server
     std::string downloadEndpoint = "/api/files/" + fileId.toStdString() + "/download";
-    std::cout << "🌐 SECUREFILEHANDLER: Using download endpoint: " << downloadEndpoint << std::endl;
+    std::cout << " SECUREFILEHANDLER: Using download endpoint: " << downloadEndpoint << std::endl;
     
     m_fileTransfer->downloadFileAsync(downloadEndpoint, tempPath);
     
@@ -330,16 +330,16 @@ void SecureFileHandler::downloadFileSecurelyAsync(const QString& fileId, const Q
 // Handle FileTransfer async completion
 void SecureFileHandler::handleUploadCompleted(bool success, const TransferResult& result)
 {
-    std::cout << "📤 SECUREFILEHANDLER: Upload completed, success=" << success << std::endl;
+    std::cout << " SECUREFILEHANDLER: Upload completed, success=" << success << std::endl;
     
-    // 🔥 CLEANUP: Remove temporary encrypted file
+    //  CLEANUP: Remove temporary encrypted file
     if (!m_currentTempFilePath.isEmpty()) {
         QFile tempFile(m_currentTempFilePath);
         if (tempFile.exists()) {
             if (tempFile.remove()) {
-                std::cout << "🧹 SECUREFILEHANDLER: Cleaned up temp file: " << m_currentTempFilePath.toStdString() << std::endl;
+                std::cout << " SECUREFILEHANDLER: Cleaned up temp file: " << m_currentTempFilePath.toStdString() << std::endl;
             } else {
-                std::cout << "⚠️ SECUREFILEHANDLER: Failed to clean up temp file: " << m_currentTempFilePath.toStdString() << std::endl;
+                std::cout << " SECUREFILEHANDLER: Failed to clean up temp file: " << m_currentTempFilePath.toStdString() << std::endl;
             }
         }
         m_currentTempFilePath.clear();
@@ -356,19 +356,28 @@ void SecureFileHandler::handleUploadCompleted(bool success, const TransferResult
 
 void SecureFileHandler::handleDownloadCompleted(bool success, const TransferResult& result)
 {
-    std::cout << "📥 SECUREFILEHANDLER: Download completed, success=" << success << std::endl;
+    std::cout << " SECUREFILEHANDLER: Download completed, success=" << success << std::endl;
     
     if (!success) {
         emit secureOperationFailed(m_currentFileName, result.errorMessage);
         return;
     }
     
-    // 🔥 FIXED: Actually decrypt and save the file to user's chosen location
-    QtConcurrent::run([this]() {
+    //  EXTRACT ORIGINAL FILENAME from server response
+    QString originalFilename = result.extractedFilename;
+    if (originalFilename.isEmpty()) {
+        std::cout << " SECUREFILEHANDLER: No filename extracted from Content-Disposition, using file ID" << std::endl;
+        originalFilename = m_currentFileName; // Fallback to file ID
+    } else {
+        std::cout << " SECUREFILEHANDLER: Extracted original filename: " << originalFilename.toStdString() << std::endl;
+    }
+    
+    //  FIXED: Actually decrypt and save the file to user's chosen location
+    QtConcurrent::run([this, originalFilename]() {
         try {
-            std::cout << "🔓 SECUREFILEHANDLER: Decrypting downloaded file in background thread..." << std::endl;
+            std::cout << " SECUREFILEHANDLER: Decrypting downloaded file in background thread..." << std::endl;
             std::cout << "   Temp file: " << m_currentTempFilePath.toStdString() << std::endl;
-            std::cout << "   Save path: " << m_currentSavePath.toStdString() << std::endl;
+            std::cout << "   Original filename: " << originalFilename.toStdString() << std::endl;
             
             // Check if temp file exists and has content
             QFile tempFile(m_currentTempFilePath);
@@ -380,7 +389,7 @@ void SecureFileHandler::handleDownloadCompleted(bool success, const TransferResu
             }
             
             qint64 tempFileSize = tempFile.size();
-            std::cout << "📊 SECUREFILEHANDLER: Downloaded temp file size: " << tempFileSize << " bytes" << std::endl;
+            std::cout << " SECUREFILEHANDLER: Downloaded temp file size: " << tempFileSize << " bytes" << std::endl;
             
             if (tempFileSize == 0) {
                 QMetaObject::invokeMethod(this, [this]() {
@@ -389,11 +398,26 @@ void SecureFileHandler::handleDownloadCompleted(bool success, const TransferResu
                 return;
             }
             
+            //  CONSTRUCT PROPER SAVE PATH using original filename
+            QFileInfo savePathInfo(m_currentSavePath);
+            QString finalSavePath;
+            
+            if (savePathInfo.isDir()) {
+                // If user selected a directory, append the original filename
+                finalSavePath = QDir(m_currentSavePath).filePath(originalFilename);
+            } else {
+                // If user selected a specific file path, use the directory but with original filename
+                QDir saveDir = savePathInfo.absoluteDir();
+                finalSavePath = saveDir.filePath(originalFilename);
+            }
+            
+            std::cout << " SECUREFILEHANDLER: Final save path: " << finalSavePath.toStdString() << std::endl;
+            
             // For now, since the server is returning plaintext data (not encrypted),
             // we'll just copy the temp file to the save location
             // TODO: When server-side encryption is fixed, implement proper decryption here
             
-            std::cout << "🔄 SECUREFILEHANDLER: Copying downloaded file to save location..." << std::endl;
+            std::cout << " SECUREFILEHANDLER: Copying downloaded file to save location..." << std::endl;
             
             // Read temp file content
             if (!tempFile.open(QIODevice::ReadOnly)) {
@@ -406,11 +430,11 @@ void SecureFileHandler::handleDownloadCompleted(bool success, const TransferResu
             QByteArray fileContent = tempFile.readAll();
             tempFile.close();
             
-            // Write to user's chosen save path
-            QFile saveFile(m_currentSavePath);
+            // Write to final save path with original filename
+            QFile saveFile(finalSavePath);
             if (!saveFile.open(QIODevice::WriteOnly)) {
-                QMetaObject::invokeMethod(this, [this]() {
-                    emit secureOperationFailed(m_currentFileName, "Cannot create save file at chosen location");
+                QMetaObject::invokeMethod(this, [this, finalSavePath]() {
+                    emit secureOperationFailed(m_currentFileName, "Cannot create save file at: " + finalSavePath);
                 }, Qt::QueuedConnection);
                 return;
             }
@@ -430,11 +454,12 @@ void SecureFileHandler::handleDownloadCompleted(bool success, const TransferResu
             // Clean up temp file
             QFile::remove(m_currentTempFilePath);
             
-            std::cout << "✅ SECUREFILEHANDLER: File saved successfully to: " << m_currentSavePath.toStdString() << std::endl;
+            std::cout << " SECUREFILEHANDLER: File saved successfully to: " << finalSavePath.toStdString() << std::endl;
+            std::cout << "   Original filename: " << originalFilename.toStdString() << std::endl;
             std::cout << "   File size: " << bytesWritten << " bytes" << std::endl;
             
-            QMetaObject::invokeMethod(this, [this]() {
-                emit secureDownloadCompleted(true, m_currentFileName);
+            QMetaObject::invokeMethod(this, [this, originalFilename]() {
+                emit secureDownloadCompleted(true, originalFilename);
             }, Qt::QueuedConnection);
             
         } catch (const std::exception& e) {
@@ -452,19 +477,19 @@ void SecureFileHandler::handleTransferProgress(qint64 bytesTransferred, qint64 t
     emit secureDownloadProgress(m_currentFileName, bytesTransferred, totalBytes);
 }
 
-// 🔥 STREAMING ENCRYPTION HELPERS
+//  STREAMING ENCRYPTION HELPERS
 
 QString SecureFileHandler::createEncryptedTempFile(const QString& sourceFilePath)
 {
-    std::cout << "🔐 SECUREFILEHANDLER: Creating encrypted temp file from: " << sourceFilePath.toStdString() << std::endl;
+    std::cout << " SECUREFILEHANDLER: Creating encrypted temp file from: " << sourceFilePath.toStdString() << std::endl;
     
     try {
-        // 🔥 FIXED: Create temporary file with explicit lifecycle management
+        //  FIXED: Create temporary file with explicit lifecycle management
         QTemporaryFile* tempFile = new QTemporaryFile();
         tempFile->setAutoRemove(false); // Don't auto-delete - we'll manage cleanup manually
         
         if (!tempFile->open()) {
-            std::cout << "❌ SECUREFILEHANDLER: Cannot create temp file" << std::endl;
+            std::cout << " SECUREFILEHANDLER: Cannot create temp file" << std::endl;
             delete tempFile;
             return QString();
         }
@@ -473,12 +498,12 @@ QString SecureFileHandler::createEncryptedTempFile(const QString& sourceFilePath
         tempFile->close();
         delete tempFile; // We only needed it to create the file path
         
-        std::cout << "🔐 SECUREFILEHANDLER: Created persistent temp file: " << tempPath.toStdString() << std::endl;
+        std::cout << " SECUREFILEHANDLER: Created persistent temp file: " << tempPath.toStdString() << std::endl;
         
-        // 🔥 SIMPLIFIED ENCRYPTION: Read entire file and encrypt as unit for proper AES-GCM
+        //  SIMPLIFIED ENCRYPTION: Read entire file and encrypt as unit for proper AES-GCM
         QFile sourceFile(sourceFilePath);
         if (!sourceFile.open(QIODevice::ReadOnly)) {
-            std::cout << "❌ SECUREFILEHANDLER: Cannot open source file" << std::endl;
+            std::cout << " SECUREFILEHANDLER: Cannot open source file" << std::endl;
             return QString();
         }
         
@@ -488,12 +513,12 @@ QString SecureFileHandler::createEncryptedTempFile(const QString& sourceFilePath
         
         std::vector<uint8_t> fileBytes(fileData.begin(), fileData.end());
         
-        std::cout << "🔐 SECUREFILEHANDLER: Encrypting " << fileBytes.size() << " bytes with AES-256-GCM" << std::endl;
+        std::cout << " SECUREFILEHANDLER: Encrypting " << fileBytes.size() << " bytes with AES-256-GCM" << std::endl;
         
-        // 🔒 ENCRYPT ENTIRE FILE with fresh DEK using AES-256-GCM
+        //  ENCRYPT ENTIRE FILE with fresh DEK using AES-256-GCM
         auto encryptionContext = m_encryptionEngine->encrypt_file(fileBytes, m_userMEK);
         
-        // 🔥 PREPARE ENCRYPTED DATA for upload - combine IV + encrypted content + auth tag
+        //  PREPARE ENCRYPTED DATA for upload - combine IV + encrypted content + auth tag
         std::vector<uint8_t> encryptedFileData;
         
         // Format: IV (12 bytes) + encrypted content + auth tag (16 bytes)
@@ -518,11 +543,11 @@ QString SecureFileHandler::createEncryptedTempFile(const QString& sourceFilePath
         // Write encrypted data to temp file
         QFile encryptedFile(tempPath);
         if (!encryptedFile.open(QIODevice::WriteOnly)) {
-            std::cout << "❌ SECUREFILEHANDLER: Cannot open temp file for writing" << std::endl;
+            std::cout << " SECUREFILEHANDLER: Cannot open temp file for writing" << std::endl;
             return QString();
         }
         
-        // 🔥 BINARY-SAFE WRITE: Use vector data directly
+        //  BINARY-SAFE WRITE: Use vector data directly
         QByteArray dataToWrite(reinterpret_cast<const char*>(encryptedFileData.data()), 
                              encryptedFileData.size());
         
@@ -530,26 +555,26 @@ QString SecureFileHandler::createEncryptedTempFile(const QString& sourceFilePath
         encryptedFile.close();
         
         if (bytesWritten != dataToWrite.size()) {
-            std::cout << "❌ SECUREFILEHANDLER: Failed to write encrypted file, expected: " 
+            std::cout << " SECUREFILEHANDLER: Failed to write encrypted file, expected: " 
                       << dataToWrite.size() << ", wrote: " << bytesWritten << std::endl;
             return QString();
         }
         
-        std::cout << "✅ SECUREFILEHANDLER: Encrypted temp file created: " << tempPath.toStdString() << std::endl;
+        std::cout << " SECUREFILEHANDLER: Encrypted temp file created: " << tempPath.toStdString() << std::endl;
         std::cout << "   Original size: " << fileBytes.size() << " bytes" << std::endl;
         std::cout << "   Encrypted size: " << encryptedFileData.size() << " bytes" << std::endl;
         
         return tempPath;
         
     } catch (const std::exception& e) {
-        std::cout << "❌ SECUREFILEHANDLER: Encryption failed: " << e.what() << std::endl;
+        std::cout << " SECUREFILEHANDLER: Encryption failed: " << e.what() << std::endl;
         return QString();
     }
 }
 
 bool SecureFileHandler::decryptStreamedFile(const QString& encryptedFilePath, const QString& outputPath)
 {
-    std::cout << "🔓 SECUREFILEHANDLER: Decrypting streamed file: " << encryptedFilePath.toStdString() << std::endl;
+    std::cout << " SECUREFILEHANDLER: Decrypting streamed file: " << encryptedFilePath.toStdString() << std::endl;
     
     try {
         QFile encryptedFile(encryptedFilePath);
@@ -562,7 +587,7 @@ bool SecureFileHandler::decryptStreamedFile(const QString& encryptedFilePath, co
             return false;
         }
         
-        // 🔥 STREAMING DECRYPTION: Process in chunks
+        //  STREAMING DECRYPTION: Process in chunks
         const qint64 chunkSize = 64 * 1024;
         qint64 totalSize = encryptedFile.size();
         qint64 processedBytes = 0;
@@ -588,20 +613,20 @@ bool SecureFileHandler::decryptStreamedFile(const QString& encryptedFilePath, co
         encryptedFile.close();
         outputFile.close();
         
-        std::cout << "✅ SECUREFILEHANDLER: File decrypted successfully" << std::endl;
+        std::cout << " SECUREFILEHANDLER: File decrypted successfully" << std::endl;
         return true;
         
     } catch (const std::exception& e) {
-        std::cout << "❌ SECUREFILEHANDLER: Decryption failed: " << e.what() << std::endl;
+        std::cout << " SECUREFILEHANDLER: Decryption failed: " << e.what() << std::endl;
         return false;
     }
 }
 
-// 🔥 LEGACY SYNC METHODS (deprecated but kept for compatibility)
+//  LEGACY SYNC METHODS (deprecated but kept for compatibility)
 
 SecureUploadResult SecureFileHandler::uploadFileSecurely(const QString& filePath, const QString& authToken)
 {
-    std::cout << "⚠️ SECUREFILEHANDLER: Using DEPRECATED sync upload method" << std::endl;
+    std::cout << " SECUREFILEHANDLER: Using DEPRECATED sync upload method" << std::endl;
     
     if (!isInitialized()) {
         return {false, "Secure file handler not initialized", ""};
@@ -622,7 +647,7 @@ SecureUploadResult SecureFileHandler::uploadFileSecurely(const QString& filePath
         // STEP 2: Encrypt file with fresh DEK using AES-256-GCM
         auto encryptionContext = m_encryptionEngine->encrypt_file(fileBytes, m_userMEK);
         
-        std::cout << "🔐 SECUREFILEHANDLER: File encrypted with fresh DEK" << std::endl;
+        std::cout << " SECUREFILEHANDLER: File encrypted with fresh DEK" << std::endl;
         
         // STEP 3: Encrypt metadata
         QFileInfo fileInfo(filePath);
@@ -658,20 +683,20 @@ SecureUploadResult SecureFileHandler::uploadFileSecurely(const QString& filePath
             authToken.toStdString()
         );
         
-        std::cout << "✅ SECUREFILEHANDLER: Secure upload completed successfully" << std::endl;
+        std::cout << " SECUREFILEHANDLER: Secure upload completed successfully" << std::endl;
         std::cout << "   File ID: " << response.file_id << std::endl;
         
         return {true, "", QString::fromStdString(response.file_id)};
         
     } catch (const std::exception& e) {
-        std::cout << "❌ SECUREFILEHANDLER: Secure upload failed: " << e.what() << std::endl;
+        std::cout << " SECUREFILEHANDLER: Secure upload failed: " << e.what() << std::endl;
         return {false, QString::fromStdString(e.what()), ""};
     }
 }
 
 SecureDownloadResult SecureFileHandler::downloadFileSecurely(const QString& fileId, const QString& savePath, const QString& authToken)
 {
-    std::cout << "⚠️ SECUREFILEHANDLER: Using DEPRECATED sync download method for fileId: " << fileId.toStdString() << std::endl;
+    std::cout << " SECUREFILEHANDLER: Using DEPRECATED sync download method for fileId: " << fileId.toStdString() << std::endl;
     
     if (!isInitialized()) {
         return {false, "Secure file handler not initialized", ""};
@@ -684,7 +709,7 @@ SecureDownloadResult SecureFileHandler::downloadFileSecurely(const QString& file
             authToken.toStdString()
         );
         
-        std::cout << "📥 SECUREFILEHANDLER: Encrypted file downloaded from server" << std::endl;
+        std::cout << " SECUREFILEHANDLER: Encrypted file downloaded from server" << std::endl;
         
         // STEP 2: Decrypt metadata
         std::string decryptedFilename = m_encryptionEngine->decrypt_metadata(
@@ -743,11 +768,11 @@ SecureDownloadResult SecureFileHandler::downloadFileSecurely(const QString& file
         outputFile.write(reinterpret_cast<const char*>(encryptedContent.data()), encryptedContent.size());
         outputFile.close();
         
-        std::cout << "✅ SECUREFILEHANDLER: Secure download completed successfully" << std::endl;
+        std::cout << " SECUREFILEHANDLER: Secure download completed successfully" << std::endl;
         return {true, "", savePath};
         
     } catch (const std::exception& e) {
-        std::cout << "❌ SECUREFILEHANDLER: Secure download failed: " << e.what() << std::endl;
+        std::cout << " SECUREFILEHANDLER: Secure download failed: " << e.what() << std::endl;
         return {false, QString::fromStdString(e.what()), ""};
     }
 }
@@ -757,7 +782,7 @@ bool SecureFileHandler::deleteFileSecurely(const QString& fileId, const QString&
     std::cout << "🗑️ SECUREFILEHANDLER: deleteFileSecurely called for fileId: " << fileId.toStdString() << std::endl;
     
     if (!isInitialized()) {
-        std::cout << "❌ SECUREFILEHANDLER: Not initialized" << std::endl;
+        std::cout << " SECUREFILEHANDLER: Not initialized" << std::endl;
         return false;
     }
     
@@ -772,18 +797,18 @@ bool SecureFileHandler::deleteFileSecurely(const QString& fileId, const QString&
             authToken.toStdString()
         );
         
-        std::cout << "✅ SECUREFILEHANDLER: File deletion request sent successfully" << std::endl;
+        std::cout << " SECUREFILEHANDLER: File deletion request sent successfully" << std::endl;
         return true;
         
     } catch (const std::exception& e) {
-        std::cout << "❌ SECUREFILEHANDLER: File deletion failed: " << e.what() << std::endl;
+        std::cout << " SECUREFILEHANDLER: File deletion failed: " << e.what() << std::endl;
         return false;
     }
 }
 
 bool SecureFileHandler::shareFileSecurely(const QString& fileName, const QString& recipientUsername, const QString& authToken)
 {
-    std::cout << "🤝 SECUREFILEHANDLER: Sharing file securely: " << fileName.toStdString() << std::endl;
+    std::cout << " SECUREFILEHANDLER: Sharing file securely: " << fileName.toStdString() << std::endl;
     
     if (!isInitialized()) {
         return false;
@@ -801,18 +826,18 @@ bool SecureFileHandler::shareFileSecurely(const QString& fileName, const QString
             authToken.toStdString()
         );
         
-        std::cout << "✅ SECUREFILEHANDLER: File shared successfully" << std::endl;
+        std::cout << " SECUREFILEHANDLER: File shared successfully" << std::endl;
         return true;
         
     } catch (const std::exception& e) {
-        std::cout << "❌ SECUREFILEHANDLER: Secure sharing failed: " << e.what() << std::endl;
+        std::cout << " SECUREFILEHANDLER: Secure sharing failed: " << e.what() << std::endl;
         return false;
     }
 }
 
 bool SecureFileHandler::revokeFileAccess(const QString& fileName, const QString& username, const QString& authToken)
 {
-    std::cout << "🚫 SECUREFILEHANDLER: Revoking file access: " << fileName.toStdString() << std::endl;
+    std::cout << " SECUREFILEHANDLER: Revoking file access: " << fileName.toStdString() << std::endl;
     
     if (!isInitialized()) {
         return false;
@@ -826,15 +851,15 @@ bool SecureFileHandler::revokeFileAccess(const QString& fileName, const QString&
         );
         
         if (success) {
-            std::cout << "✅ SECUREFILEHANDLER: File access revoked successfully" << std::endl;
+            std::cout << " SECUREFILEHANDLER: File access revoked successfully" << std::endl;
         } else {
-            std::cout << "❌ SECUREFILEHANDLER: File access revocation failed" << std::endl;
+            std::cout << " SECUREFILEHANDLER: File access revocation failed" << std::endl;
         }
         
         return success;
         
     } catch (const std::exception& e) {
-        std::cout << "❌ SECUREFILEHANDLER: Access revocation failed: " << e.what() << std::endl;
+        std::cout << " SECUREFILEHANDLER: Access revocation failed: " << e.what() << std::endl;
         return false;
     }
 }
@@ -873,7 +898,7 @@ std::string SecureFileHandler::decryptMetadata(const std::string& encryptedData)
         throw std::runtime_error("SecureFileHandler not initialized");
     }
     
-    std::cout << "🔍 SECUREFILEHANDLER: Attempting to decrypt metadata" << std::endl;
+    std::cout << " SECUREFILEHANDLER: Attempting to decrypt metadata" << std::endl;
     std::cout << "   Encrypted data length: " << encryptedData.length() << " bytes" << std::endl;
     std::cout << "   Encrypted data (first 50 chars): " << encryptedData.substr(0, 50) << std::endl;
     std::cout << "   MEK size: " << m_userMEK.size() << " bytes" << std::endl;
@@ -882,27 +907,27 @@ std::string SecureFileHandler::decryptMetadata(const std::string& encryptedData)
     try {
         // ATTEMPT 1: Try full encryption decryption first
         std::string result = m_encryptionEngine->decrypt_metadata(encryptedData, m_userMEK);
-        std::cout << "✅ SECUREFILEHANDLER: Successfully decrypted metadata: " << result << std::endl;
+        std::cout << " SECUREFILEHANDLER: Successfully decrypted metadata: " << result << std::endl;
         return result;
     } catch (const std::exception& e) {
-        std::cout << "❌ SECUREFILEHANDLER: Full decryption failed: " << e.what() << std::endl;
+        std::cout << " SECUREFILEHANDLER: Full decryption failed: " << e.what() << std::endl;
         
         // ATTEMPT 2: Maybe it's just Base64-encoded plaintext (server-side encryption not working)
         try {
-            std::cout << "🔄 SECUREFILEHANDLER: Trying Base64 decode fallback..." << std::endl;
+            std::cout << " SECUREFILEHANDLER: Trying Base64 decode fallback..." << std::endl;
             
             // Simple Base64 decode
             QByteArray base64Data = QByteArray::fromStdString(encryptedData);
             QByteArray decodedData = QByteArray::fromBase64(base64Data);
             std::string plaintext = decodedData.toStdString();
             
-            std::cout << "✅ SECUREFILEHANDLER: Base64 decode successful: " << plaintext << std::endl;
-            std::cout << "⚠️ SECUREFILEHANDLER: WARNING - Server returned plaintext data, not encrypted!" << std::endl;
+            std::cout << " SECUREFILEHANDLER: Base64 decode successful: " << plaintext << std::endl;
+            std::cout << " SECUREFILEHANDLER: WARNING - Server returned plaintext data, not encrypted!" << std::endl;
             
             return plaintext;
             
         } catch (const std::exception& fallbackError) {
-            std::cout << "❌ SECUREFILEHANDLER: Base64 decode also failed: " << fallbackError.what() << std::endl;
+            std::cout << " SECUREFILEHANDLER: Base64 decode also failed: " << fallbackError.what() << std::endl;
             std::cout << "   Original encryption error: " << e.what() << std::endl;
             std::cout << "   This suggests either:" << std::endl;
             std::cout << "   1. Wrong MEK being used for decryption" << std::endl;
@@ -919,7 +944,7 @@ std::string SecureFileHandler::decryptMetadata(const std::string& encryptedData)
 
 bool SecureFileHandler::deriveMEKWrapperKey(const QString& password, const QString& salt)
 {
-    std::cout << "🔑 SECUREFILEHANDLER: Deriving MEK wrapper key with Argon2id" << std::endl;
+    std::cout << " SECUREFILEHANDLER: Deriving MEK wrapper key with Argon2id" << std::endl;
     
     try {
         // Use Argon2id for key derivation as shown in diagram
@@ -940,18 +965,18 @@ bool SecureFileHandler::deriveMEKWrapperKey(const QString& password, const QStri
             derivedKeys.mekWrapperKey.end()
         );
         
-        std::cout << "✅ SECUREFILEHANDLER: MEK wrapper key derived successfully" << std::endl;
+        std::cout << " SECUREFILEHANDLER: MEK wrapper key derived successfully" << std::endl;
         return true;
         
     } catch (const std::exception& e) {
-        std::cout << "❌ SECUREFILEHANDLER: MEK wrapper key derivation failed: " << e.what() << std::endl;
+        std::cout << " SECUREFILEHANDLER: MEK wrapper key derivation failed: " << e.what() << std::endl;
         return false;
     }
 }
 
 bool SecureFileHandler::generateOrRecoverMEK()
 {
-    std::cout << "🔐 SECUREFILEHANDLER: Generating/recovering MEK" << std::endl;
+    std::cout << " SECUREFILEHANDLER: Generating/recovering MEK" << std::endl;
     
     try {
         // Check if we need to generate a new MEK or recover existing one
@@ -964,22 +989,22 @@ bool SecureFileHandler::generateOrRecoverMEK()
             for (size_t i = 0; i < 32; ++i) {
                 m_userMEK[i] = QRandomGenerator::global()->bounded(256);
             }
-            std::cout << "🔑 SECUREFILEHANDLER: New MEK generated" << std::endl;
+            std::cout << " SECUREFILEHANDLER: New MEK generated" << std::endl;
         } else {
-            std::cout << "🔓 SECUREFILEHANDLER: Using existing MEK" << std::endl;
+            std::cout << " SECUREFILEHANDLER: Using existing MEK" << std::endl;
         }
         
         return true;
         
     } catch (const std::exception& e) {
-        std::cout << "❌ SECUREFILEHANDLER: MEK generation/recovery failed: " << e.what() << std::endl;
+        std::cout << " SECUREFILEHANDLER: MEK generation/recovery failed: " << e.what() << std::endl;
         return false;
     }
 }
 
 bool SecureFileHandler::encryptMEKForStorage()
 {
-    std::cout << "🔒 SECUREFILEHANDLER: Encrypting MEK for server storage" << std::endl;
+    std::cout << " SECUREFILEHANDLER: Encrypting MEK for server storage" << std::endl;
     
     try {
         // Encrypt MEK with wrapper key using AES-GCM as shown in diagram
@@ -991,18 +1016,18 @@ bool SecureFileHandler::encryptMEKForStorage()
             m_encryptedMEK[i] ^= m_mekWrapperKey[i % m_mekWrapperKey.size()];
         }
         
-        std::cout << "✅ SECUREFILEHANDLER: MEK encrypted for storage" << std::endl;
+        std::cout << " SECUREFILEHANDLER: MEK encrypted for storage" << std::endl;
         return true;
         
     } catch (const std::exception& e) {
-        std::cout << "❌ SECUREFILEHANDLER: MEK encryption failed: " << e.what() << std::endl;
+        std::cout << " SECUREFILEHANDLER: MEK encryption failed: " << e.what() << std::endl;
         return false;
     }
 }
 
 bool SecureFileHandler::decryptMEKFromStorage()
 {
-    std::cout << "🔓 SECUREFILEHANDLER: Decrypting MEK from storage" << std::endl;
+    std::cout << " SECUREFILEHANDLER: Decrypting MEK from storage" << std::endl;
     
     try {
         // Decrypt MEK using wrapper key
@@ -1014,11 +1039,11 @@ bool SecureFileHandler::decryptMEKFromStorage()
             m_userMEK[i] ^= m_mekWrapperKey[i % m_mekWrapperKey.size()];
         }
         
-        std::cout << "✅ SECUREFILEHANDLER: MEK decrypted from storage" << std::endl;
+        std::cout << " SECUREFILEHANDLER: MEK decrypted from storage" << std::endl;
         return true;
         
     } catch (const std::exception& e) {
-        std::cout << "❌ SECUREFILEHANDLER: MEK decryption failed: " << e.what() << std::endl;
+        std::cout << " SECUREFILEHANDLER: MEK decryption failed: " << e.what() << std::endl;
         return false;
     }
 }
@@ -1035,7 +1060,7 @@ bool SecureFileHandler::validateEncryptionComponents() const
 
 std::vector<uint8_t> SecureFileHandler::encryptFileData(const std::vector<uint8_t>& fileData, const FileEncryptionContext& context)
 {
-    std::cout << "🔐 SECUREFILEHANDLER: Encrypting " << fileData.size() << " bytes with AES-256-GCM" << std::endl;
+    std::cout << " SECUREFILEHANDLER: Encrypting " << fileData.size() << " bytes with AES-256-GCM" << std::endl;
     
     try {
         // Use OpenSSL EVP for AES-256-GCM encryption with the DEK from context
@@ -1085,11 +1110,11 @@ std::vector<uint8_t> SecureFileHandler::encryptFileData(const std::vector<uint8_
         
         EVP_CIPHER_CTX_free(ctx);
         
-        std::cout << "✅ SECUREFILEHANDLER: Encrypted " << fileData.size() << " bytes -> " << encrypted_data.size() << " bytes" << std::endl;
+        std::cout << " SECUREFILEHANDLER: Encrypted " << fileData.size() << " bytes -> " << encrypted_data.size() << " bytes" << std::endl;
         return encrypted_data;
         
     } catch (const std::exception& e) {
-        std::cout << "❌ SECUREFILEHANDLER: Encryption failed: " << e.what() << std::endl;
+        std::cout << " SECUREFILEHANDLER: Encryption failed: " << e.what() << std::endl;
         throw;
     }
 } 

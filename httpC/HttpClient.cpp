@@ -461,6 +461,102 @@ bool HttpClient::downloadToStreamWithProgress(const HttpRequest& req, QIODevice&
     return true;
 }
 
+bool HttpClient::downloadToStreamWithProgress(const HttpRequest& req, QIODevice& destination,
+                                             std::function<bool(qint64, qint64)> progressCallback,
+                                             std::string& extractedFilename) {
+    // 1) Open TLS connection
+    SSLConnection conn(ctx_, host_, port_);
+    conn.setTimeout(60); // Longer timeout for downloads
+    conn.optimizeForFileTransfer(); // Socket-level optimization
+    
+    // 2) Send request
+    auto rawReq = req.serialize();
+    conn.send(rawReq.data(), rawReq.size());
+    
+    // 3) Read headers until "\r\n\r\n"
+    std::string headers;
+    char buf[1];
+    std::string headerEnd = "\r\n\r\n";
+    
+    while (headers.find(headerEnd) == std::string::npos) {
+        ssize_t n = conn.receive(buf, 1);
+        if (n <= 0) return false;
+        headers.append(buf, 1);
+    }
+    
+    // 4) Parse headers properly
+    std::string statusLine;
+    std::map<std::string, std::string> headerMap;
+    parseHeaders(headers, statusLine, headerMap);
+    
+    // DEBUG: Log all received headers
+    std::cout << "HTTP RESPONSE HEADERS RECEIVED:" << std::endl;
+    for (const auto& header : headerMap) {
+        std::cout << "   " << header.first << ": " << header.second << std::endl;
+    }
+    
+    // Extract status code
+    int statusCode = 0;
+    std::istringstream statusStream(statusLine);
+    std::string httpVersion;
+    statusStream >> httpVersion >> statusCode;
+    
+    if (statusCode != 200) return false;
+    
+    // EXTRACT FILENAME from Content-Disposition header
+    auto contentDispIt = headerMap.find("content-disposition");
+    if (contentDispIt != headerMap.end()) {
+        extractedFilename = extractFilenameFromContentDisposition(contentDispIt->second);
+        std::cout << "EXTRACTED FILENAME: " << extractedFilename << std::endl;
+    } else {
+        std::cout << "NO Content-Disposition header found in response!" << std::endl;
+    }
+    
+    // 5) Get content length for progress tracking
+    qint64 totalBytes = -1;
+    auto contentLengthIt = headerMap.find("content-length");
+    if (contentLengthIt != headerMap.end()) {
+        totalBytes = std::stoll(contentLengthIt->second);
+    }
+    
+    // 6) Stream with progress tracking
+    const int BUFFER_SIZE = 128 * 1024;
+    char buffer[BUFFER_SIZE];
+    qint64 totalRead = 0;
+    
+    if (totalBytes > 0) {
+        // Known content length - read exactly that amount
+        while (totalRead < totalBytes) {
+            int toRead = std::min(BUFFER_SIZE, static_cast<int>(totalBytes - totalRead));
+            ssize_t n = conn.receive(buffer, toRead);
+            
+            if (n <= 0) return false;
+            if (destination.write(buffer, n) != n) return false;
+            
+            totalRead += n;
+            
+            // Call progress callback
+            if (progressCallback && !progressCallback(totalRead, totalBytes)) {
+                return false; // User cancelled
+            }
+        }
+    } else {
+        // Unknown content length - read until close
+        ssize_t n;
+        while ((n = conn.receive(buffer, BUFFER_SIZE)) > 0) {
+            if (destination.write(buffer, n) != n) return false;
+            totalRead += n;
+            
+            // Call progress callback with unknown total
+            if (progressCallback && !progressCallback(totalRead, -1)) {
+                return false; // User cancelled
+            }
+        }
+    }
+    
+    return true;
+}
+
 void HttpClient::downloadAsync(const HttpRequest& request,
                               const QString& filePath,
                               std::function<void(const HttpResponse&)> onSuccess,
@@ -505,3 +601,37 @@ void HttpClient::downloadAsync(const HttpRequest& request,
         }
     });
 }
+
+// NEW: Extract filename from Content-Disposition header
+std::string HttpClient::extractFilenameFromContentDisposition(const std::string& headerValue) {
+    // Look for filename= in the header
+    size_t filenamePos = headerValue.find("filename=");
+    if (filenamePos == std::string::npos) {
+        return "";
+    }
+    
+    filenamePos += 9; // Skip "filename="
+    
+    // Handle quoted filenames
+    if (filenamePos < headerValue.length() && headerValue[filenamePos] == '"') {
+        filenamePos++; // Skip opening quote
+        size_t endQuotePos = headerValue.find('"', filenamePos);
+        if (endQuotePos != std::string::npos) {
+            return headerValue.substr(filenamePos, endQuotePos - filenamePos);
+        }
+    } else {
+        // Handle unquoted filenames (find until semicolon or end)
+        size_t endPos = headerValue.find(';', filenamePos);
+        if (endPos == std::string::npos) {
+            endPos = headerValue.length();
+        }
+        std::string filename = headerValue.substr(filenamePos, endPos - filenamePos);
+        // Trim whitespace
+        filename.erase(0, filename.find_first_not_of(" \t"));
+        filename.erase(filename.find_last_not_of(" \t") + 1);
+        return filename;
+    }
+    
+    return "";
+}
+

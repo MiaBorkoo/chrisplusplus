@@ -125,12 +125,12 @@ void FileTransfer::performUploadAsync(const QString& filePath, const std::string
     auto self = shared_from_this();
     auto future = QtConcurrent::run([self, request, filePath, fileInfo]() mutable {
         try {
-            // 🔥 NEW: Build multipart form data body (not streaming)
+            //  NEW: Build multipart form data body (not streaming)
             std::string multipartBody = self->buildMultipartFormData(filePath, fileInfo.fileName().toStdString());
             request.body = multipartBody;
             
-            std::cout << "📡 FILETRANSFER: Sending multipart request to " << request.path << std::endl;
-            std::cout << "📦 FILETRANSFER: Request body size: " << multipartBody.size() << " bytes" << std::endl;
+            std::cout << " FILETRANSFER: Sending multipart request to " << request.path << std::endl;
+            std::cout << " FILETRANSFER: Request body size: " << multipartBody.size() << " bytes" << std::endl;
             
             // Use regular sendRequest instead of sendRequestWithStreamingBody
             HttpResponse response = self->httpClient_->sendRequest(request);
@@ -205,20 +205,22 @@ void FileTransfer::performDownloadAsync(const std::string& endpoint, const QStri
             }
             
             // Use STREAMING download (not buffered sendAsync)
+            std::string extractedFilename;
             bool success = self->httpClient_->downloadToStreamWithProgress(request, file,
                 [self](qint64 downloaded, qint64 total) -> bool {
                     emit self->progressUpdated(downloaded, total);
                     return !self->cancelRequested_;
-                });
+                }, extractedFilename);
             qint64 bytesDownloaded = file.size();
             file.close();
             
             // Back to GUI thread with result
-            QMetaObject::invokeMethod(qApp, [self, success, bytesDownloaded, savePath]() {
+            QMetaObject::invokeMethod(qApp, [self, success, bytesDownloaded, savePath, extractedFilename]() {
                 TransferResult result;
                 if (success && !self->cancelRequested_) {
                     result.success = true;
                     result.bytesTransferred = bytesDownloaded;
+                    result.extractedFilename = QString::fromStdString(extractedFilename);
                     emit self->downloadCompleted(true, result);
                 } else {
                     result.errorMessage = self->cancelRequested_ ? 
@@ -301,7 +303,7 @@ HttpRequest FileTransfer::createUploadRequest(const std::string& endpoint,
     request.headers["Host"] = Config::getInstance().getServerHost().toStdString();
     request.headers["User-Agent"] = "ChrisPlusPlus-FileTransfer/1.0";
     
-    // 🔥 CRITICAL FIX: Use multipart/form-data instead of octet-stream
+    //  CRITICAL FIX: Use multipart/form-data instead of octet-stream
     // Generate boundary for multipart form data
     std::string boundary = "----ChrisPlusPlus" + std::to_string(QDateTime::currentMSecsSinceEpoch());
     request.headers["Content-Type"] = "multipart/form-data; boundary=" + boundary;
@@ -376,14 +378,14 @@ std::string FileTransfer::buildMultipartFormData(const QString& filePath, const 
     QString fileSizeEncoded = fileSizeBytes.toBase64();
     
     // Debug logging
-    std::cout << "🔧 FILETRANSFER: Building multipart form data:" << std::endl;
+    std::cout << " FILETRANSFER: Building multipart form data:" << std::endl;
     std::cout << "   Original filename: " << filename << std::endl;
     std::cout << "   File size: " << fileSize << " bytes" << std::endl;
     std::cout << "   filename_encrypted: " << filenameEncoded.toStdString() << std::endl;
     std::cout << "   file_size_encrypted: " << fileSizeEncoded.toStdString() << std::endl;
     std::cout << "   file_data_hmac: temp-hmac" << std::endl;
     
-    // 🔥 FIXED: Use std::vector<char> instead of std::stringstream to handle binary data properly!
+    //  FIXED: Use std::vector<char> instead of std::stringstream to handle binary data properly!
     std::vector<char> formData;
     
     // Helper lambda to append strings to vector
@@ -401,7 +403,7 @@ std::string FileTransfer::buildMultipartFormData(const QString& filePath, const 
     appendString("Content-Disposition: form-data; name=\"file\"; filename=\"" + filename + "\"\r\n");
     appendString("Content-Type: application/octet-stream\r\n\r\n");
     
-    // 🔥 CRITICAL: Write binary file data directly to vector (preserves null bytes!)
+    //  CRITICAL: Write binary file data directly to vector (preserves null bytes!)
     appendByteArray(fileData);
     appendString("\r\n");
     
@@ -423,10 +425,10 @@ std::string FileTransfer::buildMultipartFormData(const QString& filePath, const 
     // End boundary
     appendString("--" + boundary_ + "--\r\n");
     
-    // 🔥 FIXED: Convert vector to string properly (preserves binary data)
+    //  FIXED: Convert vector to string properly (preserves binary data)
     std::string result(formData.begin(), formData.end());
     
-    std::cout << "🔧 FILETRANSFER: Built multipart form data, total size: " << result.size() << " bytes" << std::endl;
+    std::cout << " FILETRANSFER: Built multipart form data, total size: " << result.size() << " bytes" << std::endl;
     
     return result;
 } 

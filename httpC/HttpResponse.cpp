@@ -1,4 +1,5 @@
 #include "HttpResponse.h"
+#include "HttpClient.h"  // For extractFilenameFromContentDisposition
 #include <sstream>
 
 HttpResponse HttpResponse::parse(const std::string& raw) {
@@ -35,6 +36,16 @@ HttpResponse HttpResponse::parse(const std::string& raw) {
             }
             response.headers[key] = value;
         }
+    }
+    
+    // Extract filename from Content-Disposition header if present
+    auto contentDispIt = response.headers.find("Content-Disposition");
+    if (contentDispIt == response.headers.end()) {
+        // Try lowercase version
+        contentDispIt = response.headers.find("content-disposition");
+    }
+    if (contentDispIt != response.headers.end()) {
+        response.filename = HttpClient::extractFilenameFromContentDisposition(contentDispIt->second);
     }
     
     // Parse body (rest of the stream)

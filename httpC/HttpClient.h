@@ -36,6 +36,11 @@ public:
     bool downloadToStreamWithProgress(const HttpRequest& req, QIODevice& destination, 
                                      std::function<bool(qint64, qint64)> progressCallback);
 
+    // Download file to stream with progress tracking and filename extraction
+    bool downloadToStreamWithProgress(const HttpRequest& req, QIODevice& destination,
+                                     std::function<bool(qint64, qint64)> progressCallback,
+                                     std::string& extractedFilename);
+
     void setChunkSize(size_t size) { chunkSize_ = size; }
     size_t getChunkSize() const { return chunkSize_; }
 
@@ -44,6 +49,9 @@ public:
                        const QString& filePath,
                        std::function<void(const HttpResponse&)> onSuccess, 
                        std::function<void(const QString&)> onError);
+
+    // NEW: Extract filename from Content-Disposition header
+    static std::string extractFilenameFromContentDisposition(const std::string& headerValue);
 
 private:
     SSLContext& ctx_;

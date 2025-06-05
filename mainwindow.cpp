@@ -116,7 +116,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
             }
             QString encryptionSalt = baseSalt.left(64); // Limit to reasonable size
             
-            qDebug() << "🔐 MAINWINDOW: Initializing secure file system";
+            qDebug() << " MAINWINDOW: Initializing secure file system";
             qDebug() << "   Username:" << username;
             qDebug() << "   Encryption salt length:" << encryptionSalt.length() << "bytes";
             
@@ -125,17 +125,17 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
             
             // Verify secure system is ready
             if (m_fileService->isSecureSystemReady()) {
-                qDebug() << "✅ MAINWINDOW: Secure file system initialized successfully!";
-                qDebug() << "   🔒 AES-256-GCM encryption: ENABLED";
-                qDebug() << "   🔑 Argon2id key derivation: ENABLED";
+                qDebug() << " MAINWINDOW: Secure file system initialized successfully!";
+                qDebug() << "    AES-256-GCM encryption: ENABLED";
+                qDebug() << "    Argon2id key derivation: ENABLED";
                 qDebug() << "   🛡️ Fresh DEK per file: ENABLED";
                 qDebug() << "   📋 CS4455 compliance: ACHIEVED";
             } else {
-                qDebug() << "❌ MAINWINDOW: Secure file system initialization failed!";
-                qDebug() << "   ⚠️ Falling back to legacy insecure mode";
+                qDebug() << " MAINWINDOW: Secure file system initialization failed!";
+                qDebug() << "    Falling back to legacy insecure mode";
             }
         } else {
-            qDebug() << "❌ MAINWINDOW: LoginModel not available for secure initialization";
+            qDebug() << " MAINWINDOW: LoginModel not available for secure initialization";
         }
         
         // SECOND: Now safe to switch to file view and trigger requests
