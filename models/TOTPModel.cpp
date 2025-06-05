@@ -1,6 +1,8 @@
 #include "TOTPModel.h"
 #include <QDebug>
 #include <QTimer>
+#include <QSettings>
+#include <QDateTime>
 
 /**
  * @class TOTPModel
@@ -44,6 +46,9 @@ void TOTPModel::verifySetupCode(const QString& code) {
         emit verificationError("TOTP code cannot be empty");
         return;
     }
+    
+    // Store the code for potential login use
+    m_pendingTOTPCode = code;
     
     qDebug() << "Verifying TOTP setup code";
     setState(TOTPState::Verifying);
@@ -96,16 +101,35 @@ void TOTPModel::handleTOTPSetupCompleted(bool success) {
         setState(TOTPState::Success);
         emit verificationSuccess();
         
+        // CRITICAL FIX: Mark user as having completed TOTP setup
+        if (!m_pendingUsername.isEmpty()) {
+            // For server-provided TOTP, mark the user as having completed setup
+            // This will make hasTOTPEnabledForUser() return true for future logins
+            QString userKey = QString("users/%1/totp_setup_completed").arg(m_pendingUsername);
+            QSettings settings;
+            settings.setValue(userKey, true);
+            settings.setValue(QString("users/%1/totp_completed_at").arg(m_pendingUsername), 
+                            QDateTime::currentDateTimeUtc());
+            settings.sync();
+            
+            qDebug() << "Marked TOTP setup as completed for user:" << m_pendingUsername;
+        }
+        
         // If this was first-login setup, proceed with actual login
         if (!m_pendingUsername.isEmpty() && !m_pendingAuthHash.isEmpty()) {
             qDebug() << "First-login TOTP setup successful, proceeding with login";
             
-            // Attempt actual login with server
-            m_authService->hashedLoginWithTOTP(m_pendingUsername, m_pendingAuthHash, "");
+            // CRITICAL FIX: Use the actual verified TOTP code, not empty string!
+            QString totpCode = m_pendingTOTPCode.isEmpty() ? "000000" : m_pendingTOTPCode;
+            qDebug() << "Using TOTP code for login:" << totpCode;
+            
+            // Attempt actual login with server using the verified TOTP code
+            m_authService->hashedLoginWithTOTP(m_pendingUsername, m_pendingAuthHash, totpCode);
             
             // Clear pending data
             m_pendingUsername.clear();
             m_pendingAuthHash.clear();
+            m_pendingTOTPCode.clear();
         }
     } else {
         setState(TOTPState::SetupRequired);

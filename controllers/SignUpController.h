@@ -20,6 +20,11 @@ private slots:
     void handleRegistrationSuccess();
     void handleRegistrationError(const QString &error);
 
+signals:
+    void registrationCompleted();
+    void registrationSuccessful();
+    void registrationFailed(const QString& error);
+
 private:
     SignUpView *view;
     std::shared_ptr<SignUpModel> m_model;
@@ -32,7 +37,4 @@ private:
     const int MAX_USERNAME_LENGTH = 50;
     const int MIN_PASSWORD_LENGTH = 12;
     const int MAX_PASSWORD_LENGTH = 128;
-
-signals:
-    void registrationSuccessful();
 };

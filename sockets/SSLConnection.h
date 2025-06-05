@@ -3,6 +3,7 @@
 
 #include <openssl/ssl.h>
 #include <string>
+#include <functional>
 
 //manages a single TLS connection: DNS → TCP → TLS handshake → certificate & hostname verification → encrypted I/O.
 class SSLConnection {
@@ -36,6 +37,24 @@ public:
     ssize_t receive(void* buf, size_t buflen);
 
     void setTimeout(int seconds);
+    
+    // Socket optimization for file transfers
+    void optimizeForFileTransfer();
+    void setSocketBufferSizes(int sendBuffer, int receiveBuffer);
+    void enableTcpNoDelay(bool enable = true);
+
+    // Advanced streaming with progress and cancellation
+    ssize_t sendWithProgress(const void* data, size_t len, 
+                            std::function<bool(size_t)> progressCallback = nullptr);
+    ssize_t receiveWithProgress(void* buf, size_t buflen,
+                               std::function<bool(size_t)> progressCallback = nullptr);
+    
+    // Bulk streaming operations
+    bool streamFromSource(std::function<ssize_t(void*, size_t)> reader,
+                         std::function<bool(size_t, size_t)> progressCallback = nullptr);
+    bool streamToDestination(std::function<ssize_t(const void*, size_t)> writer,
+                            size_t expectedBytes = 0,
+                            std::function<bool(size_t, size_t)> progressCallback = nullptr);
 
 private:
     //resolve the host to a socket file descriptor

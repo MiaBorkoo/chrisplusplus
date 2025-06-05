@@ -1,6 +1,5 @@
 #include "SignUpController.h"
 #include <QRegularExpression>
-#include <QDebug>
 #include "../services/auth/ValidationService.h"
 
 SignUpController::SignUpController(SignUpView *view, std::shared_ptr<SignUpModel> model, QObject *parent)
@@ -15,6 +14,7 @@ SignUpController::SignUpController(SignUpView *view, std::shared_ptr<SignUpModel
         "password12345", "abc123abc123", "mysecurelogin"
     });
 
+    // Connect view signals
     connect(view, &SignUpView::signUpRequested, this, &SignUpController::onSignUpClicked);
     
     // Connect model signals
@@ -63,11 +63,13 @@ void SignUpController::onSignUpClicked(const QString &username, const QString &p
 
 void SignUpController::handleRegistrationSuccess() {
     view->clearFields();
+    emit registrationCompleted();
     emit registrationSuccessful();
 }
 
 void SignUpController::handleRegistrationError(const QString &error) {
     view->showError(error);
+    emit registrationFailed(error);
 }
 
 bool SignUpController::isUsernameValid(const QString &username, QString &errorMessage) {
@@ -121,6 +123,7 @@ bool SignUpController::isPasswordValid(const QString &password, QString &errorMe
     // Check for numbers
     if (!password.contains(QRegularExpression("[0-9]"))) {
         errorMessage = "Password must contain at least one number.";
+        return false;
     }
     // Check for common passwords
     if (isCommonPassword(password)) {
@@ -142,3 +145,4 @@ bool SignUpController::isCommonPassword(const QString &password) const {
     return commonPasswords.contains(password) || 
            commonPasswords.contains(password.toLower());
 }
+

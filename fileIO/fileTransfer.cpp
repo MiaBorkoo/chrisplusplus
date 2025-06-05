@@ -3,13 +3,8 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QThread>
-#include <QLoggingCategory>
 #include <QMetaType>
 #include <QtConcurrent>
-#include <iostream>
-#include <iomanip>
-
-Q_LOGGING_CATEGORY(fileTransfer, "fileTransfer") //uncomment if u dont want logging
 
 // Simple progress tracking wrapper
 class ProgressTrackingFile : public QFile {
@@ -98,7 +93,6 @@ void FileTransfer::uploadFileAsync(const QString& filePath,
     currentFilePath_ = filePath;
     currentEndpoint_ = uploadEndpoint;
     
-    qCDebug(fileTransfer) << "Starting async upload:" << filePath;
     performUploadAsync(filePath, uploadEndpoint);
 }
 
@@ -117,7 +111,6 @@ void FileTransfer::downloadFileAsync(const std::string& downloadEndpoint,
     currentEndpoint_ = downloadEndpoint;
     currentSavePath_ = savePath;
     
-    qCDebug(fileTransfer) << "Starting async download to:" << savePath;
     performDownloadAsync(downloadEndpoint, savePath);
 }
 
@@ -130,8 +123,6 @@ void FileTransfer::performUploadAsync(const QString& filePath, const std::string
         emit uploadCompleted(false, result);
         return;
     }
-    
-    qCDebug(fileTransfer) << "Upload attempt" << currentAttempt_ << "of" << maxRetries_;
     
     // Create request WITHOUT body (chunked streaming will handle it)
     HttpRequest request = createUploadRequest(endpoint, fileInfo.fileName(), fileInfo.size());
@@ -164,7 +155,6 @@ void FileTransfer::performUploadAsync(const QString& filePath, const std::string
                     result.success = true;
                     result.bytesTransferred = QFileInfo(filePath).size();
                     result.serverResponse = QString::fromStdString(response.body);
-                    qCDebug(fileTransfer) << "Upload successful:" << result.bytesTransferred << "bytes";
                     emit self->uploadCompleted(true, result);
                 } else {
                     result.errorMessage = self->cancelRequested_ ? 
@@ -174,7 +164,6 @@ void FileTransfer::performUploadAsync(const QString& filePath, const std::string
                     // Retry logic
                     if (self->currentAttempt_ < self->maxRetries_ && !self->cancelRequested_) {
                         self->currentAttempt_++;
-                        qCWarning(fileTransfer) << "Upload failed, retrying...";
                         disconnect(self->retryTimer_, nullptr, nullptr, nullptr);
                         connect(self->retryTimer_, &QTimer::timeout, self.get(), &FileTransfer::retryUpload);
                         self->retryTimer_->start(self->currentAttempt_ * 1000);
@@ -189,7 +178,6 @@ void FileTransfer::performUploadAsync(const QString& filePath, const std::string
             QMetaObject::invokeMethod(qApp, [self, e]() {
                 if (self->currentAttempt_ < self->maxRetries_ && !self->cancelRequested_) {
                     self->currentAttempt_++;
-                    qCWarning(fileTransfer) << "Upload error, retrying:" << e.what();
                     disconnect(self->retryTimer_, nullptr, nullptr, nullptr);
                     connect(self->retryTimer_, &QTimer::timeout, self.get(), &FileTransfer::retryUpload);
                     self->retryTimer_->start(self->currentAttempt_ * 1000);
@@ -211,69 +199,77 @@ void FileTransfer::performDownloadAsync(const std::string& endpoint, const QStri
         saveDir.mkpath(".");
     }
     
-    qCDebug(fileTransfer) << "Download attempt" << currentAttempt_ << "of" << maxRetries_;
-    
     // Create request
     HttpRequest request = createDownloadRequest(endpoint);
     
-    // ASYNC: Use sendAsync instead of blocking call  
-    httpClient_->sendAsync(request,
-        // Success callback
-        [this, savePath](const HttpResponse& response) {
-            TransferResult result;
-            if (response.statusCode == 200 && !cancelRequested_) {
-                // Write response to file
-                QFile file(savePath);
-                if (file.open(QIODevice::WriteOnly)) {
-                    file.write(response.body.c_str(), response.body.size());
-                    result.success = true;
-                    result.bytesTransferred = file.size();
-                    qCDebug(fileTransfer) << "Download successful:" << result.bytesTransferred << "bytes";
-                    emit downloadCompleted(true, result);
-                } else {
-                    result.errorMessage = "Cannot create file: " + file.errorString();
-                    qCCritical(fileTransfer) << result.errorMessage;
-                    emit downloadCompleted(false, result);
-                }
-            } else {
-                result.errorMessage = cancelRequested_ ? 
-                    QString("Download cancelled") : 
-                    extractServerError(response);
-                
-                // Retry or fail
-                if (currentAttempt_ < maxRetries_ && !cancelRequested_) {
-                    currentAttempt_++;
-                    qCWarning(fileTransfer) << "Download failed, retrying in" << currentAttempt_ << "seconds...";
-                    
-                    // FIX: Proper retry timer setup
-                    disconnect(retryTimer_, nullptr, nullptr, nullptr);
-                    connect(retryTimer_, &QTimer::timeout, this, &FileTransfer::retryDownload);
-                    retryTimer_->start(currentAttempt_ * 1000);
-                } else {
-                    qCCritical(fileTransfer) << "Download failed after" << maxRetries_ << "attempts";
-                    QFile::remove(savePath);
-                    emit downloadCompleted(false, result);
-                }
+    // Use QtConcurrent for proper async streaming (like upload does)
+    auto self = shared_from_this();
+    auto future = QtConcurrent::run([self, request, savePath, endpoint]() {
+        try {
+            // Create output file with progress tracking
+            QFile file(savePath);
+            if (!file.open(QIODevice::WriteOnly)) {
+                QMetaObject::invokeMethod(qApp, [self, savePath]() {
+                    TransferResult result;
+                    result.errorMessage = "Cannot create file: " + savePath;
+                    emit self->downloadCompleted(false, result);
+                }, Qt::QueuedConnection);
+                return;
             }
-        },
-        // Error callback
-        [this, savePath](const QString& error) {
-            if (currentAttempt_ < maxRetries_ && !cancelRequested_) {
-                currentAttempt_++;
-                qCWarning(fileTransfer) << "Download error, retrying in" << currentAttempt_ << "seconds:" << error;
-                
-                // FIX: Proper retry timer setup
-                disconnect(retryTimer_, nullptr, nullptr, nullptr);
-                connect(retryTimer_, &QTimer::timeout, this, &FileTransfer::retryDownload);
-                retryTimer_->start(currentAttempt_ * 1000);
-            } else {
+            
+            // Use STREAMING download (not buffered sendAsync)
+            bool success = self->httpClient_->downloadToStreamWithProgress(request, file,
+                [self](qint64 downloaded, qint64 total) -> bool {
+                    emit self->progressUpdated(downloaded, total);
+                    return !self->cancelRequested_;
+                });
+            qint64 bytesDownloaded = file.size();
+            file.close();
+            
+            // Back to GUI thread with result
+            QMetaObject::invokeMethod(qApp, [self, success, bytesDownloaded, savePath]() {
                 TransferResult result;
-                result.errorMessage = "Download failed after " + QString::number(maxRetries_) + " attempts: " + error;
-                qCCritical(fileTransfer) << result.errorMessage;
-                QFile::remove(savePath);
-                emit downloadCompleted(false, result);
-            }
-        });
+                if (success && !self->cancelRequested_) {
+                    result.success = true;
+                    result.bytesTransferred = bytesDownloaded;
+                    emit self->downloadCompleted(true, result);
+                } else {
+                    result.errorMessage = self->cancelRequested_ ? 
+                        QString("Download cancelled") : 
+                        QString("Download failed - server error or connection issue");
+                    
+                    // Retry logic
+                    if (self->currentAttempt_ < self->maxRetries_ && !self->cancelRequested_) {
+                        self->currentAttempt_++;
+                        
+                        disconnect(self->retryTimer_, nullptr, nullptr, nullptr);
+                        connect(self->retryTimer_, &QTimer::timeout, self.get(), &FileTransfer::retryDownload);
+                        self->retryTimer_->start(self->currentAttempt_ * 1000);
+                    } else {
+                        QFile::remove(savePath);
+                        emit self->downloadCompleted(false, result);
+                    }
+                }
+            }, Qt::QueuedConnection);
+            
+        } catch (const std::exception& e) {
+            // Back to GUI thread for error
+            QMetaObject::invokeMethod(qApp, [self, e, savePath]() {
+                if (self->currentAttempt_ < self->maxRetries_ && !self->cancelRequested_) {
+                    self->currentAttempt_++;
+                    
+                    disconnect(self->retryTimer_, nullptr, nullptr, nullptr);
+                    connect(self->retryTimer_, &QTimer::timeout, self.get(), &FileTransfer::retryDownload);
+                    self->retryTimer_->start(self->currentAttempt_ * 1000);
+                } else {
+                    TransferResult result;
+                    result.errorMessage = "Download failed after " + QString::number(self->maxRetries_) + " attempts: " + QString::fromStdString(e.what());
+                    QFile::remove(savePath);
+                    emit self->downloadCompleted(false, result);
+                }
+            }, Qt::QueuedConnection);
+        }
+    });
 }
 
 void FileTransfer::retryUpload() {
@@ -287,18 +283,15 @@ void FileTransfer::retryDownload() {
 void FileTransfer::cancelTransfer() {
     cancelRequested_ = true;
     retryTimer_->stop();
-    qCWarning(fileTransfer) << "Transfer cancelled by user";
 }
 
 void FileTransfer::setChunkSize(size_t size) {
     chunkSize_ = size;
-    qCDebug(fileTransfer) << "Chunk size set to:" << size;
 }
 
 void FileTransfer::setOptimizedForLargeFiles(bool optimize) {
     if (optimize) {
         setChunkSize(256 * 1024); // 256KB chunks
-        qCDebug(fileTransfer) << "Optimized for large files";
     }
 }
 
@@ -310,7 +303,6 @@ void FileTransfer::setOptimizedForNetwork(const std::string& connectionType) {
     } else if (connectionType == "gigabit") {
         setChunkSize(1024 * 1024); // 1MB
     }
-    qCDebug(fileTransfer) << "Optimized for" << connectionType.c_str() << "connection";
 }
 
 HttpRequest FileTransfer::createUploadRequest(const std::string& endpoint, 

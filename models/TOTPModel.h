@@ -47,6 +47,7 @@ private:
     TOTPState m_currentState;
     QString m_pendingUsername;
     QString m_pendingAuthHash;
+    QString m_pendingTOTPCode;  // Store verified TOTP code for login completion
     
     void setState(TOTPState newState);
 }; 
