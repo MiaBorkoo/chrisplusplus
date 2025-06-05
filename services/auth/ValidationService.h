@@ -10,7 +10,7 @@ public:
     bool validateUsername(const QString& username, QString& errorMessage) const;
     
     // Password validation
-    bool validatePassword(const QString& password, QString& errorMessage) const;
+    bool validatePassword(const QString& password, const QString& username, QString& errorMessage) const;
     bool validatePasswordMatch(const QString& password, const QString& confirmPassword, QString& errorMessage) const;
     bool isCommonPassword(const QString& password) const;
 
