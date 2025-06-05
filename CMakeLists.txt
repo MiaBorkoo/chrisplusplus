@@ -131,12 +131,12 @@ qt_add_executable(ChrisPlusPlus
     models/TOTPModel.cpp
     models/TOTPModel.h
     # Temporarily disabled - depend on FileService which doesn't exist yet
-    # models/FileModel.cpp
-    # models/FileModel.h
-    # models/SharedFileModel.cpp
-    # models/SharedFileModel.h
-    # models/AccessModel.cpp
-    # models/AccessModel.h
+    models/FileModel.cpp
+    models/FileModel.h
+    models/SharedFileModel.cpp
+    models/SharedFileModel.h
+    models/AccessModel.cpp
+    models/AccessModel.h
     models/SideNavTabs.h
     
     # Services
@@ -148,6 +148,8 @@ qt_add_executable(ChrisPlusPlus
     services/auth/ValidationService.h
     services/auth/otp/TOTP.cpp
     services/auth/otp/TOTP.h
+    services/files/FileService.cpp
+    services/files/FileService.h
     
     # Network
     network/Client.cpp
@@ -180,6 +182,7 @@ target_include_directories(ChrisPlusPlus
         ${CMAKE_SOURCE_DIR}/controllers
         ${CMAKE_SOURCE_DIR}/services
         ${CMAKE_SOURCE_DIR}/services/auth
+        ${CMAKE_SOURCE_DIR}/services/files
         ${CMAKE_SOURCE_DIR}/network
         ${CMAKE_SOURCE_DIR}/sockets
         ${CMAKE_SOURCE_DIR}/httpC
