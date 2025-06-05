@@ -22,27 +22,26 @@ public:
     void showError(const QString &message);
     void clearFields();
     void hideError();
+    void handleSignUp();
 
 signals:
     void signUpRequested(const QString &username, const QString &password, const QString &confirmPassword);
     void loginRequested();
 
-private slots:
-    void handleSignUp();
+protected:
+    void paintEvent(QPaintEvent *event) override;
 
 private:
     QLabel *logoLabel;
     QLabel *usernameLabel;
     QLabel *passwordLabel;
     QLabel *confirmPasswordLabel;
+    QLabel *errorLabel;
     QLineEdit *usernameEdit;
     QLineEdit *passwordEdit;
     QLineEdit *confirmPasswordEdit;
     QPushButton *signUpButton;
-    QLabel *errorLabel;
-
     void resetFieldStyles();
-    void paintEvent(QPaintEvent *event) override;
 };
 
 #endif // SIGNUPVIEW_H

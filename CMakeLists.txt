@@ -138,6 +138,7 @@ target_link_libraries(ChrisPlusPlus
         Qt6::Core
         Qt6::Widgets
         Qt6::Network
+        Qt6::Concurrent
         file_transfer
         http_layer
         sockets
@@ -191,8 +192,16 @@ target_link_libraries(test_signup_connection
     Qt6::Core
     Qt6::Test
     Qt6::Widgets
+    Qt6::Network
+    Qt6::Concurrent
     OpenSSL::SSL
     OpenSSL::Crypto
+    crypto-lib
+    file_transfer
+    http_layer
+    sockets
+    ${QRENCODE_LIBRARIES}
+    nlohmann_json::nlohmann_json
 )
 
 # Other test executables
@@ -229,6 +238,7 @@ target_link_libraries(test_file_connection PRIVATE
     Qt6::Test
     Qt6::Widgets
     Qt6::Network
+    Qt6::Concurrent
     OpenSSL::SSL
     OpenSSL::Crypto
     crypto-lib
@@ -243,6 +253,7 @@ target_link_libraries(test_login_connection PRIVATE
     Qt6::Test
     Qt6::Widgets
     Qt6::Network
+    Qt6::Concurrent
     OpenSSL::SSL
     OpenSSL::Crypto
     crypto-lib

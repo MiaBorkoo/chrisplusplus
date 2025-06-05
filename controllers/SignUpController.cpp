@@ -1,6 +1,7 @@
 #include "SignUpController.h"
 #include <QRegularExpression>
 #include <QDebug>
+#include "../services/auth/ValidationService.h"
 
 SignUpController::SignUpController(SignUpView *view, std::shared_ptr<SignUpModel> model, QObject *parent)
     : QObject(parent), view(view), m_model(model)
@@ -51,6 +52,7 @@ void SignUpController::onSignUpClicked(const QString &username, const QString &p
 
     // Forward registration request to model
     m_model->registerUser(username, password, confirmPassword);
+    view->clearFields();  // Clear fields after submitting
 }
 
 void SignUpController::handleRegistrationSuccess() {

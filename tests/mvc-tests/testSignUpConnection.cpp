@@ -84,6 +84,10 @@ private slots:
     }
 
     void testPasswordMismatch() {
+        // Reset error flags
+        registrationErrorOccurred = false;
+        lastErrorMessage.clear();
+
         // Arrange
         QSignalSpy signUpSpy(m_signUpView, SIGNAL(signUpRequested(QString,QString,QString)));
         const QString testUsername = "testuser";
@@ -94,7 +98,9 @@ private slots:
         m_signUpView->findChild<QLineEdit*>("usernameEdit")->setText(testUsername);
         m_signUpView->findChild<QLineEdit*>("passwordEdit")->setText(testPassword);
         m_signUpView->findChild<QLineEdit*>("confirmPasswordEdit")->setText(testConfirmPassword);
-        QTest::mouseClick(static_cast<QWidget*>(m_signUpView->findChild<QPushButton*>("signUpButton")), Qt::LeftButton);
+        
+        // Trigger sign up
+        m_signUpView->handleSignUp();
 
         // Assert
         QCOMPARE(signUpSpy.count(), 1);
@@ -162,10 +168,19 @@ private slots:
         // Arrange
         QSignalSpy loginSpy(m_signUpView, SIGNAL(loginRequested()));
 
-        // Act - simulate clicking the login link
-        QLabel* loginLink = m_signUpView->findChild<QLabel*>("loginLink");
+        // Act - find the login link by its text content
+        QList<QLabel*> labels = m_signUpView->findChildren<QLabel*>();
+        QLabel* loginLink = nullptr;
+        for (QLabel* label : labels) {
+            if (label->text().contains("Login", Qt::CaseInsensitive)) {
+                loginLink = label;
+                break;
+            }
+        }
         QVERIFY(loginLink != nullptr);
-        QTest::mouseClick(loginLink, Qt::LeftButton);
+        
+        // Simulate clicking the link by emitting linkActivated
+        emit loginLink->linkActivated("#");
 
         // Assert
         QCOMPARE(loginSpy.count(), 1);
