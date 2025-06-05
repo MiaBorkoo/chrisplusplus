@@ -5,6 +5,7 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QDir>
+#include <iostream>
 
 FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileTable, std::shared_ptr<FileModel> fileModel, QObject *parent)
     : QObject(parent), m_searchBar(searchBar), m_fileTable(fileTable), m_view(nullptr), m_fileModel(fileModel) {
@@ -71,8 +72,8 @@ FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileT
     connect(m_searchBar, &QLineEdit::textChanged, this, &FileDashController::handleSearch);
     connect(m_fileTable, &QTableWidget::cellClicked, this, &FileDashController::handleFileSelection);
 
-    // Initial population
-    m_fileModel->listFiles();
+    // Don't call initial population here - wait for authentication
+    // m_fileModel->listFiles();
 }
 
 void FileDashController::handleSearch(const QString &text) {
@@ -120,5 +121,20 @@ void FileDashController::repopulateTable() {
         if (m_view) {
             m_view->addFileRow(file.name, file.size, file.date);
         }
+    }
+}
+
+void FileDashController::setFileService(std::shared_ptr<FileService> fileService)
+{
+    // This should be called after login with properly configured FileService
+    std::cout << "FileDashController::setFileService called!" << std::endl;
+    
+    // Now trigger initial file listing
+    if (m_fileModel) {
+        std::cout << "Calling m_fileModel->listFiles()..." << std::endl;
+        m_fileModel->listFiles();
+        std::cout << "m_fileModel->listFiles() completed" << std::endl;
+    } else {
+        std::cout << "ERROR: m_fileModel is null!" << std::endl;
     }
 }

@@ -50,7 +50,7 @@ void SharedFileModel::handleDownloadComplete(bool success, const QString& fileNa
     emit fileDownloaded(success, fileName);
 }
 
-void SharedFileModel::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
+void SharedFileModel::handleDownloadProgress(const QString& fileName, qint64 bytesReceived, qint64 bytesTotal) {
     emit downloadProgress(bytesReceived, bytesTotal);
 }
 

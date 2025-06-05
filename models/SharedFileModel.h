@@ -28,7 +28,7 @@ signals:
 private slots:
     void handleSharedFileListReceived(const QList<FileInfo>& files, int totalFiles, int currentPage, int totalPages);
     void handleDownloadComplete(bool success, const QString& fileName);
-    void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void handleDownloadProgress(const QString& fileName, qint64 bytesReceived, qint64 bytesTotal);
     void handleError(const QString& error);
 
 private:

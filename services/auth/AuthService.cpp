@@ -324,14 +324,20 @@ void AuthService::handleLoginResponse(int status, const QJsonObject& data) {
     const bool success = (status == 200 && data.contains("access_token"));
     const QString token = data.value("access_token").toString();
     
-    emit loginCompleted(success, token);
     if (success) {
+        // FIRST: Store the token
         m_sessionToken = token;
         qDebug() << "Login successful! Token:" << token;
+        
+        // SECOND: Emit signal (now sessionToken() will return the correct value)
+        emit loginCompleted(success, token);
     } else {
         QString errorMsg = data.value("error").toString("Login failed. Please try again.");
         qDebug() << "Login failed with error:" << errorMsg;
         reportError(errorMsg);
+        
+        // Emit failure signal
+        emit loginCompleted(success, token);
     }
 }
 

@@ -45,6 +45,7 @@ public:
 
     // Configure the transfer client
     void setServer(const std::string& host, const std::string& port = "443");
+    void setHttpClient(std::shared_ptr<HttpClient> httpClient);
     void setAuthToken(const QString& token);
     
     // File type validation

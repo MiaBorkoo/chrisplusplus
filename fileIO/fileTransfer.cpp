@@ -53,6 +53,10 @@ void FileTransfer::setServer(const std::string& host, const std::string& port) {
     httpClient_ = std::make_shared<HttpClient>(sslContext_, serverHost_, serverPort_);
 }
 
+void FileTransfer::setHttpClient(std::shared_ptr<HttpClient> httpClient) {
+    httpClient_ = httpClient;
+}
+
 void FileTransfer::setAuthToken(const QString& token) {
     authToken_ = token;
 }

@@ -25,6 +25,7 @@ public:
 
     explicit FileDashController(QLineEdit *searchBar, QTableWidget *fileTable, std::shared_ptr<FileModel> fileModel, QObject *parent = nullptr);
     void repopulateTable();
+    void setFileService(std::shared_ptr<FileService> fileService);
 
 signals:
     void searchRequested(const QString &text);

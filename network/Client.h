@@ -19,6 +19,9 @@ class Client : public QObject {
 public:
     explicit Client(const QString& baseUrl, QObject* parent = nullptr);
     
+    // Authentication
+    void setAuthToken(const QString& token);
+    
     // Synchronous requests
     void sendRequest(const QString& endpoint, const QString& method, const QJsonObject& data = {});
     
@@ -41,4 +44,5 @@ private:
     std::unique_ptr<SSLContext> sslContext_;
     std::unique_ptr<HttpClient> httpClient_;
     QString baseUrl_;
+    QString authToken_;  // Store auth token for secure requests
 }; 

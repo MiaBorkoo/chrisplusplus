@@ -17,6 +17,7 @@
 #include "services/files/FileService.h"
 #include "services/auth/AuthService.h"
 #include "network/Client.h"
+#include "sockets/SSLContext.h"
 #include <memory>
 
 class MainWindow : public QMainWindow
@@ -43,6 +44,7 @@ private:
     AccountSection* m_accountSection;
     AccountController* m_accountController;
     std::shared_ptr<Client> m_client;
+    std::shared_ptr<SSLContext> m_sslContext;
     std::shared_ptr<AuthService> m_authService;
     std::shared_ptr<FileService> m_fileService;
     std::shared_ptr<FileModel> m_fileModel;

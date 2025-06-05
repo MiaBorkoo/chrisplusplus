@@ -10,8 +10,15 @@
 HttpClient::HttpClient(SSLContext& ctx,
                        const std::string& host,
                        const std::string& port)
-  : ctx_(ctx), host_(host), port_(port)
-{}
+  : ctx_(ctx), host_(host), port_(port) {
+    std::cout << "===== HttpClient CONSTRUCTOR CALLED =====" << std::endl;
+    std::cout << "Host: " << host << ", Port: " << port << std::endl;
+    std::cout << "Call stack trace (limited info):" << std::endl;
+    // Simple stack trace indicator
+    void* stack[10];
+    std::cout << "Stack pointer: " << stack << std::endl;
+    std::cout << "==========================================" << std::endl;
+}
 
 //Blocking synchronous HTTP request
 HttpResponse HttpClient::sendRequest(const HttpRequest& req) {

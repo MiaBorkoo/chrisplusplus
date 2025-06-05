@@ -38,8 +38,8 @@ private slots:
     void handleFileListReceived(const QList<FileInfo>& files, int totalFiles, int currentPage, int totalPages);
     
     // Progress handlers
-    void handleUploadProgress(qint64 bytesSent, qint64 bytesTotal);
-    void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void handleUploadProgress(const QString& fileName, qint64 bytesSent, qint64 bytesTotal);
+    void handleDownloadProgress(const QString& fileName, qint64 bytesReceived, qint64 bytesTotal);
     
     // Error handler
     void handleError(const QString& error);

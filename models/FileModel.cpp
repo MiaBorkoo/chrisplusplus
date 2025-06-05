@@ -1,4 +1,5 @@
 #include "FileModel.h"
+#include <iostream>
 
 FileModel::FileModel(std::shared_ptr<FileService> fileService, QObject* parent)
     : QObject(parent), m_fileService(fileService)
@@ -36,7 +37,9 @@ void FileModel::deleteFile(const QString& fileName) {
 }
 
 void FileModel::listFiles(int page, int pageSize) {
+    std::cout << "FileModel::listFiles called with page=" << page << ", pageSize=" << pageSize << std::endl;
     m_fileService->listFiles(page, pageSize);
+    std::cout << "FileModel::listFiles - called m_fileService->listFiles()" << std::endl;
 }
 
 // File operation handlers
@@ -57,11 +60,11 @@ void FileModel::handleFileListReceived(const QList<FileInfo>& files, int totalFi
 }
 
 // Progress handlers
-void FileModel::handleUploadProgress(qint64 bytesSent, qint64 bytesTotal) {
+void FileModel::handleUploadProgress(const QString& fileName, qint64 bytesSent, qint64 bytesTotal) {
     emit uploadProgress(bytesSent, bytesTotal);
 }
 
-void FileModel::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
+void FileModel::handleDownloadProgress(const QString& fileName, qint64 bytesReceived, qint64 bytesTotal) {
     emit downloadProgress(bytesReceived, bytesTotal);
 }
 

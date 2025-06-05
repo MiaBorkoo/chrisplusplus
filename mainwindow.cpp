@@ -7,11 +7,14 @@
 #include "views/AccountSection.h"
 #include "controllers/AccountController.h"
 #include "utils/Config.h"
+#include "sockets/SSLContext.h"
 #include <QScreen>
 #include <QApplication>
 #include <QStackedWidget>
 #include <QMessageBox>
 #include <QFile>
+#include <QUrl>
+#include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 {
@@ -45,9 +48,10 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     m_signUpView = new SignUpView(this);
     m_signUpController = new SignUpController(m_signUpView, m_signUpModel, this);
 
-    // Initialize network client and services using Config
-    auto client = std::make_shared<Client>(Config::getInstance().getServerUrl());
-    m_fileService = std::make_shared<FileService>(client);
+    // Initialize file service with shared Client (same as AuthService)
+    m_fileService = std::make_shared<FileService>(m_client);
+    // Initialize FileTransfer with SSLContext for secure file operations
+    m_fileService->initializeFileTransfer(m_sslContext);
     m_fileModel = std::make_shared<FileModel>(m_fileService);
 
     m_filesDashView = new FilesDashView(this);
@@ -89,17 +93,25 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
     //switches to files dash view after successful login
     connect(m_loginController, &LoginController::loginSuccessful, this, [this]() {
+        // FIRST: Set auth token for file operations BEFORE any UI changes
+        QString token = m_authService->sessionToken();
+        if (!token.isEmpty()) {
+            qDebug() << "Setting FileService auth token after login success";
+            m_fileService->setAuthToken(token);
+        } else {
+            qDebug() << "ERROR: No session token available after login!";
+        }
+        
+        // SECOND: Now safe to switch to file view and trigger requests
         m_stack->setCurrentWidget(m_filesDashView);
         m_sideNavController->setActiveTab(SideNavTab::OwnedFiles);
+        
+        // THIRD: Trigger initial file listing (now with authentication)
+        m_fileDashController->setFileService(m_fileService);
     });
     
     connect(m_filesDashView, &FilesDashView::fileOpenRequested, this, [this](const QString &fileName) {
         QMessageBox::information(this, "Open File", "You opened: " + fileName);
-    });
-
-    // Connect upload signal
-    connect(m_filesDashView, &FilesDashView::uploadRequested, this, []() {
-        QMessageBox::information(nullptr, "Upload", "Would open file dialog to upload a file.\nWaiting for model.");
     });
 
     connect(m_sharedDashController, &SharedDashController::downloadRequested, this, [this](const QString &fileName) {
@@ -141,6 +153,9 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
 void MainWindow::initializeServices()
 {
+    // Initialize SSL context for secure connections
+    m_sslContext = std::make_shared<SSLContext>();
+    
     // Initialize network client and auth service using Config
     m_client = std::make_shared<Client>(Config::getInstance().getServerUrl());
     m_authService = std::make_shared<AuthService>(m_client);

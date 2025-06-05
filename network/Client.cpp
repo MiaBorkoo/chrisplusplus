@@ -29,6 +29,11 @@ Client::Client(const QString& baseUrl, QObject* parent)
     qDebug() << "Client initialized for:" << baseUrl;
 }
 
+void Client::setAuthToken(const QString& token) {
+    authToken_ = token;
+    qDebug() << "Client::setAuthToken called with token:" << token.left(20) + "...";
+}
+
 HttpRequest Client::buildRequest(const QString& endpoint,
                                 const QString& method,
                                 const QJsonObject& payload)
@@ -43,6 +48,14 @@ HttpRequest Client::buildRequest(const QString& endpoint,
     request.headers["User-Agent"] = "ChrisPlusPlus/1.0";
     request.headers["Content-Type"] = "application/json";
     request.headers["Accept"] = "application/json";
+    
+    // Add Authorization header if token is available
+    if (!authToken_.isEmpty()) {
+        request.headers["Authorization"] = ("Bearer " + authToken_).toStdString();
+        qDebug() << "Added Authorization header for" << endpoint << "with token:" << authToken_.left(20) + "...";
+    } else {
+        qDebug() << "No auth token available for" << endpoint;
+    }
 
     // Add JSON body for POST/PUT requests
     if (method.compare("POST", Qt::CaseInsensitive) == 0 ||
