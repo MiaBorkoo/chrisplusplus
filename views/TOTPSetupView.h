@@ -11,6 +11,8 @@ class QPushButton;
 class QVBoxLayout;
 class QHBoxLayout;
 
+class TOTPController; // Forward declaration
+
 class TOTPSetupView : public QWidget {
     Q_OBJECT
 
@@ -23,13 +25,10 @@ public:
     void clearError();
     void clearCode();
     QString getVerificationCode() const;
+    void setController(TOTPController *controller);
     
     // UI state management
     void setSetupInProgress(bool inProgress);
-
-signals:
-    void verificationCodeEntered(const QString &code);
-    void setupCancelled();
 
 private slots:
     void handleVerifyClicked();
@@ -51,8 +50,11 @@ private:
     QVBoxLayout *m_mainLayout;
     QHBoxLayout *m_buttonLayout;
     
+    // Controller reference
+    TOTPController *m_controller;
+    
     void setupUI();
-    void styleComponents();
+    void loadStyles();
     QPixmap convertBase64ToQRImage(const QString &base64Data);
 };
 

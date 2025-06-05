@@ -1,4 +1,5 @@
 #include "TOTPSetupView.h"
+#include "../controllers/TOTPController.h"
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
@@ -13,12 +14,13 @@
 #include <QRegularExpression>
 #include <QRegularExpressionValidator>
 #include <QDebug>
+#include <QFile>
 
 TOTPSetupView::TOTPSetupView(QWidget *parent)
-    : QWidget(parent)
+    : QWidget(parent), m_controller(nullptr)
 {
     setupUI();
-    styleComponents();
+    loadStyles();
 }
 
 void TOTPSetupView::setupUI() {
@@ -28,6 +30,7 @@ void TOTPSetupView::setupUI() {
     
     // Title
     m_titleLabel = new QLabel("Set Up Two-Factor Authentication");
+    m_titleLabel->setObjectName("totpSetupTitle");
     m_titleLabel->setAlignment(Qt::AlignCenter);
     
     // Instructions
@@ -36,19 +39,21 @@ void TOTPSetupView::setupUI() {
         "2. Scan the QR code below with your authenticator app\n"
         "3. Enter the 6-digit code from your app to complete setup"
     );
+    m_instructionLabel->setObjectName("totpSetupInstructions");
     m_instructionLabel->setWordWrap(true);
     m_instructionLabel->setAlignment(Qt::AlignLeft);
     
     // QR Code display
     m_stepLabel = new QLabel("Scan this QR code:");
     m_qrCodeLabel = new QLabel("QR Code will appear here...");
+    m_qrCodeLabel->setObjectName("totpQRCodeLabel");
     m_qrCodeLabel->setAlignment(Qt::AlignCenter);
     m_qrCodeLabel->setMinimumSize(250, 250);
-    m_qrCodeLabel->setStyleSheet("border: 1px solid #ccc; background-color: white;");
     
     // Code input
     QLabel *codeLabel = new QLabel("Enter 6-digit code:");
     m_codeInput = new QLineEdit();
+    m_codeInput->setObjectName("totpSetupCodeInput");
     m_codeInput->setPlaceholderText("000000");
     m_codeInput->setMaxLength(6);
     
@@ -60,7 +65,9 @@ void TOTPSetupView::setupUI() {
     // Buttons
     m_buttonLayout = new QHBoxLayout();
     m_cancelButton = new QPushButton("Cancel");
+    m_cancelButton->setObjectName("totpSetupCancelButton");
     m_verifyButton = new QPushButton("Verify & Complete Setup");
+    m_verifyButton->setObjectName("totpSetupVerifyButton");
     m_verifyButton->setEnabled(false); // Disabled until valid code entered
     
     m_buttonLayout->addWidget(m_cancelButton);
@@ -69,6 +76,7 @@ void TOTPSetupView::setupUI() {
     
     // Error label
     m_errorLabel = new QLabel();
+    m_errorLabel->setObjectName("totpErrorLabel");
     m_errorLabel->setVisible(false);
     
     // Add to main layout
@@ -88,68 +96,17 @@ void TOTPSetupView::setupUI() {
     connect(m_codeInput, &QLineEdit::textChanged, this, &TOTPSetupView::onCodeChanged);
 }
 
-void TOTPSetupView::styleComponents() {
-    // Title styling
-    QFont titleFont;
-    titleFont.setPointSize(18);
-    titleFont.setBold(true);
-    m_titleLabel->setFont(titleFont);
-    
-    // Instruction styling
-    QFont instructionFont;
-    instructionFont.setPointSize(11);
-    m_instructionLabel->setFont(instructionFont);
-    
-    // Code input styling
-    m_codeInput->setStyleSheet(
-        "QLineEdit {"
-        "    padding: 8px;"
-        "    font-size: 16px;"
-        "    font-family: monospace;"
-        "    letter-spacing: 2px;"
-        "    text-align: center;"
-        "    border: 2px solid #ddd;"
-        "    border-radius: 5px;"
-        "}"
-        "QLineEdit:focus {"
-        "    border-color: #4CAF50;"
-        "}"
-    );
-    
-    // Button styling
-    m_verifyButton->setStyleSheet(
-        "QPushButton {"
-        "    background-color: #4CAF50;"
-        "    color: white;"
-        "    padding: 10px 20px;"
-        "    border: none;"
-        "    border-radius: 5px;"
-        "    font-weight: bold;"
-        "}"
-        "QPushButton:hover {"
-        "    background-color: #45a049;"
-        "}"
-        "QPushButton:disabled {"
-        "    background-color: #cccccc;"
-        "    color: #666666;"
-        "}"
-    );
-    
-    m_cancelButton->setStyleSheet(
-        "QPushButton {"
-        "    background-color: #f44336;"
-        "    color: white;"
-        "    padding: 10px 20px;"
-        "    border: none;"
-        "    border-radius: 5px;"
-        "}"
-        "QPushButton:hover {"
-        "    background-color: #da190b;"
-        "}"
-    );
-    
-    // Error label styling
-    m_errorLabel->setStyleSheet("color: red; font-weight: bold;");
+void TOTPSetupView::loadStyles() {
+    // Load styles from CSS file
+    QFile styleFile(":/styles/styles.css");
+    if (styleFile.open(QIODevice::ReadOnly)) {
+        QString style = styleFile.readAll();
+        this->setStyleSheet(style);
+    }
+}
+
+void TOTPSetupView::setController(TOTPController *controller) {
+    m_controller = controller;
 }
 
 void TOTPSetupView::displayQRCode(const QString &qrCodeBase64) {
@@ -249,12 +206,17 @@ void TOTPSetupView::handleVerifyClicked() {
     // Clear any previous errors
     clearError();
     
-    qDebug() << "TOTPSetupView: Emitting verificationCodeEntered signal";
-    emit verificationCodeEntered(code);
+    // Call controller instead of emitting signal
+    if (m_controller) {
+        m_controller->verifyCode(code);
+    }
 }
 
 void TOTPSetupView::handleCancelClicked() {
-    emit setupCancelled();
+    // Call controller instead of emitting signal
+    if (m_controller) {
+        m_controller->cancelCodeEntry();
+    }
 }
 
 void TOTPSetupView::onCodeChanged() {

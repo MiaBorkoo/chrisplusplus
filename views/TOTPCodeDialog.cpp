@@ -1,4 +1,5 @@
 #include "TOTPCodeDialog.h"
+#include "../controllers/TOTPController.h"
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
@@ -8,16 +9,18 @@
 #include <QRegularExpression>
 #include <QRegularExpressionValidator>
 #include <QTimer>
+#include <QFile>
+#include <QApplication>
 
 TOTPCodeDialog::TOTPCodeDialog(QWidget *parent)
-    : QDialog(parent)
+    : QDialog(parent), m_controller(nullptr)
 {
     setWindowTitle("Two-Factor Authentication");
     setModal(true);
     setFixedSize(400, 200);
     
     setupUI();
-    styleComponents();
+    loadStyles();
 }
 
 void TOTPCodeDialog::setupUI() {
@@ -27,6 +30,7 @@ void TOTPCodeDialog::setupUI() {
     
     // Title
     m_titleLabel = new QLabel("Enter Authentication Code");
+    m_titleLabel->setObjectName("totpTitle");
     m_titleLabel->setAlignment(Qt::AlignCenter);
     
     // Instructions
@@ -36,6 +40,7 @@ void TOTPCodeDialog::setupUI() {
     
     // Code input
     m_codeInput = new QLineEdit();
+    m_codeInput->setObjectName("totpCodeInput");
     m_codeInput->setPlaceholderText("000000");
     m_codeInput->setMaxLength(6);
     m_codeInput->setAlignment(Qt::AlignCenter);
@@ -48,7 +53,9 @@ void TOTPCodeDialog::setupUI() {
     // Buttons
     m_buttonLayout = new QHBoxLayout();
     m_cancelButton = new QPushButton("Cancel");
+    m_cancelButton->setObjectName("totpCancelButton");
     m_verifyButton = new QPushButton("Verify");
+    m_verifyButton->setObjectName("totpVerifyButton");
     m_verifyButton->setEnabled(false); // Disabled until valid code entered
     m_verifyButton->setDefault(true);  // Make this the default button
     
@@ -58,6 +65,7 @@ void TOTPCodeDialog::setupUI() {
     
     // Error label
     m_errorLabel = new QLabel();
+    m_errorLabel->setObjectName("totpErrorLabel");
     m_errorLabel->setVisible(false);
     m_errorLabel->setAlignment(Qt::AlignCenter);
     
@@ -78,67 +86,17 @@ void TOTPCodeDialog::setupUI() {
     m_codeInput->setFocus();
 }
 
-void TOTPCodeDialog::styleComponents() {
-    // Title styling
-    QFont titleFont;
-    titleFont.setPointSize(14);
-    titleFont.setBold(true);
-    m_titleLabel->setFont(titleFont);
-    
-    // Code input styling - larger and centered
-    m_codeInput->setStyleSheet(
-        "QLineEdit {"
-        "    padding: 12px;"
-        "    font-size: 20px;"
-        "    font-family: monospace;"
-        "    letter-spacing: 4px;"
-        "    text-align: center;"
-        "    border: 2px solid #ddd;"
-        "    border-radius: 5px;"
-        "    background-color: #f9f9f9;"
-        "}"
-        "QLineEdit:focus {"
-        "    border-color: #4CAF50;"
-        "    background-color: white;"
-        "}"
-    );
-    
-    // Button styling
-    m_verifyButton->setStyleSheet(
-        "QPushButton {"
-        "    background-color: #4CAF50;"
-        "    color: white;"
-        "    padding: 8px 16px;"
-        "    border: none;"
-        "    border-radius: 4px;"
-        "    font-weight: bold;"
-        "    min-width: 80px;"
-        "}"
-        "QPushButton:hover {"
-        "    background-color: #45a049;"
-        "}"
-        "QPushButton:disabled {"
-        "    background-color: #cccccc;"
-        "    color: #666666;"
-        "}"
-    );
-    
-    m_cancelButton->setStyleSheet(
-        "QPushButton {"
-        "    background-color: #f44336;"
-        "    color: white;"
-        "    padding: 8px 16px;"
-        "    border: none;"
-        "    border-radius: 4px;"
-        "    min-width: 80px;"
-        "}"
-        "QPushButton:hover {"
-        "    background-color: #da190b;"
-        "}"
-    );
-    
-    // Error label styling
-    m_errorLabel->setStyleSheet("color: red; font-weight: bold;");
+void TOTPCodeDialog::loadStyles() {
+    // Load styles from CSS file
+    QFile styleFile(":/styles/styles.css");
+    if (styleFile.open(QIODevice::ReadOnly)) {
+        QString style = styleFile.readAll();
+        this->setStyleSheet(style);
+    }
+}
+
+void TOTPCodeDialog::setController(TOTPController *controller) {
+    m_controller = controller;
 }
 
 QString TOTPCodeDialog::getCode() const {
@@ -180,11 +138,18 @@ void TOTPCodeDialog::handleVerifyClicked() {
         return;
     }
     
-    emit codeEntered(code);
+    // Call controller instead of emitting signal
+    if (m_controller) {
+        m_controller->verifyCode(code);
+    }
 }
 
 void TOTPCodeDialog::handleCancelClicked() {
-    reject(); // Close dialog with rejected result
+    // Call controller instead of just rejecting
+    if (m_controller) {
+        m_controller->cancelCodeEntry();
+    }
+    reject(); // Still close dialog
 }
 
 void TOTPCodeDialog::onCodeChanged() {

@@ -15,11 +15,14 @@ class TOTPController : public QObject
 
 public:
     explicit TOTPController(QObject *parent = nullptr);
+    ~TOTPController();
     void setModel(TOTPModel *model);
 
 public slots:
     void showSetupDialog(const QString &qrCodeBase64);
     void showCodeDialog();
+    void verifyCode(const QString &code);
+    void cancelCodeEntry();
 
 private slots:
     void handleSetupCode(const QString &code);

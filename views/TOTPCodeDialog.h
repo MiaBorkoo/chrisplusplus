@@ -10,6 +10,8 @@ class QPushButton;
 class QVBoxLayout;
 class QHBoxLayout;
 
+class TOTPController; // Forward declaration
+
 class TOTPCodeDialog : public QDialog {
     Q_OBJECT
 
@@ -22,9 +24,7 @@ public:
     void clearError();
     void clearCode();
     void setVerificationInProgress(bool inProgress);
-
-signals:
-    void codeEntered(const QString &code);
+    void setController(TOTPController *controller);
 
 private slots:
     void handleVerifyClicked();
@@ -44,8 +44,11 @@ private:
     QVBoxLayout *m_mainLayout;
     QHBoxLayout *m_buttonLayout;
     
+    // Controller reference
+    TOTPController *m_controller;
+    
     void setupUI();
-    void styleComponents();
+    void loadStyles();
 };
 
 #endif // TOTPCODEDIALOG_H 

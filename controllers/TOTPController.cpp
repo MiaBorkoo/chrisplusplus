@@ -10,6 +10,20 @@ TOTPController::TOTPController(QObject *parent)
 {
 }
 
+TOTPController::~TOTPController()
+{
+    // Clean up dialog objects
+    if (m_setupView) {
+        delete m_setupView;
+        m_setupView = nullptr;
+    }
+    
+    if (m_codeDialog) {
+        delete m_codeDialog;
+        m_codeDialog = nullptr;
+    }
+}
+
 void TOTPController::setModel(TOTPModel *model)
 {
     m_model = model;
@@ -41,16 +55,12 @@ void TOTPController::showSetupDialog(const QString &qrCodeBase64)
     
     // Create simple dialog without complex parent handling
     m_setupView = new TOTPSetupView();
+    m_setupView->setController(this);
     m_setupView->setWindowTitle("Set Up Two-Factor Authentication");
     m_setupView->resize(500, 600);
     
     // Make it a normal window, not modal (for now)
     m_setupView->setWindowFlags(Qt::Window | Qt::WindowStaysOnTopHint);
-    
-    connect(m_setupView, &TOTPSetupView::verificationCodeEntered,
-            this, &TOTPController::handleSetupCode);
-    connect(m_setupView, &TOTPSetupView::setupCancelled,
-            this, &TOTPController::handleSetupCancelled);
     
     qDebug() << "TOTPController: Displaying QR code and showing dialog";
     m_setupView->displayQRCode(qrCodeBase64);
@@ -65,8 +75,7 @@ void TOTPController::showCodeDialog()
 {
     if (!m_codeDialog) {
         m_codeDialog = new TOTPCodeDialog();
-        connect(m_codeDialog, &TOTPCodeDialog::codeEntered,
-                this, &TOTPController::handleLoginCode);
+        m_codeDialog->setController(this);
     }
     
     m_codeDialog->clearCode();
@@ -122,12 +131,15 @@ void TOTPController::handleVerificationSuccess()
     // Close setup dialog if open
     if (m_setupView) {
         m_setupView->close();
+        delete m_setupView;
         m_setupView = nullptr;
     }
     
     // Close code dialog if open
     if (m_codeDialog) {
         m_codeDialog->close();
+        delete m_codeDialog;
+        m_codeDialog = nullptr;
     }
     
     qDebug() << "TOTPController: All dialogs closed after verification success";
@@ -140,5 +152,27 @@ void TOTPController::handleVerificationError(const QString &error)
     if (m_setupView) {
         m_setupView->showError(error);
         m_setupView->setSetupInProgress(false);
+    }
+}
+
+void TOTPController::verifyCode(const QString &code)
+{
+    // This method handles code verification for both setup and login
+    if (m_setupView && m_setupView->isVisible()) {
+        // We're in setup mode
+        handleSetupCode(code);
+    } else {
+        // We're in login mode
+        handleLoginCode(code);
+    }
+}
+
+void TOTPController::cancelCodeEntry()
+{
+    // Handle cancellation based on which dialog is active
+    if (m_setupView && m_setupView->isVisible()) {
+        handleSetupCancelled();
+    } else {
+        handleCodeCancelled();
     }
 } 
