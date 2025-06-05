@@ -1,11 +1,9 @@
-#ifndef SIGNUPCONTROLLER_H
-#define SIGNUPCONTROLLER_H
+#pragma once
 
 #include <QObject>
 #include <QString>
 #include <QSet>
 #include <QRegularExpression>
-#include <memory>
 #include "../views/SignUpView.h"
 #include "../models/SignUpModel.h"
 #include <memory>
@@ -38,5 +36,3 @@ private:
 signals:
     void registrationSuccessful();
 };
-
-#endif // SIGNUPCONTROLLER_H

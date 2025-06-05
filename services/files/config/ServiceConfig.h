@@ -6,18 +6,18 @@ namespace ServiceConfig {
     // Server configuration constants
     namespace Server {
         // Default development server settings
-        constexpr const char* DEFAULT_HOST = "localhost";
-        constexpr const char* DEFAULT_PORT = "8000";
-        constexpr const char* DEFAULT_URL = "https://localhost:8000";
+        constexpr const char* DEFAULT_HOST = "chrisplusplus.gobbler.info";
+        constexpr const char* DEFAULT_PORT = "443";
+        constexpr const char* DEFAULT_URL = "https://chrisplusplus.gobbler.info";
         
         // Default SSL ports
         constexpr const char* DEFAULT_HTTPS_PORT = "443";
         constexpr const char* DEFAULT_HTTP_PORT = "80";
         
         // Production server settings (to be overridden by environment/config)
-        constexpr const char* PRODUCTION_HOST = "api.chrisplusplus.com";
+        constexpr const char* PRODUCTION_HOST = "chrisplusplus.gobbler.info";
         constexpr const char* PRODUCTION_PORT = "443";
-        constexpr const char* PRODUCTION_URL = "https://api.chrisplusplus.com";
+        constexpr const char* PRODUCTION_URL = "https://chrisplusplus.gobbler.info";
     }
     
     // Client configuration

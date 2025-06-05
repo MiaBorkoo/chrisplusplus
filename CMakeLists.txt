@@ -271,8 +271,12 @@ add_executable(test_file_connection
 add_executable(test_login_connection
     tests/mvc-tests/testLoginConnection.cpp
     models/LoginModel.cpp
+    models/TOTPModel.cpp
     controllers/LoginController.cpp
+    controllers/TOTPController.cpp
     views/LoginView.cpp
+    views/TOTPSetupView.cpp
+    views/TOTPCodeDialog.cpp
     services/auth/AuthService.cpp
     services/ApiService.cpp
     services/auth/otp/TOTP.cpp

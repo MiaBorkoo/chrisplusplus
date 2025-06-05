@@ -22,28 +22,8 @@ SignUpController::SignUpController(SignUpView *view, std::shared_ptr<SignUpModel
     connect(m_model.get(), &SignUpModel::registrationError, this, &SignUpController::handleRegistrationError);
 }
 
-void SignUpController::setAuthService(std::shared_ptr<AuthService> authService)
-{
-    m_authService = authService;
-    
-    // Initialize model with AuthService
-    m_model = std::make_unique<SignUpModel>(authService, this);
-    
-    // Connect model signals
-    connect(m_model.get(), &SignUpModel::registrationSuccess,
-            this, &SignUpController::handleRegistrationSuccess);
-    connect(m_model.get(), &SignUpModel::registrationError,
-            this, &SignUpController::handleRegistrationError);
-}
-
 void SignUpController::onSignUpClicked(const QString &username, const QString &password, const QString &confirmPassword) {
     view->hideError();
-
-    if (!m_model) {
-        qDebug() << "No model set for SignUpController - call setAuthService() first";
-        view->showError("Authentication service not initialized");
-        return;
-    }
 
     // Validate username
     QString usernameError;
