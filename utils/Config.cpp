@@ -24,7 +24,7 @@ void Config::saveConfig() {
 }
 
 void Config::setDefaults() {
-    m_serverUrl = "http://localhost:8000";
-    m_serverHost = "localhost";
-    m_serverPort = "8000";
+    m_serverUrl = "https://chrisplusplus.gobbler.info";
+    m_serverHost = "chrisplusplus.gobbler.info";
+    m_serverPort = "443";
 } 
