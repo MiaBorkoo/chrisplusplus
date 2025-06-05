@@ -2,20 +2,33 @@
 #include <QRegularExpression>
 
 ValidationService::ValidationService() {
-    // Initialize common passwords
+    // Initialize common passwords with a more comprehensive list
     m_commonPasswords = QSet<QString>({
         "123456789012", "password1234", "qwertyuiop12",
         "iloveyou1234", "adminadmin12", "letmeinplease",
         "footballrules", "welcome12345", "monkeymonkey",
         "sunshine2020", "superman1234", "dragonfire12",
         "trustno1ever", "baseball1234", "ilovefootball",
-        "password12345", "abc123abc123", "mysecurelogin"
+        "password12345", "abc123abc123", "mysecurelogin",
+        // Add basic common passwords too
+        "password", "123456", "qwerty", "admin", "letmein",
+        "welcome", "monkey", "password1", "abc123", "football"
     });
 }
 
 bool ValidationService::validateUsername(const QString& username, QString& errorMessage) const {
-    if (username.length() < 3) {
-        errorMessage = "Username must be at least 3 characters long";
+    if (username.isEmpty()) {
+        errorMessage = "Username is required";
+        return false;
+    }
+    
+    if (username.length() < MIN_USERNAME_LENGTH) {
+        errorMessage = QString("Username must be at least %1 characters long").arg(MIN_USERNAME_LENGTH);
+        return false;
+    }
+    
+    if (username.length() > MAX_USERNAME_LENGTH) {
+        errorMessage = QString("Username cannot exceed %1 characters").arg(MAX_USERNAME_LENGTH);
         return false;
     }
     
@@ -29,11 +42,22 @@ bool ValidationService::validateUsername(const QString& username, QString& error
 }
 
 bool ValidationService::validatePassword(const QString& password, QString& errorMessage) const {
-    if (password.length() < 8) {
-        errorMessage = "Password must be at least 8 characters long";
+    if (password.isEmpty()) {
+        errorMessage = "Password is required";
         return false;
     }
     
+    if (password.length() < MIN_PASSWORD_LENGTH) {
+        errorMessage = QString("Password must be at least %1 characters long").arg(MIN_PASSWORD_LENGTH);
+        return false;
+    }
+    
+    if (password.length() > MAX_PASSWORD_LENGTH) {
+        errorMessage = QString("Password cannot exceed %1 characters").arg(MAX_PASSWORD_LENGTH);
+        return false;
+    }
+    
+    // Check for required character classes
     QRegularExpression hasUpper("[A-Z]");
     QRegularExpression hasLower("[a-z]");
     QRegularExpression hasNumber("[0-9]");
@@ -59,6 +83,13 @@ bool ValidationService::validatePassword(const QString& password, QString& error
         return false;
     }
     
+    // Check for repeating characters
+    QRegularExpression repeating("(.)\\1{2,}");
+    if (repeating.match(password).hasMatch()) {
+        errorMessage = "Password cannot contain repeating characters (e.g., 'aaa')";
+        return false;
+    }
+    
     if (isCommonPassword(password)) {
         errorMessage = "This password is too common. Please choose a more unique password";
         return false;
@@ -76,12 +107,6 @@ bool ValidationService::validatePasswordMatch(const QString& password, const QSt
 }
 
 bool ValidationService::isCommonPassword(const QString& password) const {
-    // This is a very basic implementation. In a real application,
-    // you would want to check against a proper list of common passwords
-    static const QStringList commonPasswords = {
-        "password", "123456", "qwerty", "admin", "letmein",
-        "welcome", "monkey", "password1", "abc123", "football"
-    };
-    
-    return commonPasswords.contains(password.toLower());
+    return m_commonPasswords.contains(password) || 
+           m_commonPasswords.contains(password.toLower());
 } 
