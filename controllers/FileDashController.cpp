@@ -3,6 +3,8 @@
 #include <QTableWidget>
 #include "../views/FilesDashView.h"
 #include <QMessageBox>
+#include <QFileDialog>
+#include <QDir>
 
 FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileTable, std::shared_ptr<FileModel> fileModel, QObject *parent)
     : QObject(parent), m_searchBar(searchBar), m_fileTable(fileTable), m_view(nullptr), m_fileModel(fileModel) {
@@ -11,15 +13,19 @@ FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileT
     if (m_view) {
         connect(m_view, &FilesDashView::deleteRequested, this, &FileDashController::onDeleteFileRequested);
         connect(m_view, &FilesDashView::uploadRequested, this, [this]() {
-            // TODO: Show file dialog and get file path
-            QString filePath = ""; // Get from dialog
+            QString filePath = QFileDialog::getOpenFileName(m_view,
+                tr("Select File to Upload"),
+                QDir::homePath(),
+                tr("All Files (*.*)"));
             if (!filePath.isEmpty()) {
                 m_fileModel->uploadFile(filePath);
             }
         });
         connect(m_view, &FilesDashView::downloadRequested, this, [this](const QString &fileName) {
-            // TODO: Show save dialog and get save path
-            QString savePath = ""; // Get from dialog
+            QString savePath = QFileDialog::getSaveFileName(m_view,
+                tr("Save File As"),
+                QDir::homePath() + "/" + fileName,
+                tr("All Files (*.*)"));
             if (!savePath.isEmpty()) {
                 m_fileModel->downloadFile(fileName, savePath);
             }

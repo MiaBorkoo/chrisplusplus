@@ -1,7 +1,15 @@
 #include "LoginController.h"
 #include <QMessageBox>
 
-LoginController::LoginController(QObject *parent) : QObject(parent), m_view(nullptr){}
+LoginController::LoginController(std::shared_ptr<LoginModel> model, QObject *parent) 
+    : QObject(parent), m_view(nullptr), m_model(model)
+{
+    // Connect model signals
+    connect(m_model.get(), &LoginModel::loginSuccess,
+            this, &LoginController::handleLoginSuccess);
+    connect(m_model.get(), &LoginModel::loginError,
+            this, &LoginController::handleLoginError);
+}
 
 void LoginController::setView(LoginView *view)
 {
@@ -24,8 +32,21 @@ void LoginController::handleLoginAttempt()
         return;
     }
 
-    //clears the fields
-    m_view->clearFields();
+    // Forward login request to model
+    m_model->login(username, password);
+}
 
+void LoginController::handleLoginSuccess()
+{
+    if (m_view) {
+        m_view->clearFields();
+    }
     emit loginSuccessful();
+}
+
+void LoginController::handleLoginError(const QString& error)
+{
+    if (m_view) {
+        m_view->showError(error);
+    }
 } 
