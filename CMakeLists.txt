@@ -257,6 +257,7 @@ target_include_directories(testTOTPSimple PRIVATE
 
 # Add library directories for qrencode on macOS
 if(APPLE)
+    target_link_directories(testMVCConnections PRIVATE /opt/homebrew/lib)
     target_link_directories(testTOTPSimple PRIVATE /opt/homebrew/lib)
 endif()
 
