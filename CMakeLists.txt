@@ -211,17 +211,21 @@ qt_add_executable(testMVCConnections
     models/AccessModel.cpp
     models/SharedFileModel.cpp
     models/LoginModel.cpp
+    models/TOTPModel.cpp
 
     
     controllers/AccountController.cpp
     controllers/FileDashController.cpp
     controllers/LoginController.cpp
+    controllers/TOTPController.cpp
 
     views/FilesDashView.cpp
     views/HeaderWidget.cpp
     views/SideNavWidget.cpp
     views/LoginView.cpp
     views/AccountSection.cpp
+    views/TOTPSetupView.cpp
+    views/TOTPCodeDialog.cpp
 
     services/files/FileService.cpp
     services/ApiService.cpp
@@ -245,6 +249,7 @@ target_link_libraries(testMVCConnections PRIVATE
     file_transfer
     http_layer
     sockets
+    tofu
     OpenSSL::SSL
     OpenSSL::Crypto
     crypto-lib
@@ -259,11 +264,17 @@ target_include_directories(testMVCConnections PRIVATE
     ${CMAKE_SOURCE_DIR}/services/auth
     ${CMAKE_SOURCE_DIR}/network
     ${CMAKE_SOURCE_DIR}/crypto
+    ${CMAKE_SOURCE_DIR}/tofu
     ${QRENCODE_INCLUDE_DIRS}
 )
 
 # Add test to CTest
 add_test(NAME testMVCConnections COMMAND testMVCConnections)
+
+# Add library directories for qrencode on macOS
+if(APPLE)
+    target_link_directories(testMVCConnections PRIVATE /opt/homebrew/lib)
+endif()
 
 # Original test from dev branch
 add_executable(testSSLforNow
