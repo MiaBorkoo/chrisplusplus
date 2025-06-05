@@ -1,3 +1,4 @@
+// utils/Config.h
 #pragma once
 
 #include <QString>
@@ -6,33 +7,41 @@
 
 class Config {
 public:
-    static Config& getInstance() {
-        static Config instance;
-        return instance;
-    }
+    static Config& getInstance();
 
-    QString getServerUrl() const { return m_serverUrl; }
-    QString getServerHost() const { return m_serverHost; }
-    QString getServerPort() const { return m_serverPort; }
-    
+    QString getServerUrl() const;
+    QString getServerHost() const;
+    QString getServerPort() const;
+
+    void setServerUrl(const QString& url);
+    void setServerHost(const QString& host);
+    void setServerPort(const QString& port);
+
     void loadConfig();
     void saveConfig();
+    void reset();
+    void setProductionMode(bool enable);
+
+    static constexpr const char* DEFAULT_HOST = "localhost";
+    static constexpr const char* DEFAULT_PORT = "8000";
+    static constexpr const char* DEFAULT_URL = "http://localhost:8000";
+    static constexpr const char* DEFAULT_HTTPS_PORT = "443";
+    static constexpr const char* DEFAULT_HTTP_PORT = "80";
+    static constexpr const char* PRODUCTION_HOST = "api.chrisplusplus.com";
+    static constexpr const char* PRODUCTION_PORT = "443";
+    static constexpr const char* PRODUCTION_URL = "https://api.chrisplusplus.com";
 
 private:
-    Config() { 
-        // Initialize QSettings with organization and application name
-        m_settings = std::make_unique<QSettings>("EPIC", "ChrisPlusPlus");
-        loadConfig(); 
-    }
+    Config();
     ~Config() = default;
-    
+
     Config(const Config&) = delete;
     Config& operator=(const Config&) = delete;
 
     void setDefaults();
 
-    QString m_serverUrl = "http://localhost:8000";  // Default value TODO: change to server url
-    QString m_serverHost = "localhost";
-    QString m_serverPort = "8000";
+    QString m_serverUrl;
+    QString m_serverHost;
+    QString m_serverPort;
     std::unique_ptr<QSettings> m_settings;
-}; 
+};

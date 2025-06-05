@@ -322,3 +322,5 @@ qt_generate_deploy_app_script(
     NO_UNSUPPORTED_PLATFORM_ERROR
 )
 install(SCRIPT ${deploy_script})
+
+target_sources(file_transfer PRIVATE utils/Config.cpp)

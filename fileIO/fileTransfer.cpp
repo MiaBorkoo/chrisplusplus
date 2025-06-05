@@ -8,6 +8,7 @@
 #include <QtConcurrent>
 #include <iostream>
 #include <iomanip>
+#include "../utils/Config.h"
 
 Q_LOGGING_CATEGORY(fileTransfer, "fileTransfer") //uncomment if u dont want logging
 
@@ -39,7 +40,6 @@ private:
 FileTransfer::FileTransfer(SSLContext& sslContext, QObject* parent)
     : QObject(parent)
     , sslContext_(sslContext)
-    , serverPort_("443")
     , cancelRequested_(false)
     , retryTimer_(new QTimer(this))
     , currentAttempt_(0)
@@ -50,6 +50,10 @@ FileTransfer::FileTransfer(SSLContext& sslContext, QObject* parent)
     // Setup retry timer
     retryTimer_->setSingleShot(true);
     connect(retryTimer_, &QTimer::timeout, this, &FileTransfer::retryUpload);
+
+    // Use config values
+    serverHost_ = Config::getInstance().getServerHost().toStdString();
+    serverPort_ = Config::getInstance().getServerPort().toStdString();
 }
 
 void FileTransfer::setServer(const std::string& host, const std::string& port) {

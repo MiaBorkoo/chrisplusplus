@@ -31,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
     //creates login view and controller
     m_loginView = new LoginView(this);
-    m_client = std::make_shared<Client>(QString::fromLatin1("http://localhost:8000")); // Fixed constructor call
+    m_client = std::make_shared<Client>(Config::getInstance().getServerUrl());
     m_authService = std::make_shared<AuthService>(m_client);
     m_loginModel = std::make_shared<LoginModel>(m_authService);
     m_loginController = new LoginController(m_loginModel, this);
