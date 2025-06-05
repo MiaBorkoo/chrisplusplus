@@ -30,7 +30,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     m_stack = new QStackedWidget(this);
 
     // Initialize client and auth service
-    m_client = std::make_shared<Client>(QString::fromLatin1("http://localhost:8000")); 
+    m_client = std::make_shared<Client>(Config::getInstance().getServerUrl());
     m_authService = std::make_shared<AuthService>(m_client);
 
     // Initialize models
