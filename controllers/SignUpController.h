@@ -5,6 +5,7 @@
 #include <QString>
 #include <QSet>
 #include <QRegularExpression>
+#include <memory>
 #include "../views/SignUpView.h"
 #include "../models/SignUpModel.h"
 #include <memory>

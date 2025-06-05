@@ -484,3 +484,140 @@ HeaderWidget QPushButton:pressed {
     font-size: 8px;
     margin-top: 5px;
 }
+
+/* TOTP Code Dialog Styles */
+
+/* Title styling */
+QLabel#totpTitle {
+    font-size: 14pt;
+    font-weight: bold;
+}
+
+/* Code input styling - larger and centered */
+QLineEdit#totpCodeInput {
+    padding: 12px;
+    font-size: 20px;
+    font-family: monospace;
+    letter-spacing: 4px;
+    text-align: center;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+QLineEdit#totpCodeInput:focus {
+    border-color: #4CAF50;
+    background-color: white;
+}
+
+/* Verify button styling */
+QPushButton#totpVerifyButton {
+    background-color: #4CAF50;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    min-width: 80px;
+}
+
+QPushButton#totpVerifyButton:hover {
+    background-color: #45a049;
+}
+
+QPushButton#totpVerifyButton:disabled {
+    background-color: #cccccc;
+    color: #666666;
+}
+
+/* Cancel button styling */
+QPushButton#totpCancelButton {
+    background-color: #f44336;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    min-width: 80px;
+}
+
+QPushButton#totpCancelButton:hover {
+    background-color: #da190b;
+}
+
+/* Error label styling */
+QLabel#totpErrorLabel {
+    color: red;
+    font-weight: bold;
+}
+
+/* TOTP Setup View Styles */
+
+/* Setup title */
+QLabel#totpSetupTitle {
+    font-size: 16pt;
+    font-weight: bold;
+    color: #333;
+}
+
+/* Setup instructions */
+QLabel#totpSetupInstructions {
+    font-size: 11pt;
+    color: #666;
+    line-height: 1.4;
+}
+
+/* QR Code label styling */
+QLabel#totpQRCodeLabel {
+    border: 1px solid #ccc;
+    background-color: white;
+}
+
+/* Setup code input */
+QLineEdit#totpSetupCodeInput {
+    padding: 10px;
+    font-size: 16px;
+    font-family: monospace;
+    letter-spacing: 3px;
+    text-align: center;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+QLineEdit#totpSetupCodeInput:focus {
+    border-color: #4CAF50;
+    background-color: white;
+}
+
+/* Setup buttons */
+QPushButton#totpSetupVerifyButton {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    min-width: 100px;
+}
+
+QPushButton#totpSetupVerifyButton:hover {
+    background-color: #45a049;
+}
+
+QPushButton#totpSetupVerifyButton:disabled {
+    background-color: #cccccc;
+    color: #666666;
+}
+
+QPushButton#totpSetupCancelButton {
+    background-color: #f44336;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    min-width: 100px;
+}
+
+QPushButton#totpSetupCancelButton:hover {
+    background-color: #da190b;
+}

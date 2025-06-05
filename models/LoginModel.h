@@ -10,6 +10,7 @@ class LoginModel : public QObject {
 public:
     explicit LoginModel(std::shared_ptr<AuthService> authService, QObject* parent = nullptr);
     
+    // Simple login operations
     void login(const QString& username, const QString& password);
 
 signals:
