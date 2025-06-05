@@ -153,7 +153,7 @@ void FileTransfer::performUploadAsync(const QString& filePath, const std::string
         try {
             // 🔥 NEW: Build multipart form data body (not streaming)
             std::cout << "🔧 FILETRANSFER: Building multipart form data..." << std::endl;
-            std::string multipartBody = self->buildMultipartFormData(filePath, fileInfo.fileName());
+            std::string multipartBody = self->buildMultipartFormData(filePath, fileInfo.fileName().toStdString());
             request.body = multipartBody;
             
             std::cout << "📦 FILETRANSFER: Multipart body built - Size: " << multipartBody.size() << " bytes" << std::endl;
@@ -361,7 +361,7 @@ HttpRequest FileTransfer::createUploadRequest(const std::string& endpoint,
     
     // Store boundary for later use in building the multipart body
     boundary_ = boundary;
-    filename_ = filename;
+    filename_ = filename.toStdString();  // FIX: Convert to std::string immediately
     
     return request;
 }
@@ -404,8 +404,8 @@ bool FileTransfer::isPathSafe(const QString& basePath, const QString& targetPath
 }
 
 // NEW: Build multipart form data for file uploads
-std::string FileTransfer::buildMultipartFormData(const QString& filePath, const QString& filename) {
-    std::cout << "🔧 FILETRANSFER: Building multipart form data for: " << filename.toStdString() << std::endl;
+std::string FileTransfer::buildMultipartFormData(const QString& filePath, const std::string& filename) {
+    std::cout << "🔧 FILETRANSFER: Building multipart form data for: " << filename << std::endl;
     
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -419,19 +419,19 @@ std::string FileTransfer::buildMultipartFormData(const QString& filePath, const 
     
     std::stringstream formData;
     
-    // Add file field (the main file data)
+    // Add file field (the main file data) - use stored filename_
     formData << "--" << boundary_ << "\r\n";
-    formData << "Content-Disposition: form-data; name=\"file\"; filename=\"" << filename.toStdString() << "\"\r\n";
+    formData << "Content-Disposition: form-data; name=\"file\"; filename=\"" << filename_ << "\"\r\n";
     formData << "Content-Type: application/octet-stream\r\n\r\n";
     
     // Write file data
     formData.write(fileData.constData(), fileData.size());
     formData << "\r\n";
     
-    // Add filename field (for server processing)
+    // Add filename field (for server processing) - use stored filename_
     formData << "--" << boundary_ << "\r\n";
     formData << "Content-Disposition: form-data; name=\"filename\"\r\n\r\n";
-    formData << filename.toStdString() << "\r\n";
+    formData << filename_ << "\r\n";
     
     // End boundary
     formData << "--" << boundary_ << "--\r\n";

@@ -105,7 +105,7 @@ private:
     
     // NEW: For multipart form data
     std::string boundary_;
-    QString filename_;
+    std::string filename_;
     
     // Helper methods
     HttpRequest createUploadRequest(const std::string& endpoint, const QString& filename, qint64 fileSize);
@@ -115,7 +115,7 @@ private:
     bool isPathSafe(const QString& basePath, const QString& targetPath) const;
     
     // NEW: Multipart form data builder
-    std::string buildMultipartFormData(const QString& filePath, const QString& filename);
+    std::string buildMultipartFormData(const QString& filePath, const std::string& filename);
     
     // NEW: Async implementations
     void performUploadAsync(const QString& filePath, const std::string& endpoint);
