@@ -53,6 +53,7 @@ LoginView::LoginView(QWidget *parent) : QWidget(parent)
     usernameLabel->setObjectName("usernameLabel");
     usernameLabel->setFont(labelFont);
     usernameEdit = new QLineEdit;
+    usernameEdit->setObjectName("usernameEdit");
     usernameEdit->setFont(inputFont);
     usernameEdit->setFixedSize(250, 40);
     usernameEdit->setAlignment(Qt::AlignCenter);
@@ -62,6 +63,7 @@ LoginView::LoginView(QWidget *parent) : QWidget(parent)
     passwordLabel->setObjectName("passwordLabel");
     passwordLabel->setFont(labelFont);
     passwordEdit = new QLineEdit;
+    passwordEdit->setObjectName("passwordEdit");
     passwordEdit->setFont(inputFont);
     passwordEdit->setFixedSize(250, 40);
     passwordEdit->setAlignment(Qt::AlignCenter);
@@ -74,6 +76,13 @@ LoginView::LoginView(QWidget *parent) : QWidget(parent)
     loginButton->setFixedSize(250, 40);
     connect(loginButton, &QPushButton::clicked, this, &LoginView::handleLogin);
 
+    errorLabel = new QLabel;
+    errorLabel->setObjectName("errorLabel");
+    errorLabel->setFont(labelFont);
+    errorLabel->setStyleSheet("color: #ff4444;");
+    errorLabel->setAlignment(Qt::AlignCenter);
+    errorLabel->setVisible(false);
+
     QVBoxLayout *formLayout = new QVBoxLayout;
     formLayout->setAlignment(Qt::AlignCenter);
     formLayout->addWidget(usernameLabel, 0, Qt::AlignCenter);
@@ -82,6 +91,7 @@ LoginView::LoginView(QWidget *parent) : QWidget(parent)
     formLayout->addWidget(passwordEdit, 0, Qt::AlignCenter);
     formLayout->addSpacing(10);
     formLayout->addWidget(loginButton, 0, Qt::AlignCenter);
+    formLayout->addWidget(errorLabel, 0, Qt::AlignCenter);
 
     QVBoxLayout *loginSectionLayout = new QVBoxLayout;
     loginSectionLayout->addWidget(loginHeading);
@@ -200,6 +210,7 @@ void LoginView::handleLogin()
     QString username = usernameEdit->text();
     QString password = passwordEdit->text();
     emit loginAttempted(username, password);
+    clearFields();
 }
 
 void LoginView::handleSignUp()

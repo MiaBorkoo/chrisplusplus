@@ -12,6 +12,13 @@
 #include "views/SharedDashView.h"
 #include "controllers/SideNavController.h"
 #include "controllers/SharedDashController.h"
+#include "models/FileModel.h"
+#include "models/LoginModel.h"
+#include "models/SignUpModel.h"
+#include "services/files/FileService.h"
+#include "services/auth/AuthService.h"
+#include "network/Client.h"
+#include <memory>
 
 class MainWindow : public QMainWindow
 {
@@ -34,6 +41,12 @@ private:
     HeaderWidget* m_headerWidget;
     AccountSection* m_accountSection;
     AccountController* m_accountController;
+    std::shared_ptr<Client> m_client;
+    std::shared_ptr<AuthService> m_authService;
+    std::shared_ptr<FileService> m_fileService;
+    std::shared_ptr<FileModel> m_fileModel;
+    std::shared_ptr<LoginModel> m_loginModel;
+    std::shared_ptr<SignUpModel> m_signUpModel;
 };
 
 #endif // MAINWINDOW_H

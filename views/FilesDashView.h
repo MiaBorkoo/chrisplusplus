@@ -7,7 +7,9 @@
 #include "HeaderWidget.h"
 #include "SideNavWidget.h"
 #include "AccountSection.h"
-#include "AccountController.h"
+#include "../controllers/AccountController.h"
+
+class QPushButton;
 
 class FilesDashView : public QWidget {
     Q_OBJECT
@@ -16,6 +18,7 @@ public:
     QLineEdit* getSearchBar() const;
     QTableWidget* getFileTable() const;
     SideNavWidget* getSideNav() const;
+    HeaderWidget* getHeader() const;
     void addFileRow(const QString &name, const QString &size, const QString &date);
     void clearTable();
 
@@ -26,6 +29,7 @@ private:
     QTableWidget *fileTable;
     AccountSection *accountSection;
     AccountController *accountController;
+    QPushButton *uploadButton;
 
 signals:
     void fileOpenRequested(const QString &fileName);
@@ -33,7 +37,6 @@ signals:
     void accessRequested(const QString &fileName);
     void deleteRequested(const QString &fileName);
     void downloadRequested(const QString &fileName);
-
 };
 
 #endif // FILESDASHVIEW_H
