@@ -27,21 +27,24 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     QRect screenGeometry = screen->geometry();
     setGeometry(screenGeometry);
 
-    // Initialize services first
-    initializeServices();
-
     m_stack = new QStackedWidget(this);
 
-    //creates login view and controller
+    // Initialize client and auth service
+    m_client = std::make_shared<Client>(Config::getInstance().getServerUrl());
+    m_authService = std::make_shared<AuthService>(m_client);
+
+    // Initialize models
+    m_loginModel = std::make_shared<LoginModel>(m_authService);
+    m_signUpModel = std::make_shared<SignUpModel>(m_authService);
+
+    // Create login view and controller
     m_loginView = new LoginView(this);
     m_loginController = new LoginController(m_loginModel, this);
     m_loginController->setView(m_loginView);
-    m_loginController->setAuthService(m_authService); // Connect to AuthService
 
-    //creates sign up view and controller
+    // Create sign up view and controller
     m_signUpView = new SignUpView(this);
-    m_signUpController = new SignUpController(m_signUpView, this);
-    m_signUpController->setAuthService(m_authService); // Connect to AuthService
+    m_signUpController = new SignUpController(m_signUpView, m_signUpModel, this);
 
     // Initialize network client and services using Config
     auto client = std::make_shared<Client>(Config::getInstance().getServerUrl());
@@ -71,20 +74,17 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
     setCentralWidget(m_stack);
 
-    //connect() - This is Qt's function to connect signals to slots
-    //switches to sign up view when sign-up button is clicked
+    // Connect navigation signals
     connect(m_loginView, &LoginView::signUpClicked, this, [this]() {
         m_stack->setCurrentWidget(m_signUpView);
     });
 
-    //switches back to login view when login button is clicked on sign-up page
     connect(m_signUpView, &SignUpView::loginRequested, this, [this]() {
         m_stack->setCurrentWidget(m_loginView);
     });
 
-    // Connect registration completion to switch back to login
-    connect(m_signUpController, &SignUpController::registrationCompleted, this, [this]() {
-        QMessageBox::information(this, "Success", "Registration completed! Please log in.");
+    // Connect successful registration to switch to login view
+    connect(m_signUpController, &SignUpController::registrationSuccessful, this, [this]() {
         m_stack->setCurrentWidget(m_loginView);
     });
 
@@ -141,34 +141,9 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
             m_sideNavController->setActiveTab(SideNavTab::SharedWithMe);
         }
     });
-
-   
-}
-
-void MainWindow::initializeServices()
-{
-    // Initialize network client with default values
-    // TODO: These should come from configuration/settings
-    QString baseUrl = "https://chrisplusplus.gobbler.info";  // Default server URL
-    
-    m_client = std::make_shared<Client>(baseUrl, this);
-    
-    // Initialize AuthService with the client
-    m_authService = std::make_shared<AuthService>(m_client, this);
-    
-    // Initialize LoginModel with AuthService
-    m_loginModel = std::make_shared<LoginModel>(m_authService, this);
-    
-    // Initialize SignUpModel with AuthService
-    m_signUpModel = std::make_shared<SignUpModel>(m_authService, this);
-    
-    qDebug() << "Services initialized successfully";
-    qDebug() << "Base URL:" << baseUrl;
 }
 
 MainWindow::~MainWindow()
 {
     //destructor cause it wouldnt build without i
 }   
-
-

@@ -1,9 +1,9 @@
 #include "SignUpController.h"
 #include <QRegularExpression>
-#include <QDebug>
+#include "../services/auth/ValidationService.h"
 
-SignUpController::SignUpController(SignUpView *view, QObject *parent) 
-    : QObject(parent), view(view)
+SignUpController::SignUpController(SignUpView *view, std::shared_ptr<SignUpModel> model, QObject *parent)
+    : QObject(parent), view(view), m_model(model)
 {
     commonPasswords = QSet<QString>({
         "123456789012", "password1234", "qwertyuiop12",
@@ -16,35 +16,20 @@ SignUpController::SignUpController(SignUpView *view, QObject *parent)
 
     // Connect view signals
     connect(view, &SignUpView::signUpRequested, this, &SignUpController::onSignUpClicked);
-}
-
-void SignUpController::setAuthService(std::shared_ptr<AuthService> authService)
-{
-    m_authService = authService;
-    
-    // Initialize model with AuthService
-    m_model = std::make_unique<SignUpModel>(authService, this);
     
     // Connect model signals
-    connect(m_model.get(), &SignUpModel::registrationSuccess,
-            this, &SignUpController::handleRegistrationSuccess);
-    connect(m_model.get(), &SignUpModel::registrationError,
-            this, &SignUpController::handleRegistrationError);
+    connect(m_model.get(), &SignUpModel::registrationSuccess, this, &SignUpController::handleRegistrationSuccess);
+    connect(m_model.get(), &SignUpModel::registrationError, this, &SignUpController::handleRegistrationError);
 }
 
 void SignUpController::onSignUpClicked(const QString &username, const QString &password, const QString &confirmPassword) {
     view->hideError();
 
-    if (!m_model) {
-        qDebug() << "No model set for SignUpController - call setAuthService() first";
-        view->showError("Authentication service not initialized");
-        return;
-    }
-
     // Validate username
     QString usernameError;
     if (!isUsernameValid(username, usernameError)) {
         view->showError(usernameError);
+        emit m_model->registrationError(usernameError);
         return;
     }
 
@@ -52,48 +37,39 @@ void SignUpController::onSignUpClicked(const QString &username, const QString &p
     QString passwordError;
     if (!isPasswordValid(password, passwordError)) {
         view->showError(passwordError);
+        emit m_model->registrationError(passwordError);
         return;
     }
 
     if (password != confirmPassword) {
-        view->showError("Passwords do not match.");
+        QString error = "Passwords do not match.";
+        view->showError(error);
+        emit m_model->registrationError(error);
         return;
     }
 
     // Check if password contains username
     if (password.toLower().contains(username.toLower())) {
-        view->showError("Password cannot contain your username.");
+        QString error = "Password cannot contain your username.";
+        view->showError(error);
+        emit m_model->registrationError(error);
         return;
     }
 
-    qDebug() << "Starting registration process for user:" << username;
-    
-    // Use the model to perform registration
+    // Forward registration request to model
     m_model->registerUser(username, password, confirmPassword);
+    view->clearFields();  // Clear fields after submitting
 }
 
-void SignUpController::handleRegistrationSuccess()
-{
-    qDebug() << "Registration successful";
-    
-    if (view) {
-        view->clearFields();
-        view->showError("Registration successful! You can now log in.");
-    }
-    
+void SignUpController::handleRegistrationSuccess() {
+    view->clearFields();
     emit registrationCompleted();
-    emit registrationSuccessful(); // For backward compatibility
+    emit registrationSuccessful();
 }
 
-void SignUpController::handleRegistrationError(const QString &error)
-{
-    qDebug() << "Registration error:" << error;
-    
-    if (view) {
-        view->showError(error);
-    }
-    
-    emit registrationFailed(error); // For backward compatibility
+void SignUpController::handleRegistrationError(const QString &error) {
+    view->showError(error);
+    emit registrationFailed(error);
 }
 
 bool SignUpController::isUsernameValid(const QString &username, QString &errorMessage) {

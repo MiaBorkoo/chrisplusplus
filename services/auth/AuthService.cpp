@@ -4,7 +4,7 @@
 #include "../../crypto/AuthHash.h"
 #include "../../crypto/MEKGenerator.h"
 #include "otp/TOTP.h"
-#include "../../tofu/QRVerification.h"          
+#include "../../utils/StringUtils.h"
 #include <QJsonObject>
 #include <QSettings>           
 #include <QDebug>
@@ -25,16 +25,7 @@ extern "C" {
 #include <qrencode.h>
 }
 
-namespace {
-    template <size_t N>
-    QString toBase64String(const std::array<uint8_t, N>& data) {
-        return QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(data.data()), static_cast<int>(data.size())).toBase64());
-    }
-
-    QString toBase64String(const std::vector<uint8_t>& data) {
-        return QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(data.data()), static_cast<int>(data.size())).toBase64());
-    }
-}
+using namespace StringUtils;  // Add this to use StringUtils functions
 
 AuthService::AuthService(std::shared_ptr<Client> client, QObject* parent)
     : ApiService(parent), m_client(client), m_settings(new QSettings(this)), m_waitingForSalts(false)

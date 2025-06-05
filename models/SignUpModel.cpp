@@ -1,4 +1,6 @@
 #include "SignUpModel.h"
+#include "../utils/StringUtils.h"
+#include <QDebug>
 
 /**
  * @class SignUpModel
@@ -9,7 +11,7 @@
  */
 
 SignUpModel::SignUpModel(std::shared_ptr<AuthService> authService, QObject* parent)
-    : QObject(parent), m_authService(authService) 
+    : QObject(parent), m_authService(authService)
 {
     connect(m_authService.get(), &AuthService::registrationCompleted,
             this, &SignUpModel::handleRegistrationCompleted);
@@ -17,13 +19,18 @@ SignUpModel::SignUpModel(std::shared_ptr<AuthService> authService, QObject* pare
             this, &SignUpModel::handleError);
 }
 
-void SignUpModel::registerUser(const QString& username, 
-                             const QString& password,
-                             const QString& confirmPassword) {
+void SignUpModel::registerUser(const QString& username, const QString& password, const QString& confirmPassword)
+{
+    if (password != confirmPassword) {
+        emit registrationError("Passwords do not match");
+        return;
+    }
+
     m_authService->registerUser(username, password, confirmPassword);
 }
 
-void SignUpModel::handleRegistrationCompleted(bool success) {
+void SignUpModel::handleRegistrationCompleted(bool success)
+{
     if (success) {
         emit registrationSuccess();
     } else {
@@ -31,6 +38,7 @@ void SignUpModel::handleRegistrationCompleted(bool success) {
     }
 }
 
-void SignUpModel::handleError(const QString& error) {
+void SignUpModel::handleError(const QString& error)
+{
     emit registrationError(error);
 } 

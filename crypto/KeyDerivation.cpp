@@ -10,8 +10,8 @@ DerivedKeys KeyDerivation::deriveKeysFromPassword(
 ) {
     DerivedKeys keys;
 
-    if (authSalt.size() < 16 || encSalt.size() < 16) {
-        throw std::invalid_argument("Salts must be at least 16 bytes");
+    if (authSalt.size() < 32 || encSalt.size() < 32) {
+        throw std::invalid_argument("Salts must be at least 32 bytes");
     }
 
     //Argon2id parameters
@@ -47,8 +47,8 @@ DerivedKeys KeyDerivation::deriveKeysFromPassword(
 ) {
     DerivedKeys keys;
 
-    if (authSalt.size() < 16) {
-        throw std::invalid_argument("Salt must be at least 16 bytes");
+    if (authSalt.size() < 32) {
+        throw std::invalid_argument("Salt must be at least 32 bytes");
     }
 
     //Argon2id parameters
@@ -68,10 +68,8 @@ DerivedKeys KeyDerivation::deriveKeysFromPassword(
     return keys;
 }
 std::vector<uint8_t> KeyDerivation::generateSalt(size_t length) {
-    if (length < 16) length = 16;
-    std::vector<uint8_t> salt(length);
-
-    if (RAND_bytes(salt.data(), static_cast<int>(length)) != 1) {
+    std::vector<uint8_t> salt(32);
+    if (RAND_bytes(salt.data(), 32) != 1) {
         throw std::runtime_error("OpenSSL RAND_bytes failed to generate secure salt");
     }
 

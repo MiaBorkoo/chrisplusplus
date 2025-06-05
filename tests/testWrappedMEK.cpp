@@ -40,6 +40,20 @@ int main() {
 
         std::cout << "testWrappedMEK: PASS" << std::endl;
 
+        // Test decryption
+        try {
+            std::vector<uint8_t> decrypted = decryptMEKWithWrapperKey(encrypted, wrapperKey);
+            if (decrypted != mek) {
+                std::cerr << "error: decrypted MEK does not match original" << std::endl;
+                return 1;
+            } else {
+                std::cout << "testWrappedMEK decrypt: PASS" << std::endl;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "exception during decryption: " << e.what() << std::endl;
+            return 1;
+        }
+
     } catch (const std::exception& e) {
         std::cerr << "exception during encryption: " << e.what() << std::endl;
         return 1;

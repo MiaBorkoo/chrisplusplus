@@ -1,4 +1,5 @@
 #include "LoginModel.h"
+#include "../utils/StringUtils.h"
 #include <QDebug>
 
 /**
@@ -9,19 +10,8 @@
  * This class handles user login operations.
  */
 
-namespace {
-    template <size_t N>
-    QString toBase64String(const std::array<uint8_t, N>& data) {
-        return QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(data.data()), static_cast<int>(data.size())).toBase64());
-    }
-
-    QString toBase64String(const std::vector<uint8_t>& data) {
-        return QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(data.data()), static_cast<int>(data.size())).toBase64());
-    }
-}
-
 LoginModel::LoginModel(std::shared_ptr<AuthService> authService, QObject* parent)
-    : QObject(parent), m_authService(authService) 
+    : QObject(parent), m_authService(authService)
 {
     connect(m_authService.get(), &AuthService::loginCompleted,
             this, &LoginModel::handleLoginCompleted);
@@ -29,15 +19,13 @@ LoginModel::LoginModel(std::shared_ptr<AuthService> authService, QObject* parent
             this, &LoginModel::handleError);
 }
 
-void LoginModel::login(const QString& username, const QString& password) {
-    if (username.isEmpty() || password.isEmpty()) {
-        emit loginError("Credentials cannot be empty");
-        return;
-    }
+void LoginModel::login(const QString& username, const QString& password)
+{
     m_authService->login(username, password);
 }
 
-void LoginModel::handleLoginCompleted(bool success, const QString& token) {
+void LoginModel::handleLoginCompleted(bool success, const QString& token)
+{
     if (success) {
         emit loginSuccess();
     } else {
@@ -45,6 +33,7 @@ void LoginModel::handleLoginCompleted(bool success, const QString& token) {
     }
 }
 
-void LoginModel::handleError(const QString& error) {
+void LoginModel::handleError(const QString& error)
+{
     emit loginError(error);
 }

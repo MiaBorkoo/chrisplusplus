@@ -38,6 +38,7 @@ elseif(WIN32)
 else()
     # Linux: Standard paths
     set(CMAKE_PREFIX_PATH 
+        "/opt/Qt/6.9.0/gcc_64"
         "/home/ruan/Qt/6.9.0/gcc_64"
         "/opt/Qt/6.7.0/gcc_64"
         "/usr/lib/x86_64-linux-gnu/cmake/Qt6"
@@ -158,6 +159,18 @@ qt_add_executable(ChrisPlusPlus
     network/Client.h
 
     ${RESOURCE_FILES}
+    # ✅ ADD: Authentication system
+    models/LoginModel.cpp
+    models/SignUpModel.cpp
+    models/FileModel.cpp
+    models/AccessModel.cpp
+    models/SharedFileModel.cpp
+    network/Client.cpp
+    services/auth/AuthService.cpp
+    services/ApiService.cpp
+    services/files/FileService.cpp
+    services/auth/otp/TOTP.cpp
+    services/auth/ValidationService.cpp
 )
 
 target_link_libraries(ChrisPlusPlus
@@ -166,6 +179,7 @@ target_link_libraries(ChrisPlusPlus
         Qt6::Core
         Qt6::Widgets
         Qt6::Network
+        Qt6::Concurrent
         file_transfer
         http_layer
         sockets
@@ -203,69 +217,101 @@ endif()
 # TEST EXECUTABLES
 # ============================================================================
 
-# MVC Connections Test
-qt_add_executable(testMVCConnections
-    tests/testMVCConnections.cpp
-
-    models/FileModel.cpp
-    models/AccessModel.cpp
-    models/SharedFileModel.cpp
-    models/LoginModel.cpp
-    models/TOTPModel.cpp
-
-    
-    controllers/AccountController.cpp
-    controllers/FileDashController.cpp
-    controllers/LoginController.cpp
-    controllers/TOTPController.cpp
-
-    views/FilesDashView.cpp
-    views/HeaderWidget.cpp
-    views/SideNavWidget.cpp
-    views/LoginView.cpp
-    views/AccountSection.cpp
-    views/TOTPSetupView.cpp
-    views/TOTPCodeDialog.cpp
-
-    services/files/FileService.cpp
-    services/ApiService.cpp
+# MVC tests executables
+add_executable(test_signup_connection
+    tests/mvc-tests/testSignUpConnection.cpp
+    models/SignUpModel.cpp
+    controllers/SignUpController.cpp
+    views/SignUpView.cpp
     services/auth/AuthService.cpp
-    services/auth/ValidationService.cpp
+    services/ApiService.cpp
     services/auth/otp/TOTP.cpp
-
-
+    services/auth/ValidationService.cpp
     network/Client.cpp
-    crypto/KeyDerivation.cpp
-    crypto/AuthHash.cpp
-    crypto/MEKGenerator.cpp
-    crypto/WrappedMEK.cpp
 )
 
-target_link_libraries(testMVCConnections PRIVATE 
-    Qt6::Core 
-    Qt6::Widgets
+target_link_libraries(test_signup_connection
+    PRIVATE
+    Qt6::Core
     Qt6::Test
+    Qt6::Widgets
     Qt6::Network
     file_transfer
     http_layer
     sockets
     tofu
+    Qt6::Concurrent
     OpenSSL::SSL
     OpenSSL::Crypto
     crypto-lib
+    file_transfer
+    http_layer
+    sockets
+    ${QRENCODE_LIBRARIES}
+    nlohmann_json::nlohmann_json
+)
+
+# Other test executables
+add_executable(test_file_connection
+    tests/mvc-tests/testFileConnection.cpp
+    models/FileModel.cpp
+    models/AccessModel.cpp
+    models/SharedFileModel.cpp
+    controllers/FileDashController.cpp
+    views/FilesDashView.cpp
+    views/HeaderWidget.cpp
+    views/SideNavWidget.cpp
+    views/AccountSection.cpp
+    controllers/AccountController.cpp
+    services/files/FileService.cpp
+    services/ApiService.cpp
+    network/Client.cpp
+)
+
+add_executable(test_login_connection
+    tests/mvc-tests/testLoginConnection.cpp
+    models/LoginModel.cpp
+    models/TOTPModel.cpp
+    controllers/LoginController.cpp
+    controllers/TOTPController.cpp
+    views/LoginView.cpp
+    views/TOTPSetupView.cpp
+    views/TOTPCodeDialog.cpp
+    services/auth/AuthService.cpp
+    services/ApiService.cpp
+    services/auth/otp/TOTP.cpp
+    services/auth/ValidationService.cpp
+    network/Client.cpp
+)
+
+target_link_libraries(test_file_connection PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Widgets
+    Qt6::Network
+    Qt6::Concurrent
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    crypto-lib
+    file_transfer
+    http_layer
+    sockets
     ${QRENCODE_LIBRARIES}
 )
 
-target_include_directories(testMVCConnections PRIVATE
-    ${CMAKE_SOURCE_DIR}/models
-    ${CMAKE_SOURCE_DIR}/views
-    ${CMAKE_SOURCE_DIR}/controllers
-    ${CMAKE_SOURCE_DIR}/services
-    ${CMAKE_SOURCE_DIR}/services/auth
-    ${CMAKE_SOURCE_DIR}/network
-    ${CMAKE_SOURCE_DIR}/crypto
-    ${CMAKE_SOURCE_DIR}/tofu
-    ${QRENCODE_INCLUDE_DIRS}
+target_link_libraries(test_login_connection PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Widgets
+    Qt6::Network
+    Qt6::Concurrent
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    crypto-lib
+    file_transfer
+    http_layer
+    sockets
+    ${QRENCODE_LIBRARIES}
 )
 
 # Add library directories for qrencode on macOS
@@ -274,7 +320,9 @@ if(APPLE)
 endif()
 
 # Add test to CTest
-add_test(NAME testMVCConnections COMMAND testMVCConnections)
+add_test(NAME FileConnectionTests COMMAND test_file_connection)
+add_test(NAME LoginConnectionTests COMMAND test_login_connection)
+add_test(NAME SignUpConnectionTests COMMAND test_signup_connection)
 
 # Add library directories for qrencode on macOS
 if(APPLE)
