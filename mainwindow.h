@@ -1,5 +1,4 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include <QMainWindow>
 #include <QStackedWidget>
@@ -50,5 +49,3 @@ private:
     std::shared_ptr<LoginModel> m_loginModel;
     std::shared_ptr<SignUpModel> m_signUpModel;
 };
-
-#endif // MAINWINDOW_H

@@ -170,6 +170,4 @@ void MainWindow::initializeServices()
 MainWindow::~MainWindow()
 {
     //destructor cause it wouldnt build without i
-}   
-
-
+} 

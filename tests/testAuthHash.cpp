@@ -5,8 +5,8 @@
 
 void testComputeAuthHash() {
     //generate random serverAuthKey -> 32 bytes
-    std::vector<uint8_t> serverAuthKey = AuthHash::generateSalt(32);
-    std::vector<uint8_t> authSalt2 = AuthHash::generateSalt(16);
+    std::vector<uint8_t> serverAuthKey = AuthHash::generateSalt();
+    std::vector<uint8_t> authSalt2 = AuthHash::generateSalt();
 
     std::vector<uint8_t> authHash = AuthHash::computeAuthHash(serverAuthKey, authSalt2);
 
