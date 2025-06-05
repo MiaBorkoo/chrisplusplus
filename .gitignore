@@ -19,4 +19,5 @@ ruans_requirements.txt
 .cache/
 CMakeUserPresets.json
 *.txt
+*.supp
 

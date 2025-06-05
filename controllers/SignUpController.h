@@ -28,7 +28,4 @@ private:
     SignUpView *view;
     std::shared_ptr<SignUpModel> m_model;
     ValidationService m_validationService;
-
-signals:
-    void registrationSuccessful();
 };
