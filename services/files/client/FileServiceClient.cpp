@@ -3,16 +3,16 @@
 #include "SharingServiceClient.h"
 #include "AuditServiceClient.h"
 #include "../../../sockets/SSLContext.h"
-#include "../config/ServiceConfig.h"
+#include "utils/Config.h"
 
-FileServiceClient::FileServiceClient() : base_url(ServiceConfig::Server::DEFAULT_URL) {
+FileServiceClient::FileServiceClient() : base_url(Config::DEFAULT_URL) {
     // For HTTPS connections, initialize SSL
     use_ssl = true;
     SSLContext::initializeOpenSSL();
     ssl_context = std::make_unique<SSLContext>();
     
-    server_host = ServiceConfig::Server::DEFAULT_HOST;
-    server_port = ServiceConfig::Server::DEFAULT_PORT;
+    server_host = Config::DEFAULT_HOST;
+    server_port = Config::DEFAULT_PORT;
     
     initialize_clients();
 }
@@ -34,7 +34,7 @@ FileServiceClient::FileServiceClient(const std::string& base_url) : base_url(bas
             server_port = url_part.substr(colon_pos + 1);
         } else {
             server_host = url_part;
-            server_port = ServiceConfig::Server::DEFAULT_HTTPS_PORT;  // Default HTTPS port
+            server_port = Config::DEFAULT_HTTPS_PORT;  // Default HTTPS port
         }
     } else {
         use_ssl = false;
@@ -47,7 +47,7 @@ FileServiceClient::FileServiceClient(const std::string& base_url) : base_url(bas
             server_port = url_part.substr(colon_pos + 1);
         } else {
             server_host = url_part;
-            server_port = ServiceConfig::Server::DEFAULT_HTTP_PORT;  // Default HTTP port
+            server_port = Config::DEFAULT_HTTP_PORT;  // Default HTTP port
         }
     }
     

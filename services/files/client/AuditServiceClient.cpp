@@ -3,10 +3,10 @@
 #include "../../../httpC/HttpClient.h"
 #include "../../../httpC/HttpRequest.h"
 #include "../../../httpC/HttpResponse.h"
-#include "../config/ServiceConfig.h"
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <stdexcept>
+#include "utils/Config.h"
 
 AuditServiceClient::AuditServiceClient(SSLContext& ssl_context, 
                                       const std::string& host, 
@@ -33,7 +33,7 @@ std::vector<AuditLogResponse> AuditServiceClient::get_file_audit_logs(
         http_request.path = "/api/files/" + file_id + "/audit?" + query_string;
         http_request.headers["Host"] = server_host_;
         http_request.headers["Authorization"] = "Bearer " + session_token;
-        http_request.headers["User-Agent"] = ServiceConfig::Client::USER_AGENT;
+        http_request.headers["User-Agent"] = Config::USER_AGENT;
         
         HttpResponse response = client.sendRequest(http_request);
         
