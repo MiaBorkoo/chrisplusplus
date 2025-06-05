@@ -40,6 +40,9 @@ public:
     // Validation function
     bool validate_compression_level(int level);
 
+    // Array operations demo using pointers
+    static void copyAndReverseArray(uint8_t* dest, const uint8_t* src, size_t length);
+
 private:
     // Internal zlib helpers
     void cleanup_zlib_stream(void* stream);

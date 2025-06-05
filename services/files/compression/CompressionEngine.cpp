@@ -445,4 +445,20 @@ void CompressionEngine::cleanup_zlib_stream(void* stream) {
     // One will fail, but that's expected
     deflateEnd(zstream);
     inflateEnd(zstream);
+}
+
+void CompressionEngine::copyAndReverseArray(uint8_t* dest, const uint8_t* src, size_t length) {
+    // Create pointers to start and end of source array
+    const uint8_t* src_start = src;
+    const uint8_t* src_end = src + length - 1;
+    
+    // Create pointer to destination array
+    uint8_t* dest_ptr = dest;
+    
+    // Copy in reverse order using pointer arithmetic
+    while (src_end >= src_start) {
+        *dest_ptr = *src_end;  // Dereference pointers to access/modify array elements
+        dest_ptr++;            // Move destination pointer forward
+        src_end--;            // Move source pointer backward
+    }
 } 
