@@ -4,10 +4,10 @@
 #include <openssl/rand.h>
 
 // generates a random salt of at least 16 bytes using OpenSSL RAND_bytes
-std::vector<uint8_t> AuthHash::generateSalt(size_t length) {
-    if (length < 16) length = 16; // enforce minimum salt length
-    std::vector<uint8_t> salt(length);
-    if (RAND_bytes(salt.data(), static_cast<int>(length)) != 1) {
+std::vector<uint8_t> AuthHash::generateSalt() {
+
+    std::vector<uint8_t> salt(32);
+    if (RAND_bytes(salt.data(), 32) != 1) {
         throw std::runtime_error("OpenSSL RAND_bytes failed to generate secure salt");
     }
     return salt;
@@ -18,7 +18,7 @@ std::vector<uint8_t> AuthHash::generateSalt(size_t length) {
 // returns a 32-byte (256-bit) hash
 std::vector<uint8_t> AuthHash::computeAuthHash(const std::vector<uint8_t>& serverAuthKey,
                                                const std::vector<uint8_t>& authSalt2) {
-    if (serverAuthKey.size() < 32 || authSalt2.size() < 16) {
+    if (serverAuthKey.size() < 32 || authSalt2.size() < 32) {
         throw std::invalid_argument("serverAuthKey or salt too small");
     }
 
