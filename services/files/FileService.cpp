@@ -419,6 +419,8 @@ void FileService::initializeFileTransfer(std::shared_ptr<SSLContext> sslContext)
                 this, &FileService::handleDownloadCompleted);
         connect(m_fileTransfer.get(), &FileTransfer::progressUpdated,
                 this, &FileService::handleTransferProgress);
+        connect(m_fileTransfer.get(), &FileTransfer::transferFailed,
+                this, &FileService::handleNetworkError);
         std::cout << "✅ FILESERVICE: FileTransfer initialization complete" << std::endl;
     } else {
         std::cout << "❌ FILESERVICE: SSLContext is null, cannot initialize FileTransfer" << std::endl;

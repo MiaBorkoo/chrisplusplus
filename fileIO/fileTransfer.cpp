@@ -7,6 +7,7 @@
 #include <QtConcurrent>
 #include <QDateTime>
 #include <sstream>
+#include <iostream>
 #include "../utils/Config.h"  // Add Config include for server details
 
 // Simple progress tracking wrapper
@@ -127,6 +128,9 @@ void FileTransfer::performUploadAsync(const QString& filePath, const std::string
             // 🔥 NEW: Build multipart form data body (not streaming)
             std::string multipartBody = self->buildMultipartFormData(filePath, fileInfo.fileName().toStdString());
             request.body = multipartBody;
+            
+            std::cout << "📡 FILETRANSFER: Sending multipart request to " << request.path << std::endl;
+            std::cout << "📦 FILETRANSFER: Request body size: " << multipartBody.size() << " bytes" << std::endl;
             
             // Use regular sendRequest instead of sendRequestWithStreamingBody
             HttpResponse response = self->httpClient_->sendRequest(request);
@@ -360,21 +364,50 @@ std::string FileTransfer::buildMultipartFormData(const QString& filePath, const 
     QByteArray fileData = file.readAll();
     file.close();
     
+    // Get file size for encoding
+    qint64 fileSize = fileData.size();
+    
+    // Base64 encode filename and file size
+    QString filenameStr = QString::fromStdString(filename);
+    QByteArray filenameBytes = filenameStr.toUtf8();
+    QByteArray fileSizeBytes = QString::number(fileSize).toUtf8();
+    
+    QString filenameEncoded = filenameBytes.toBase64();
+    QString fileSizeEncoded = fileSizeBytes.toBase64();
+    
+    // Debug logging
+    std::cout << "🔧 FILETRANSFER: Building multipart form data:" << std::endl;
+    std::cout << "   Original filename: " << filename << std::endl;
+    std::cout << "   File size: " << fileSize << " bytes" << std::endl;
+    std::cout << "   filename_encrypted: " << filenameEncoded.toStdString() << std::endl;
+    std::cout << "   file_size_encrypted: " << fileSizeEncoded.toStdString() << std::endl;
+    std::cout << "   file_data_hmac: temp-hmac" << std::endl;
+    
     std::stringstream formData;
     
-    // Add file field (the main file data) - use stored filename_
+    // Add file field (the main file data)
     formData << "--" << boundary_ << "\r\n";
-    formData << "Content-Disposition: form-data; name=\"file\"; filename=\"" << filename_ << "\"\r\n";
+    formData << "Content-Disposition: form-data; name=\"file\"; filename=\"" << filename << "\"\r\n";
     formData << "Content-Type: application/octet-stream\r\n\r\n";
     
     // Write file data
     formData.write(fileData.constData(), fileData.size());
     formData << "\r\n";
     
-    // Add filename field (for server processing) - use stored filename_
+    // Add filename_encrypted field (base64 encoded filename)
     formData << "--" << boundary_ << "\r\n";
-    formData << "Content-Disposition: form-data; name=\"filename\"\r\n\r\n";
-    formData << filename_ << "\r\n";
+    formData << "Content-Disposition: form-data; name=\"filename_encrypted\"\r\n\r\n";
+    formData << filenameEncoded.toStdString() << "\r\n";
+    
+    // Add file_size_encrypted field (base64 encoded file size)
+    formData << "--" << boundary_ << "\r\n";
+    formData << "Content-Disposition: form-data; name=\"file_size_encrypted\"\r\n\r\n";
+    formData << fileSizeEncoded.toStdString() << "\r\n";
+    
+    // Add file_data_hmac field (temporary string for now)
+    formData << "--" << boundary_ << "\r\n";
+    formData << "Content-Disposition: form-data; name=\"file_data_hmac\"\r\n\r\n";
+    formData << "temp-hmac" << "\r\n";
     
     // End boundary
     formData << "--" << boundary_ << "--\r\n";

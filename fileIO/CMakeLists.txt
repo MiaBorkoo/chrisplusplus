@@ -2,6 +2,8 @@
 add_library(file_transfer
     fileTransfer.h
     fileTransfer.cpp
+    ../utils/Config.cpp
+    ../utils/Config.h
 )
 
 target_link_libraries(file_transfer
