@@ -41,7 +41,7 @@ bool ValidationService::validateUsername(const QString& username, QString& error
     return true;
 }
 
-bool ValidationService::validatePassword(const QString& password, QString& errorMessage) const {
+bool ValidationService::validatePassword(const QString& password, const QString& username, QString& errorMessage) const {
     if (password.isEmpty()) {
         errorMessage = "Password is required";
         return false;
@@ -57,41 +57,13 @@ bool ValidationService::validatePassword(const QString& password, QString& error
         return false;
     }
     
-    // Check for required character classes
-    QRegularExpression hasUpper("[A-Z]");
-    QRegularExpression hasLower("[a-z]");
-    QRegularExpression hasNumber("[0-9]");
-    QRegularExpression hasSpecial("[!@#$%^&*(),.?\":{}|<>]");
-    
-    if (!hasUpper.match(password).hasMatch()) {
-        errorMessage = "Password must contain at least one uppercase letter";
-        return false;
-    }
-    
-    if (!hasLower.match(password).hasMatch()) {
-        errorMessage = "Password must contain at least one lowercase letter";
-        return false;
-    }
-    
-    if (!hasNumber.match(password).hasMatch()) {
-        errorMessage = "Password must contain at least one number";
-        return false;
-    }
-    
-    if (!hasSpecial.match(password).hasMatch()) {
-        errorMessage = "Password must contain at least one special character";
-        return false;
-    }
-    
-    // Check for repeating characters
-    QRegularExpression repeating("(.)\\1{2,}");
-    if (repeating.match(password).hasMatch()) {
-        errorMessage = "Password cannot contain repeating characters (e.g., 'aaa')";
-        return false;
-    }
-    
     if (isCommonPassword(password)) {
         errorMessage = "This password is too common. Please choose a more unique password";
+        return false;
+    }
+
+    if (password.toLower().contains(username.toLower())) {
+        errorMessage = "Password cannot contain your username.";
         return false;
     }
     

@@ -14,6 +14,7 @@
 #include "models/FileModel.h"
 #include "models/LoginModel.h"
 #include "models/SignUpModel.h"
+#include "models/AccessModel.h"
 #include "services/files/FileService.h"
 #include "services/auth/AuthService.h"
 #include "network/Client.h"
@@ -48,4 +49,5 @@ private:
     std::shared_ptr<FileModel> m_fileModel;
     std::shared_ptr<LoginModel> m_loginModel;
     std::shared_ptr<SignUpModel> m_signUpModel;
+    std::shared_ptr<AccessModel> m_accessModel;
 };

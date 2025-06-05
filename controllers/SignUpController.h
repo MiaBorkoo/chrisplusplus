@@ -2,10 +2,9 @@
 
 #include <QObject>
 #include <QString>
-#include <QSet>
-#include <QRegularExpression>
 #include "../views/SignUpView.h"
 #include "../models/SignUpModel.h"
+#include "../services/auth/ValidationService.h"
 #include <memory>
 
 class SignUpController : public QObject {
@@ -28,13 +27,5 @@ signals:
 private:
     SignUpView *view;
     std::shared_ptr<SignUpModel> m_model;
-    bool isPasswordValid(const QString &password, QString &errorMessage);
-    bool isUsernameValid(const QString &username, QString &errorMessage);
-    bool isCommonPassword(const QString &password) const;
-    
-    QSet<QString> commonPasswords;
-    const int MIN_USERNAME_LENGTH = 3;
-    const int MAX_USERNAME_LENGTH = 50;
-    const int MIN_PASSWORD_LENGTH = 12;
-    const int MAX_PASSWORD_LENGTH = 128;
+    ValidationService m_validationService;
 };

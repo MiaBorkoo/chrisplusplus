@@ -4,6 +4,7 @@
 #include "controllers/FileDashController.h"
 #include "controllers/SideNavController.h"
 #include "controllers/SharedDashController.h"
+#include "controllers/AccessController.h"
 #include "views/AccountSection.h"
 #include "controllers/AccountController.h"
 #include "utils/Config.h"
@@ -49,6 +50,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     auto client = std::make_shared<Client>(Config::getInstance().getServerUrl());
     m_fileService = std::make_shared<FileService>(client);
     m_fileModel = std::make_shared<FileModel>(m_fileService);
+    m_accessModel = std::make_shared<AccessModel>(m_fileService);
 
     m_filesDashView = new FilesDashView(this);
     m_fileDashController = new FileDashController(
@@ -95,6 +97,14 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     
     connect(m_filesDashView, &FilesDashView::fileOpenRequested, this, [this](const QString &fileName) {
         QMessageBox::information(this, "Open File", "You opened: " + fileName);
+    });
+
+    // Connect access management
+    connect(m_filesDashView, &FilesDashView::accessRequested, this, [this](const QString &fileName) {
+        auto accessDialog = new AccessDialog(fileName, QStringList(), this);
+        auto accessController = new AccessController(fileName, m_accessModel, this);
+        accessController->setView(accessDialog);
+        accessDialog->show();
     });
 
     // Connect upload signal
