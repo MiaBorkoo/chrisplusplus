@@ -12,7 +12,6 @@
 #include <QApplication>
 #include <QStackedWidget>
 #include <QMessageBox>
-#include <QDebug>
 #include <QFile>
 
 MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
@@ -28,11 +27,10 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     QRect screenGeometry = screen->geometry();
     setGeometry(screenGeometry);
 
-    m_stack = new QStackedWidget(this);
+    // Initialize services first for proper workflow setup
+    initializeServices();
 
-    // Initialize client and auth service
-    m_client = std::make_shared<Client>(Config::getInstance().getServerUrl());
-    m_authService = std::make_shared<AuthService>(m_client);
+    m_stack = new QStackedWidget(this);
 
     // Initialize models
     m_loginModel = std::make_shared<LoginModel>(m_authService);
@@ -42,6 +40,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     m_loginView = new LoginView(this);
     m_loginController = new LoginController(m_loginModel, this);
     m_loginController->setView(m_loginView);
+    m_loginController->setAuthService(m_authService);
 
     // Create sign up view and controller
     m_signUpView = new SignUpView(this);
@@ -110,12 +109,10 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
     // Connect upload signal
     connect(m_filesDashView, &FilesDashView::uploadRequested, this, []() {
-        qDebug() << "Upload requested";
         QMessageBox::information(nullptr, "Upload", "Would open file dialog to upload a file.\nWaiting for model.");
     });
 
     connect(m_sharedDashController, &SharedDashController::downloadRequested, this, [this](const QString &fileName) {
-        qDebug() << "Attempting to open shared file:" << fileName;
         QMessageBox::information(this, "File Opening", QString("Would open shared file: %1\nWaiting for model.").arg(fileName));
     });
 
@@ -150,6 +147,13 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
             m_sideNavController->setActiveTab(SideNavTab::SharedWithMe);
         }
     });
+}
+
+void MainWindow::initializeServices()
+{
+    // Initialize network client and auth service using Config
+    m_client = std::make_shared<Client>(Config::getInstance().getServerUrl());
+    m_authService = std::make_shared<AuthService>(m_client);
 }
 
 MainWindow::~MainWindow()

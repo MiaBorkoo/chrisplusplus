@@ -28,6 +28,8 @@ public:
     ~MainWindow();
 
 private:
+    void initializeServices();
+    
     QStackedWidget *m_stack;
     LoginView *m_loginView;
     LoginController *m_loginController;

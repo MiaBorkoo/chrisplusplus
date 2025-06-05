@@ -19,6 +19,11 @@ private slots:
     void handleRegistrationSuccess();
     void handleRegistrationError(const QString &error);
 
+signals:
+    void registrationCompleted();
+    void registrationSuccessful();
+    void registrationFailed(const QString& error);
+
 private:
     SignUpView *view;
     std::shared_ptr<SignUpModel> m_model;

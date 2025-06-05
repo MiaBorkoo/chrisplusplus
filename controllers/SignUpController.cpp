@@ -46,6 +46,7 @@ void SignUpController::onSignUpClicked(const QString &username, const QString &p
 
 void SignUpController::handleRegistrationSuccess() {
     view->clearFields();
+    emit registrationCompleted();
     emit registrationSuccessful();
 }
 

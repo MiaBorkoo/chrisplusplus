@@ -1,7 +1,6 @@
 #include "LoginController.h"
 #include "TOTPController.h"
 #include <QMessageBox>
-#include <QDebug>
 
 LoginController::LoginController(std::shared_ptr<LoginModel> model, QObject *parent) 
     : QObject(parent), m_view(nullptr), m_model(model)
@@ -54,12 +53,10 @@ void LoginController::setAuthService(std::shared_ptr<AuthService> authService)
 void LoginController::handleLoginAttempt()
 {
     if (!m_view) {
-        qDebug() << "No view set for LoginController";
         return;
     }
     
     if (!m_model) {
-        qDebug() << "No model set for LoginController - call setAuthService() first";
         if (m_view) {
             m_view->showError("Authentication service not initialized");
         }
@@ -77,16 +74,12 @@ void LoginController::handleLoginAttempt()
     // Store username for use during TOTP flow
     m_currentUsername = username;
     
-    qDebug() << "Starting login process for user:" << username;
-    
     // Forward login request to model
     m_model->login(username, password);
 }
 
 void LoginController::handleLoginSuccess()
 {
-    qDebug() << "Login successful - switching to main dashboard";
-    
     if (m_view) {
         m_view->clearFields();
     }
@@ -99,8 +92,6 @@ void LoginController::handleLoginSuccess()
 
 void LoginController::handleLoginError(const QString &error)
 {
-    qDebug() << "Login error:" << error;
-    
     if (m_view) {
         m_view->showError(error);
     }
@@ -108,14 +99,10 @@ void LoginController::handleLoginError(const QString &error)
 
 void LoginController::handleTOTPCodeEntered(const QString &code)
 {
-    qDebug() << "LoginController: TOTP code entered:" << code;
-    
     if (!m_totpModel) {
-        qDebug() << "No TOTP model available";
         return;
     }
     
     // TOTPModel handles the username and auth hash internally from stored pending data
-    qDebug() << "LoginController: Verifying TOTP code";
     m_totpModel->verifyLoginCode(code, "", "");
 } 

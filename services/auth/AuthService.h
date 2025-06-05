@@ -5,8 +5,13 @@
 #include <QString>
 #include <QJsonObject>
 #include <QSettings>   
+#include <QUrl>
+#include <QUrlQuery>
 #include <memory>
 #include "ValidationService.h"
+#include "../../crypto/KeyDerivation.h"
+#include "../../crypto/AuthHash.h"
+#include "otp/TOTP.h"
 
 // Forward declaration for QR generation
 class QRVerification;
@@ -48,17 +53,21 @@ public:
     bool hasActiveSession() const { return !m_sessionToken.isEmpty(); }
     void invalidateSession();
 
-    // Simple TOTP methods (industry standard)
-    QString enableTOTP(const QString& username);  // Returns QR code as base64
-    bool verifyTOTPSetup(const QString& code);    // Verify and save secret
-    void disableTOTP();                           // Remove TOTP
-    bool hasTOTPEnabled() const;                  // Check if enabled globally
-    bool hasTOTPEnabledForUser(const QString& username) const;  // Check if enabled for specific user
+    // TOTP methods
+    QString enableTOTP(const QString& username);
+    bool verifyTOTPSetup(const QString& code);
+    bool hasTOTPEnabled() const;
+    bool hasTOTPEnabledForUser(const QString& username) const;
+    bool isFirstTimeLogin(const QString& username) const;
+    void markTOTPSetupCompleted(const QString& username);
+    void disableTOTP();
+    void completeTOTPSetupAndLogin(const QString& username, const QString& authHash, const QString& totpCode);
     
-    // First-login TOTP detection
-    bool isFirstTimeLogin(const QString& username) const;  // Check if user needs first-time TOTP setup
-    void markTOTPSetupCompleted(const QString& username);  // Mark that user completed TOTP setup
-
+    // Helper for server-provided TOTP QR code generation
+    QString generateQRCodeFromOtpauthUri(const QString& otpauthUri);
+    QString extractUsernameFromOtpauthUri(const QString& otpauthUri);
+    QString extractSecretFromOtpauthUri(const QString& otpauthUri);
+    
     // Get authentication salts from server
     struct AuthSalts {
         QString authSalt1;
@@ -68,20 +77,26 @@ public:
     
     AuthSalts getAuthSalts(const QString& username);
 
+    // Missing OpenAPI endpoints
+    void refreshToken(const QString& refreshToken);
+    void logout(const QString& sessionToken);
+
 signals:
     void loginCompleted(bool success, const QString& token = QString());
     void registrationCompleted(bool success);
     void passwordChangeCompleted(bool success);
+    void refreshCompleted(bool success, const QString& newToken = QString());
+    void logoutCompleted(bool success);
     void errorOccurred(const QString& error);
+    
+    // Enhanced TOTP signals for better UX
+    void totpRequired(const QString& username, const QString& authHash);
+    void firstLoginTOTPSetupRequired(const QString& username, const QString& authHash, const QString& qrCode);
     
     // Simple TOTP signals
     void totpEnabled(const QString& qrCodeBase64);
     void totpSetupCompleted(bool success);
     void totpDisabled();
-    void totpRequired(const QString& username, const QString& authHash);
-    
-    // First-login TOTP signal
-    void firstLoginTOTPSetupRequired(const QString& username, const QString& authHash, const QString& qrCodeBase64);
 
 private slots:
     void handleResponseReceived(int status, const QJsonObject& data);
@@ -92,14 +107,21 @@ private:
     std::shared_ptr<ValidationService> m_validationService;
     std::unique_ptr<QSettings> m_settings;
     QString m_sessionToken;
-    QString m_pendingTOTPSecret;
-    QString m_pendingUsername;
     
-    // mekWrapperKey removed - no local TOTP secret storage needed
-
+    // TOTP state (minimal - only for setup flow)
+    QString m_pendingTOTPSecret;  // Temporary during setup
+    QString m_pendingUsername;    // Username for setup
+    
+    // Login state for asynchronous salts handling
+    QString m_pendingLoginUsername;
+    QString m_pendingLoginPassword;
+    bool m_waitingForSalts;
+    
     void handleLoginResponse(int status, const QJsonObject& data);
     void handleRegisterResponse(int status, const QJsonObject& data);
     void handleChangePasswordResponse(int status, const QJsonObject& data);
+    void handleRefreshResponse(int status, const QJsonObject& data);
+    void handleLogoutResponse(int status, const QJsonObject& data);
 
     void handleSaltsResponse(int status, const QJsonObject& data, AuthSalts& salts);
 
@@ -112,6 +134,4 @@ private:
     
     // SECURITY: hashedLogin made private to prevent TOTP bypass
     void hashedLogin(const QString& username, const QString& authHash);
-    
-    // TOTP encryption methods removed - no local secret storage needed
 };
