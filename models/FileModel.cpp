@@ -24,7 +24,9 @@ FileModel::FileModel(std::shared_ptr<FileService> fileService, QObject* parent)
 // File operations
 void FileModel::uploadFile(const QString& filePath)
 {
+    std::cout << "📋 FILEMODEL: uploadFile called with path: " << filePath.toStdString() << std::endl;
     m_fileService->uploadFile(filePath);
+    std::cout << "✅ FILEMODEL: m_fileService->uploadFile call completed" << std::endl;
 }
 
 void FileModel::downloadFile(const QString& fileName, const QString& savePath)

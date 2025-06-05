@@ -43,9 +43,10 @@ public:
     explicit FileTransfer(SSLContext& sslContext, QObject* parent = nullptr);
     ~FileTransfer() = default;
 
-    // Configure the transfer client
-    void setServer(const std::string& host, const std::string& port = "443");
+    // Use shared HttpClient from Client for same connection
     void setHttpClient(std::shared_ptr<HttpClient> httpClient);
+    
+    // Authentication (sets token for requests)
     void setAuthToken(const QString& token);
     
     // File type validation
@@ -86,8 +87,6 @@ private slots:
 private:
     SSLContext& sslContext_;
     std::shared_ptr<HttpClient> httpClient_;
-    std::string serverHost_;
-    std::string serverPort_;
     QString authToken_;
     bool cancelRequested_;
     
@@ -104,12 +103,19 @@ private:
     std::string currentEndpoint_;
     QString currentSavePath_;
     
+    // NEW: For multipart form data
+    std::string boundary_;
+    QString filename_;
+    
     // Helper methods
     HttpRequest createUploadRequest(const std::string& endpoint, const QString& filename, qint64 fileSize);
     HttpRequest createDownloadRequest(const std::string& endpoint);
     QString extractServerError(const HttpResponse& response);
     QString sanitizePath(const QString& path) const;
     bool isPathSafe(const QString& basePath, const QString& targetPath) const;
+    
+    // NEW: Multipart form data builder
+    std::string buildMultipartFormData(const QString& filePath, const QString& filename);
     
     // NEW: Async implementations
     void performUploadAsync(const QString& filePath, const std::string& endpoint);

@@ -24,9 +24,13 @@ Client::Client(const QString& baseUrl, QObject* parent)
     std::string port = QString::number(url.port(443)).toStdString();
     
     // Create HTTP client with automatic optimizations
-    httpClient_ = std::make_unique<HttpClient>(*sslContext_, host, port);
+    httpClient_ = std::make_shared<HttpClient>(*sslContext_, host, port);
     
     qDebug() << "Client initialized for:" << baseUrl;
+}
+
+std::shared_ptr<HttpClient> Client::getHttpClient() const {
+    return httpClient_;
 }
 
 void Client::setAuthToken(const QString& token) {

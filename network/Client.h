@@ -22,6 +22,9 @@ public:
     // Authentication
     void setAuthToken(const QString& token);
     
+    // Access to shared HttpClient for file operations
+    std::shared_ptr<HttpClient> getHttpClient() const;
+    
     // Synchronous requests
     void sendRequest(const QString& endpoint, const QString& method, const QJsonObject& data = {});
     
@@ -42,7 +45,7 @@ private:
                            const QJsonObject& payload);
     
     std::unique_ptr<SSLContext> sslContext_;
-    std::unique_ptr<HttpClient> httpClient_;
+    std::shared_ptr<HttpClient> httpClient_;
     QString baseUrl_;
     QString authToken_;  // Store auth token for secure requests
 }; 

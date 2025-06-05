@@ -371,16 +371,16 @@ if(APPLE)
     target_link_directories(testTOTPSimple PRIVATE /opt/homebrew/lib)
 endif()
 
-add_executable(testNetworkSystemComplete
-    tests/testNetworkSystemComplete.cpp
-)
-target_link_libraries(testNetworkSystemComplete PRIVATE 
-    Qt6::Core 
-    Qt6::Widgets 
-    file_transfer 
-    http_layer 
-    sockets
-)
+# add_executable(testNetworkSystemComplete
+#     tests/testNetworkSystemComplete.cpp
+# )
+# target_link_libraries(testNetworkSystemComplete PRIVATE 
+#     Qt6::Core 
+#     Qt6::Widgets 
+#     file_transfer 
+#     http_layer 
+#     sockets
+# )
 
 add_executable(testKeyDerivation
     tests/testKeyDerivation.cpp

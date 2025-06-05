@@ -4,6 +4,8 @@
 #include <QFileInfo>
 #include <QUrl>
 #include <iostream>
+#include <QDebug>
+#include "../utils/Config.h"  // Add Config include for server details
 
 FileService::FileService(std::shared_ptr<Client> client, QObject* parent)
     : ApiService(parent), m_client(client)
@@ -21,30 +23,51 @@ FileService::FileService(std::shared_ptr<Client> client, QObject* parent)
 }
 
 void FileService::setAuthToken(const QString& token) {
+    std::cout << "🔑 FILESERVICE: setAuthToken called with token: " << token.left(20) << "..." << std::endl;
     m_authToken = token;
+    
     // Set token on the shared client for Authorization headers
     if (m_client) {
+        std::cout << "🔑 FILESERVICE: Setting auth token on shared Client" << std::endl;
         m_client->setAuthToken(token);
+    } else {
+        std::cout << "❌ FILESERVICE: Client not available for auth token setting" << std::endl;
+    }
+    
+    // Also set on FileTransfer if it exists
+    if (m_fileTransfer) {
+        std::cout << "🔑 FILESERVICE: Setting auth token on FileTransfer" << std::endl;
+        m_fileTransfer->setAuthToken(token);
+        qDebug() << "Set auth token on FileTransfer for secure file operations";
+    } else {
+        std::cout << "⚠️ FILESERVICE: FileTransfer not initialized yet, token will be set later" << std::endl;
     }
 }
 
 void FileService::uploadFile(const QString& filePath) {
+    std::cout << "🔥 FILESERVICE: uploadFile called with path: " << filePath.toStdString() << std::endl;
+    
     QFileInfo fileInfo(filePath);
     if (!fileInfo.exists()) {
+        std::cout << "❌ FILESERVICE: File does not exist: " << filePath.toStdString() << std::endl;
         reportError("File does not exist: " + filePath);
         return;
     }
 
     if (!m_fileTransfer) {
+        std::cout << "❌ FILESERVICE: FileTransfer not initialized!" << std::endl;
         reportError("FileTransfer not initialized.");
         return;
     }
 
     // Store current filename for progress tracking
     m_currentFileName = fileInfo.fileName();
+    std::cout << "📁 FILESERVICE: Starting upload for file: " << m_currentFileName.toStdString() << std::endl;
     
     // Use async file transfer with SSL
+    std::cout << "📡 FILESERVICE: Calling m_fileTransfer->uploadFileAsync..." << std::endl;
     m_fileTransfer->uploadFileAsync(filePath, "/api/files/upload");
+    std::cout << "✅ FILESERVICE: uploadFileAsync call completed" << std::endl;
 }
 
 void FileService::downloadFile(const QString& fileName, const QString& savePath) {
@@ -201,7 +224,7 @@ void FileService::sendSecureRequest(const QString& endpoint, const QString& meth
     
     // Use the shared client instead of separate HTTP client
     m_client->sendRequest(endpoint, method, payload);
-}
+    }
 
 // Handle file transfer completion
 void FileService::handleUploadCompleted(bool success, const TransferResult& result) {
@@ -364,15 +387,40 @@ void FileService::handleAuditLogsResponse(const QJsonObject& data) {
 
 // Add method to initialize FileTransfer when SSLContext becomes available
 void FileService::initializeFileTransfer(std::shared_ptr<SSLContext> sslContext) {
+    std::cout << "🔧 FILESERVICE: initializeFileTransfer called" << std::endl;
+    
     if (sslContext) {
+        std::cout << "✅ FILESERVICE: SSLContext available, creating FileTransfer" << std::endl;
         m_fileTransfer = std::make_shared<FileTransfer>(*sslContext);
         
+        // Use the SAME HttpClient as the Client for consistent connection
+        if (m_client) {
+            std::cout << "🔗 FILESERVICE: Setting HttpClient from shared Client" << std::endl;
+            m_fileTransfer->setHttpClient(m_client->getHttpClient());
+            qDebug() << "FileTransfer now uses shared HttpClient from Client";
+        } else {
+            std::cout << "❌ FILESERVICE: Client not available for HttpClient sharing" << std::endl;
+        }
+        
+        // Set auth token if we already have one
+        if (!m_authToken.isEmpty()) {
+            std::cout << "🔑 FILESERVICE: Setting existing auth token on FileTransfer" << std::endl;
+            m_fileTransfer->setAuthToken(m_authToken);
+            qDebug() << "Set existing auth token on newly created FileTransfer";
+        } else {
+            std::cout << "⚠️ FILESERVICE: No auth token available during FileTransfer init" << std::endl;
+        }
+        
         // Connect FileTransfer signals
+        std::cout << "🔌 FILESERVICE: Connecting FileTransfer signals" << std::endl;
         connect(m_fileTransfer.get(), &FileTransfer::uploadCompleted,
                 this, &FileService::handleUploadCompleted);
         connect(m_fileTransfer.get(), &FileTransfer::downloadCompleted,
                 this, &FileService::handleDownloadCompleted);
         connect(m_fileTransfer.get(), &FileTransfer::progressUpdated,
                 this, &FileService::handleTransferProgress);
+        std::cout << "✅ FILESERVICE: FileTransfer initialization complete" << std::endl;
+    } else {
+        std::cout << "❌ FILESERVICE: SSLContext is null, cannot initialize FileTransfer" << std::endl;
     }
 }

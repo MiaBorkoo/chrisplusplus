@@ -14,12 +14,18 @@ FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileT
     if (m_view) {
         connect(m_view, &FilesDashView::deleteRequested, this, &FileDashController::onDeleteFileRequested);
         connect(m_view, &FilesDashView::uploadRequested, this, [this]() {
+            std::cout << "🎯 FILEDASHCONTROLLER: Upload requested from UI" << std::endl;
             QString filePath = QFileDialog::getOpenFileName(m_view,
                 tr("Select File to Upload"),
                 QDir::homePath(),
                 tr("All Files (*.*)"));
             if (!filePath.isEmpty()) {
+                std::cout << "📁 FILEDASHCONTROLLER: Selected file: " << filePath.toStdString() << std::endl;
+                std::cout << "📤 FILEDASHCONTROLLER: Calling m_fileModel->uploadFile..." << std::endl;
                 m_fileModel->uploadFile(filePath);
+                std::cout << "✅ FILEDASHCONTROLLER: m_fileModel->uploadFile call completed" << std::endl;
+            } else {
+                std::cout << "❌ FILEDASHCONTROLLER: No file selected" << std::endl;
             }
         });
         connect(m_view, &FilesDashView::downloadRequested, this, [this](const QString &fileName) {
