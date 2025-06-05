@@ -12,6 +12,10 @@ public:
     
     // Simple login operations
     void login(const QString& username, const QString& password);
+    
+    // Credential access for secure system initialization
+    QString getLastUsername() const { return m_lastUsername; }
+    QString getLastPassword() const { return m_lastPassword; }
 
 signals:
     void loginSuccess();
@@ -23,4 +27,8 @@ private slots:
 
 private:
     std::shared_ptr<AuthService> m_authService;
+    
+    // Store last credentials for secure system initialization
+    QString m_lastUsername;
+    QString m_lastPassword;
 };

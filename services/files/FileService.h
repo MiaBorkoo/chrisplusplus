@@ -12,32 +12,36 @@
 #include <QJsonArray>
 #include <memory>
 
-// Keep exactly the same structs
-struct FileInfo {
+// MVC-compatible data structures for UI layer
+struct MvcFileInfo {
     QString name;
     qint64 size;
     QString uploadDate;
     QStringList acl;
     
-    FileInfo() : size(0) {}
-    virtual ~FileInfo() = default;  // Make polymorphic for dynamic_cast
+    MvcFileInfo() : size(0) {}
+    virtual ~MvcFileInfo() = default;
 };
 
-struct SharedFileInfo : public FileInfo {
+struct MvcSharedFileInfo : public MvcFileInfo {
     QString sharedBy;
 };
+
+// Forward declaration for secure implementation
+class SecureFileHandler;
 
 class FileService : public ApiService {
     Q_OBJECT
 public:
     // CHANGE: Use shared Client instead of creating separate HttpClient
     explicit FileService(std::shared_ptr<Client> client, QObject* parent = nullptr);
-    ~FileService() override = default;
+    ~FileService() override;  // CHANGED: Custom destructor needed for forward declarations
 
-    // Initialize FileTransfer when SSLContext becomes available
+    // Initialize with SSL context and user credentials
+    void initializeSecureSystem(std::shared_ptr<SSLContext> sslContext, const QString& userPassword, const QString& userSalt);
     void initializeFileTransfer(std::shared_ptr<SSLContext> sslContext);
 
-    // Keep ALL existing methods exactly as they are
+    // File operations - same interface, secure implementation
     void uploadFile(const QString& filePath);
     void deleteFile(const QString& fileName);
     void listFiles(int page = 1, int pageSize = 50);
@@ -49,21 +53,26 @@ public:
     void getFileMetadata(const QString& fileId);
     void getFileAuditLogs(const QString& fileId, int limit = 50, int offset = 0);
 
-    // Set auth token for authenticated requests
+    // Authentication and encryption key management
     void setAuthToken(const QString& token);
+    void deriveUserMEK(const QString& password, const QString& salt);
+    void updatePasswordAndReencryptMEK(const QString& oldPassword, const QString& newPassword, const QString& salt);
 
     // Keep same isInitialized logic
     bool isInitialized() const override {
         return m_client != nullptr;
     }
 
+    // Check if secure system is ready
+    bool isSecureSystemReady() const;
+
 signals:
-    // Keep ALL existing signals exactly as they are
+    // Keep ALL existing signals exactly as they are but use MVC types
     void uploadComplete(bool success, const QString& fileName);
     void downloadComplete(bool success, const QString& fileName);
     void deleteComplete(bool success, const QString& fileName);
-    void fileListReceived(const QList<FileInfo>& files, int totalFiles, int currentPage, int totalPages);
-    void sharedFileListReceived(const QList<FileInfo>& files, int totalFiles, int currentPage, int totalPages);
+    void fileListReceived(const QList<MvcFileInfo>& files, int totalFiles, int currentPage, int totalPages);
+    void sharedFileListReceived(const QList<MvcFileInfo>& files, int totalFiles, int currentPage, int totalPages);
     void accessGranted(bool success, const QString& fileName, const QString& username);
     void accessRevoked(bool success, const QString& fileName, const QString& username);
     void usersWithAccessReceived(const QString& fileName, const QStringList& users);
@@ -93,7 +102,10 @@ private:
     // Current operation tracking for progress signals
     QString m_currentFileName;
 
-    // Keep ALL existing helper methods exactly as they are
+    // SECURE SYSTEM: Clean abstraction - no templates or incomplete types in header
+    std::unique_ptr<SecureFileHandler> m_secureHandler;
+    
+    // Response parsing (shared between secure and legacy)
     void handleFileListResponse(const QJsonObject& data, bool isSharedList = false);
     void handleAccessResponse(const QJsonObject& data);
     void handleUploadResponse(const QJsonObject& data);

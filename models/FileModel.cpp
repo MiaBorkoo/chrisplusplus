@@ -57,7 +57,7 @@ void FileModel::handleDeleteComplete(bool success, const QString& fileName) {
     emit fileDeleted(success, fileName);
 }
 
-void FileModel::handleFileListReceived(const QList<FileInfo>& files, int totalFiles, int currentPage, int totalPages) {
+void FileModel::handleFileListReceived(const QList<MvcFileInfo>& files, int totalFiles, int currentPage, int totalPages) {
     emit fileListUpdated(files, totalFiles, currentPage, totalPages);
 }
 

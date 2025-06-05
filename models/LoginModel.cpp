@@ -21,6 +21,10 @@ LoginModel::LoginModel(std::shared_ptr<AuthService> authService, QObject* parent
 
 void LoginModel::login(const QString& username, const QString& password)
 {
+    // Store credentials for secure system initialization
+    m_lastUsername = username;
+    m_lastPassword = password;
+    
     m_authService->login(username, password);
 }
 

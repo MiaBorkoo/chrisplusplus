@@ -16,7 +16,7 @@ public:
 
 signals:
     // Operation results
-    void sharedFileListUpdated(const QList<FileInfo>& files, int totalFiles, int currentPage, int totalPages);
+    void sharedFileListUpdated(const QList<MvcFileInfo>& files, int totalFiles, int currentPage, int totalPages);
     void fileDownloaded(bool success, const QString& fileName);
     
     // Progress updates
@@ -26,7 +26,7 @@ signals:
     void errorOccurred(const QString& error);
 
 private slots:
-    void handleSharedFileListReceived(const QList<FileInfo>& files, int totalFiles, int currentPage, int totalPages);
+    void handleSharedFileListReceived(const QList<MvcFileInfo>& files, int totalFiles, int currentPage, int totalPages);
     void handleDownloadComplete(bool success, const QString& fileName);
     void handleDownloadProgress(const QString& fileName, qint64 bytesReceived, qint64 bytesTotal);
     void handleError(const QString& error);

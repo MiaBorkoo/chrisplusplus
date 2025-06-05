@@ -26,13 +26,13 @@ void SharedFileModel::downloadSharedFile(const QString& fileName, const QString&
     m_fileService->downloadFile(fileName, savePath);
 }
 
-void SharedFileModel::handleSharedFileListReceived(const QList<FileInfo>& files, int totalFiles, int currentPage, int totalPages) {
-    QList<FileInfo> processedFiles;
-    for (const FileInfo& file : files) {
-        // Check if this is a SharedFileInfo
-        const SharedFileInfo* sharedInfo = dynamic_cast<const SharedFileInfo*>(&file);
+void SharedFileModel::handleSharedFileListReceived(const QList<MvcFileInfo>& files, int totalFiles, int currentPage, int totalPages) {
+    QList<MvcFileInfo> processedFiles;
+    for (const MvcFileInfo& file : files) {
+        // Check if this is a MvcSharedFileInfo
+        const MvcSharedFileInfo* sharedInfo = dynamic_cast<const MvcSharedFileInfo*>(&file);
         if (sharedInfo) {
-            SharedFileInfo newInfo;
+            MvcSharedFileInfo newInfo;
             newInfo.name = file.name;
             newInfo.size = file.size;
             newInfo.uploadDate = file.uploadDate;

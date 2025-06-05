@@ -5,20 +5,21 @@ project(FileManagementSystem)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Set Qt path
-set(CMAKE_PREFIX_PATH "/home/ruan/Qt/6.9.0/gcc_64")
-
 # Find required packages
 find_package(OpenSSL REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(nlohmann_json REQUIRED)
 pkg_check_modules(ZLIB REQUIRED zlib)
 pkg_check_modules(LIBZIP REQUIRED libzip)
-find_package(Qt6 REQUIRED COMPONENTS Core)
+find_package(Qt6 REQUIRED COMPONENTS Core Concurrent)
 
 # Include directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../)  # For sockets and httpC
+include_directories(${LIBZIP_INCLUDE_DIRS})  # ADD libzip include dirs
+
+# Add library directories for libzip
+link_directories(${LIBZIP_LIBRARY_DIRS})  # ADD libzip library dirs
 
 # Exceptions library
 add_library(ExceptionsLib
@@ -47,6 +48,7 @@ add_library(HttpClientCore
 target_link_libraries(HttpClientCore 
     SSLContextLib 
     Qt6::Core
+    Qt6::Concurrent
     OpenSSL::SSL 
     OpenSSL::Crypto
 )
@@ -56,7 +58,12 @@ add_library(CompressionEngine
     compression/CompressionEngine.cpp
     compression/CompressionEngine.h
 )
-target_link_libraries(CompressionEngine ExceptionsLib ${ZLIB_LIBRARIES} ${LIBZIP_LIBRARIES})
+target_link_libraries(CompressionEngine 
+    ExceptionsLib 
+    nlohmann_json::nlohmann_json
+    ${ZLIB_LIBRARIES} 
+    ${LIBZIP_LIBRARIES}
+)
 
 # Data Converter (handles API format conversion)
 add_library(DataConverter
@@ -100,15 +107,20 @@ add_library(FileEncryptionEngine
 target_link_libraries(FileEncryptionEngine 
     ExceptionsLib
     CompressionEngine
+    nlohmann_json::nlohmann_json
     OpenSSL::SSL 
     OpenSSL::Crypto
 )
 
-# Example executable
-add_executable(FileManagementExample
-    examples/FileManagementExample.cpp
+# Main library target that the parent project links to
+add_library(file_management
+    # SecureFileHandler abstraction layer
+    SecureFileHandler.cpp
+    SecureFileHandler.h
+    
+    # This creates a single library that includes all components
 )
-target_link_libraries(FileManagementExample 
+target_link_libraries(file_management
     FileEncryptionEngine
     FileServiceClientLib
     DataConverter
@@ -117,9 +129,18 @@ target_link_libraries(FileManagementExample
     SSLContextLib
     ExceptionsLib
     Qt6::Core
+    Qt6::Concurrent
     OpenSSL::SSL 
     OpenSSL::Crypto
     nlohmann_json::nlohmann_json
     ${ZLIB_LIBRARIES} 
     ${LIBZIP_LIBRARIES}
+)
+
+# Example executable
+add_executable(FileManagementExample
+    examples/FileManagementExample.cpp
+)
+target_link_libraries(FileManagementExample 
+    file_management
 )

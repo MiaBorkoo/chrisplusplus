@@ -42,7 +42,14 @@ FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileT
     // Connect model signals
     connect(m_fileModel.get(), &FileModel::fileUploaded, this, [this](bool success, const QString &fileName) {
         if (success) {
-            repopulateTable();
+            // Show success message but don't automatically refresh 
+            // since the server might return 500 error after encrypted uploads
+            QMessageBox::information(m_view, "Upload Success", 
+                "File '" + fileName + "' uploaded successfully!\n\n"
+                "Please refresh manually if the file doesn't appear.");
+            
+            // Optional: Try to refresh, but don't clear UI if it fails
+            // m_fileModel->listFiles();
         } else {
             QMessageBox::warning(m_view, "Upload Error", "Failed to upload " + fileName);
         }
@@ -56,14 +63,15 @@ FileDashController::FileDashController(QLineEdit *searchBar, QTableWidget *fileT
 
     connect(m_fileModel.get(), &FileModel::fileDeleted, this, [this](bool success, const QString &fileName) {
         if (success) {
-            repopulateTable();
+            std::cout << "✅ FILEDASHCONTROLLER: Delete successful, refreshing file list from server" << std::endl;
+            m_fileModel->listFiles();  // Get fresh data from server
         } else {
             QMessageBox::warning(m_view, "Delete Error", "Failed to delete " + fileName);
         }
     });
 
     connect(m_fileModel.get(), &FileModel::fileListUpdated, this, 
-        [this](const QList<FileInfo>& files, int totalFiles, int currentPage, int totalPages) {
+        [this](const QList<MvcFileInfo>& files, int totalFiles, int currentPage, int totalPages) {
             m_view->clearTable();
             for (const auto &file : files) {
                 m_view->addFileRow(file.name, QString::number(file.size), file.uploadDate);

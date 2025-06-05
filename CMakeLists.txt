@@ -71,11 +71,12 @@ qt_standard_project_setup()
 # ============================================================================
 # Add subdirectories for ALL libraries
 # ============================================================================
-add_subdirectory(sockets)    # SSL/TLS layer (shared by both systems)
-add_subdirectory(httpC)      # HTTP protocol layer
-add_subdirectory(fileIO)     # File transfer layer 
-add_subdirectory(crypto)     # Crypto library 
-add_subdirectory(tofu)       # TOFU library
+add_subdirectory(sockets)           # SSL/TLS layer (shared by both systems)
+add_subdirectory(httpC)             # HTTP protocol layer
+add_subdirectory(fileIO)            # File transfer layer 
+add_subdirectory(crypto)            # Crypto library 
+add_subdirectory(tofu)              # TOFU library
+add_subdirectory(services/files)    # Secure file management system
 
 # Main application with authentication
 qt_add_executable(ChrisPlusPlus
@@ -170,7 +171,8 @@ target_link_libraries(ChrisPlusPlus
         file_transfer
         http_layer
         sockets
-        tofu           
+        tofu
+        file_management           # Secure file management system
         OpenSSL::SSL
         OpenSSL::Crypto
         crypto-lib
@@ -291,6 +293,8 @@ target_link_libraries(test_file_connection PRIVATE
     file_transfer
     http_layer
     sockets
+    file_management           # Secure file management system
+    nlohmann_json::nlohmann_json
     ${QRENCODE_LIBRARIES}
 )
 

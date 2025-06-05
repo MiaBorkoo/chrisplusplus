@@ -21,7 +21,7 @@ signals:
     void fileUploaded(bool success, const QString& fileName);
     void fileDownloaded(bool success, const QString& fileName);
     void fileDeleted(bool success, const QString& fileName);
-    void fileListUpdated(const QList<FileInfo>& files, int totalFiles, int currentPage, int totalPages);
+    void fileListUpdated(const QList<MvcFileInfo>& files, int totalFiles, int currentPage, int totalPages);
     
     // Progress updates
     void uploadProgress(qint64 bytesSent, qint64 bytesTotal);
@@ -35,7 +35,7 @@ private slots:
     void handleUploadComplete(bool success, const QString& fileName);
     void handleDownloadComplete(bool success, const QString& fileName);
     void handleDeleteComplete(bool success, const QString& fileName);
-    void handleFileListReceived(const QList<FileInfo>& files, int totalFiles, int currentPage, int totalPages);
+    void handleFileListReceived(const QList<MvcFileInfo>& files, int totalFiles, int currentPage, int totalPages);
     
     // Progress handlers
     void handleUploadProgress(const QString& fileName, qint64 bytesSent, qint64 bytesTotal);

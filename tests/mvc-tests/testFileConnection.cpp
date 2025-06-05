@@ -95,8 +95,8 @@ private slots:
         QCOMPARE(m_filesDashView->getFileTable()->rowCount(), 0);
 
         // 2. Update model with new files
-        QList<FileInfo> dummyFiles;
-        FileInfo file1;
+        QList<MvcFileInfo> dummyFiles;
+        MvcFileInfo file1;
         file1.name = "test1.txt";
         file1.size = 1024;
         file1.uploadDate = "2024-03-20";
