@@ -29,17 +29,22 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
     m_stack = new QStackedWidget(this);
 
-    //creates login view and controller
-    m_loginView = new LoginView(this);
-    m_client = std::make_shared<Client>(QString::fromLatin1("http://localhost:8000")); // Fixed constructor call
+    // Initialize client and auth service
+    m_client = std::make_shared<Client>(Config::getInstance().getServerUrl());
     m_authService = std::make_shared<AuthService>(m_client);
+
+    // Initialize models
     m_loginModel = std::make_shared<LoginModel>(m_authService);
+    m_signUpModel = std::make_shared<SignUpModel>(m_authService);
+
+    // Create login view and controller
+    m_loginView = new LoginView(this);
     m_loginController = new LoginController(m_loginModel, this);
     m_loginController->setView(m_loginView);
 
-    //creates sign up view and controller
+    // Create sign up view and controller
     m_signUpView = new SignUpView(this);
-    m_signUpController = new SignUpController(m_signUpView, this);
+    m_signUpController = new SignUpController(m_signUpView, m_signUpModel, this);
 
     // Initialize network client and services using Config
     auto client = std::make_shared<Client>(Config::getInstance().getServerUrl());
@@ -69,14 +74,17 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
     setCentralWidget(m_stack);
 
-    //connect() - This is Qt's function to connect signals to slots
-    //switches to sign up view when sign-up button is clicked
+    // Connect navigation signals
     connect(m_loginView, &LoginView::signUpClicked, this, [this]() {
         m_stack->setCurrentWidget(m_signUpView);
     });
 
-    //switches back to login view when login button is clicked on sign-up page
     connect(m_signUpView, &SignUpView::loginRequested, this, [this]() {
+        m_stack->setCurrentWidget(m_loginView);
+    });
+
+    // Connect successful registration to switch to login view
+    connect(m_signUpController, &SignUpController::registrationSuccessful, this, [this]() {
         m_stack->setCurrentWidget(m_loginView);
     });
 
