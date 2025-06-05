@@ -14,7 +14,9 @@
 
 // MVC-compatible data structures for UI layer
 struct MvcFileInfo {
-    QString name;
+    QString name;           // Decrypted name for display
+    QString fileId;         // Server file ID for operations
+    QString encryptedName;  // Original encrypted name from server
     qint64 size;
     QString uploadDate;
     QStringList acl;

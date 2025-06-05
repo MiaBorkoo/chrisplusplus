@@ -409,6 +409,19 @@ bool SecureFileHandler::getFileAuditLogs(const QString& fileId, const QString& a
     }
 }
 
+std::string SecureFileHandler::decryptMetadata(const std::string& encryptedData) const
+{
+    if (!isInitialized() || !m_encryptionEngine) {
+        throw std::runtime_error("SecureFileHandler not initialized");
+    }
+    
+    try {
+        return m_encryptionEngine->decrypt_metadata(encryptedData, m_userMEK);
+    } catch (const std::exception& e) {
+        throw std::runtime_error("Failed to decrypt metadata: " + std::string(e.what()));
+    }
+}
+
 // Private helper methods implementing the encryption architecture
 
 bool SecureFileHandler::deriveMEKWrapperKey(const QString& password, const QString& salt)

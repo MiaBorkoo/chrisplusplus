@@ -122,7 +122,7 @@ void FileService::uploadFile(const QString& filePath) {
         return;
     }
     
-    // FALLBACK PATH: Use legacy FileTransfer (insecure)
+    // FALLBACK PATH: Use legacy FileTransfer (only if secure system unavailable)
     std::cout << "⚠️ FILESERVICE: Secure system not available, using LEGACY upload" << std::endl;
     
     if (!m_fileTransfer) {
@@ -440,6 +440,33 @@ void FileService::handleResponseReceived(int status, const QJsonObject& data) {
     QString endpoint = data.value("endpoint").toString();
     std::cout << "Endpoint: " << endpoint.toStdString() << std::endl;
     
+    // ADDED: Handle server errors gracefully
+    if (status >= 500) {
+        QString errorMsg = QString("Server error (%1) for endpoint: %2").arg(status).arg(endpoint);
+        std::cout << "❌ FILESERVICE: " << errorMsg.toStdString() << std::endl;
+        
+        if (endpoint == "/api/files/" || endpoint.startsWith("/api/files/?")) {
+            // For file listing errors, emit empty list instead of crashing
+            std::cout << "⚠️ FILESERVICE: File listing failed, emitting empty list to preserve UI" << std::endl;
+            QList<MvcFileInfo> emptyFiles;
+            emit fileListReceived(emptyFiles, 0, 1, 1);
+        } else if (endpoint == "/api/files/shares/received") {
+            QList<MvcFileInfo> emptyFiles;
+            emit sharedFileListReceived(emptyFiles, 0, 1, 1);
+        } else {
+            reportError(errorMsg);
+        }
+        return;
+    }
+    
+    // ADDED: Handle client errors gracefully  
+    if (status >= 400 && status < 500) {
+        QString errorMsg = QString("Client error (%1) for endpoint: %2").arg(status).arg(endpoint);
+        std::cout << "❌ FILESERVICE: " << errorMsg.toStdString() << std::endl;
+        reportError(errorMsg);
+        return;
+    }
+    
     if (endpoint == "/api/files/" || endpoint.startsWith("/api/files/?")) {
         handleFileListResponse(data, false);
     }
@@ -490,8 +517,41 @@ void FileService::handleFileListResponse(const QJsonObject& data, bool isSharedL
         
         if (isSharedList) {
             MvcSharedFileInfo info;
-            info.name = obj["filename_encrypted"].toString();
-            info.size = obj["file_size_encrypted"].toString().toLongLong();
+            
+            // Store encrypted name and file ID
+            info.encryptedName = obj["filename_encrypted"].toString();
+            info.fileId = obj.value("file_id").toString(); // Get file ID if available
+            
+            // DECRYPT filename for display if secure system is available
+            if (m_secureHandler && m_secureHandler->isInitialized()) {
+                try {
+                    std::string decryptedName = m_secureHandler->decryptMetadata(
+                        info.encryptedName.toStdString()
+                    );
+                    info.name = QString::fromStdString(decryptedName);
+                    std::cout << "🔓 DECRYPTED filename: " << info.encryptedName.toStdString().substr(0, 20) 
+                              << "... -> " << info.name.toStdString() << std::endl;
+                } catch (const std::exception& e) {
+                    std::cout << "❌ Failed to decrypt filename: " << e.what() << std::endl;
+                    info.name = "[Encrypted: " + info.encryptedName.left(20) + "...]";
+                }
+            } else {
+                // Fallback: Show encrypted name with indicator
+                info.name = "[Encrypted: " + info.encryptedName.left(20) + "...]";
+            }
+            
+            // Decrypt file size if possible
+            QString encryptedSize = obj["file_size_encrypted"].toString();
+            if (m_secureHandler && m_secureHandler->isInitialized()) {
+                try {
+                    std::string decryptedSize = m_secureHandler->decryptMetadata(encryptedSize.toStdString());
+                    info.size = QString::fromStdString(decryptedSize).toLongLong();
+                } catch (const std::exception& e) {
+                    info.size = 0; // Default if decryption fails
+                }
+            } else {
+                info.size = 0;
+            }
             
             // Convert timestamp to readable date
             qint64 timestamp = obj["upload_timestamp"].toVariant().toLongLong();
@@ -509,8 +569,41 @@ void FileService::handleFileListResponse(const QJsonObject& data, bool isSharedL
             files.append(info);
         } else {
             MvcFileInfo info;
-            info.name = obj["filename_encrypted"].toString();
-            info.size = obj["file_size_encrypted"].toString().toLongLong();
+            
+            // Store encrypted name and file ID
+            info.encryptedName = obj["filename_encrypted"].toString();
+            info.fileId = obj.value("file_id").toString(); // Get file ID if available
+            
+            // DECRYPT filename for display if secure system is available
+            if (m_secureHandler && m_secureHandler->isInitialized()) {
+                try {
+                    std::string decryptedName = m_secureHandler->decryptMetadata(
+                        info.encryptedName.toStdString()
+                    );
+                    info.name = QString::fromStdString(decryptedName);
+                    std::cout << "🔓 DECRYPTED filename: " << info.encryptedName.toStdString().substr(0, 20) 
+                              << "... -> " << info.name.toStdString() << std::endl;
+                } catch (const std::exception& e) {
+                    std::cout << "❌ Failed to decrypt filename: " << e.what() << std::endl;
+                    info.name = "[Encrypted: " + info.encryptedName.left(20) + "...]";
+                }
+            } else {
+                // Fallback: Show encrypted name with indicator
+                info.name = "[Encrypted: " + info.encryptedName.left(20) + "...]";
+            }
+            
+            // Decrypt file size if possible
+            QString encryptedSize = obj["file_size_encrypted"].toString();
+            if (m_secureHandler && m_secureHandler->isInitialized()) {
+                try {
+                    std::string decryptedSize = m_secureHandler->decryptMetadata(encryptedSize.toStdString());
+                    info.size = QString::fromStdString(decryptedSize).toLongLong();
+                } catch (const std::exception& e) {
+                    info.size = 0; // Default if decryption fails
+                }
+            } else {
+                info.size = 0;
+            }
             
             // Convert timestamp to readable date  
             qint64 timestamp = obj["upload_timestamp"].toVariant().toLongLong();

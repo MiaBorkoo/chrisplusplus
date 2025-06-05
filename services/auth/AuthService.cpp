@@ -28,9 +28,15 @@ extern "C" {
 using namespace StringUtils;  // Add this to use StringUtils functions
 
 AuthService::AuthService(std::shared_ptr<Client> client, QObject* parent)
-    : ApiService(parent), m_client(client), m_settings(new QSettings(this)), m_waitingForSalts(false)
+    : ApiService(parent), m_client(client), m_waitingForSalts(false)
 {
     m_validationService = std::make_shared<ValidationService>();
+    
+    // Initialize settings
+    m_settings = std::make_unique<QSettings>("Epic", "ChrisPlusPlus");
+    
+    // TEMPORARY: Clear all TOTP settings for debugging
+    clearAllTOTPSettings();
     
     if (m_client) {
         connect(m_client.get(), SIGNAL(responseReceived(int, QJsonObject)), 
@@ -38,6 +44,8 @@ AuthService::AuthService(std::shared_ptr<Client> client, QObject* parent)
 
         connect(m_client.get(), SIGNAL(networkError(QString)),
                 this, SLOT(handleNetworkError(QString)));
+    } else {
+        qDebug() << "WARNING: AuthService created without Client";
     }
 }
 
@@ -699,6 +707,18 @@ bool AuthService::hasTOTPEnabledForUser(const QString& username) const {
     QString key = QString("users/%1/totp_setup_completed").arg(username);
     bool hasCompleted = m_settings->value(key, false).toBool();
     
+    // ADDED: Detailed debugging to understand what's happening
+    qDebug() << "🔍 TOTP DEBUG for user:" << username;
+    qDebug() << "   Settings key:" << key;
+    qDebug() << "   Raw setting value:" << m_settings->value(key, "NOT_SET");
+    qDebug() << "   Converted to bool:" << hasCompleted;
+    
+    // Also check if there's any global TOTP setting affecting this
+    bool globalEnabled = m_settings->value("totp/enabled", false).toBool();
+    QString globalUsername = m_settings->value("totp/username", "").toString();
+    qDebug() << "   Global TOTP enabled:" << globalEnabled;
+    qDebug() << "   Global TOTP username:" << globalUsername;
+    
     qDebug() << "TOTP check for user:" << username << "Setup completed:" << hasCompleted;
     return hasCompleted;
 }
@@ -731,6 +751,30 @@ void AuthService::disableTOTP() {
     
     emit totpDisabled();
     qDebug() << "TOTP disabled";
+}
+
+// ADDED: Debug method to clear ALL TOTP settings for fresh start
+void AuthService::clearAllTOTPSettings() {
+    qDebug() << "🧹 CLEARING ALL TOTP SETTINGS FOR DEBUG";
+    
+    // Clear global TOTP settings
+    m_settings->remove("totp/enabled");
+    m_settings->remove("totp/username");  
+    m_settings->remove("totp/enabled_at");
+    
+    // Clear all user-specific TOTP settings
+    m_settings->beginGroup("users");
+    QStringList userKeys = m_settings->childGroups();
+    for (const QString& userKey : userKeys) {
+        m_settings->remove(userKey + "/totp_setup_completed");
+        m_settings->remove(userKey + "/totp_setup_completed_at");
+        m_settings->remove(userKey + "/server_otpauth_uri");
+    }
+    m_settings->endGroup();
+    
+    m_settings->sync();
+    
+    qDebug() << "✅ All TOTP settings cleared";
 }
 
 // Enhanced TOTP methods for better user experience

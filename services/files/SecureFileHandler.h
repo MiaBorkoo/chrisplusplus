@@ -64,6 +64,9 @@ public:
     bool getFileMetadata(const QString& fileId, const QString& authToken);
     bool getFileAuditLogs(const QString& fileId, const QString& authToken);
 
+    // Metadata decryption for UI display
+    std::string decryptMetadata(const std::string& encryptedData) const;
+
 private:
     // Core encryption components
     std::unique_ptr<FileEncryptionEngine> m_encryptionEngine;

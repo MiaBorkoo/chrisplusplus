@@ -63,6 +63,9 @@ public:
     void disableTOTP();
     void completeTOTPSetupAndLogin(const QString& username, const QString& authHash, const QString& totpCode);
     
+    // Debug method to clear all TOTP settings
+    void clearAllTOTPSettings();
+    
     // Helper for server-provided TOTP QR code generation
     QString generateQRCodeFromOtpauthUri(const QString& otpauthUri);
     QString extractUsernameFromOtpauthUri(const QString& otpauthUri);
