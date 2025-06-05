@@ -31,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
     //creates login view and controller
     m_loginView = new LoginView(this);
-    m_client = std::make_shared<Client>(QString::fromLatin1("https")); // Fixed constructor call
+    m_client = std::make_shared<Client>(Config::getInstance().getServerUrl());
     m_authService = std::make_shared<AuthService>(m_client);
     m_loginModel = std::make_shared<LoginModel>(m_authService);
     m_loginController = new LoginController(m_loginModel, this);
@@ -39,7 +39,8 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
 
     //creates sign up view and controller
     m_signUpView = new SignUpView(this);
-    m_signUpController = new SignUpController(m_signUpView, this);
+    m_signUpModel = std::make_shared<SignUpModel>(m_authService);
+    m_signUpController = new SignUpController(m_signUpView, m_signUpModel, this);
 
     // Initialize network client and services using Config
     auto client = std::make_shared<Client>(Config::getInstance().getServerUrl());
@@ -84,6 +85,12 @@ MainWindow::MainWindow(QWidget *parent): QMainWindow(parent)
     connect(m_loginController, &LoginController::loginSuccessful, this, [this]() {
         m_stack->setCurrentWidget(m_filesDashView);
         m_sideNavController->setActiveTab(SideNavTab::OwnedFiles);
+    });
+    
+    //FIX: Registration success should go to LOGIN page, not files!
+    connect(m_signUpController, &SignUpController::registrationSuccessful, this, [this]() {
+        m_stack->setCurrentWidget(m_loginView);  // ✅ Go to login page
+        // TODO: Show message "Registration successful! Please login with your credentials."
     });
     
     connect(m_filesDashView, &FilesDashView::fileOpenRequested, this, [this](const QString &fileName) {

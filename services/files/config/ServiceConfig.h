@@ -30,13 +30,30 @@ namespace ServiceConfig {
     
     // API endpoints
     namespace Endpoints {
+        // Authentication endpoints
+        constexpr const char* AUTH_REGISTER = "/api/auth/register";
+        constexpr const char* AUTH_LOGIN = "/api/auth/login";
+        constexpr const char* AUTH_REFRESH = "/api/auth/refresh";
+        constexpr const char* AUTH_LOGOUT = "/api/auth/logout";
+        constexpr const char* AUTH_CHANGE_PASSWORD = "/api/auth/change_password";
+        
+        // User endpoints
+        constexpr const char* USER_SALTS = "/api/user/{username}/salts";
+        
+        // Files endpoints
         constexpr const char* FILES_BASE = "/api/files";
         constexpr const char* FILES_UPLOAD = "/api/files/upload";
         constexpr const char* FILES_DOWNLOAD = "/api/files/{file_id}/download";
         constexpr const char* FILES_METADATA = "/api/files/{file_id}/metadata";
-        constexpr const char* FILES_LIST = "/api/files";
+        constexpr const char* FILES_LIST = "/api/files/";
         constexpr const char* FILES_DELETE = "/api/files/delete";
         constexpr const char* FILES_SHARE = "/api/files/share";
+        constexpr const char* FILES_REVOKE_SHARE = "/api/files/share/{share_id}";
+        constexpr const char* FILES_SHARES_LIST = "/api/files/{file_id}/shares";
         constexpr const char* FILES_SHARES_RECEIVED = "/api/files/shares/received";
+        constexpr const char* FILES_AUDIT = "/api/files/{file_id}/audit";
+        
+        // Root endpoint
+        constexpr const char* ROOT = "/";
     }
 } 

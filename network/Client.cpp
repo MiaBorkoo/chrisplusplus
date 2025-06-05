@@ -67,13 +67,6 @@ void Client::sendRequest(const QString& endpoint,
         // Parse JSON response
         QJsonObject responseObj;
         if (!response.body.empty()) {
-            // DEBUG: Log the raw response
-            qDebug() << "=== RAW SERVER RESPONSE ===";
-            qDebug() << "Status Code:" << response.statusCode;
-            qDebug() << "Response Body:" << QString::fromStdString(response.body);
-            qDebug() << "Response Length:" << response.body.length();
-            qDebug() << "=== END RAW RESPONSE ===";
-            
             QJsonParseError parseError;
             QJsonDocument doc = QJsonDocument::fromJson(
                 QByteArray::fromStdString(response.body), &parseError);
@@ -108,13 +101,6 @@ void Client::sendAsync(const QString& endpoint,
         [this, endpoint, onSuccess](const HttpResponse& response) {
             QJsonObject responseObj;
             if (!response.body.empty()) {
-                // DEBUG: Log the raw response
-                qDebug() << "=== RAW ASYNC SERVER RESPONSE ===";
-                qDebug() << "Status Code:" << response.statusCode;
-                qDebug() << "Response Body:" << QString::fromStdString(response.body);
-                qDebug() << "Response Length:" << response.body.length();
-                qDebug() << "=== END RAW ASYNC RESPONSE ===";
-                
                 QJsonParseError parseError;
                 QJsonDocument doc = QJsonDocument::fromJson(
                     QByteArray::fromStdString(response.body), &parseError);

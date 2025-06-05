@@ -6,6 +6,7 @@
 #include <QString>
 #include <QStringList>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <memory>
 
 struct FileInfo {
@@ -39,6 +40,10 @@ public:
     void grantAccess(const QString& fileName, const QString& username);
     void revokeAccess(const QString& fileName, const QString& username);
     void getUsersWithAccess(const QString& fileName);
+    
+    // Missing OpenAPI endpoints
+    void getFileMetadata(const QString& fileId);
+    void getFileAuditLogs(const QString& fileId, int limit = 50, int offset = 0);
 
     // Implementation of ApiService
     bool isInitialized() const override {
@@ -61,6 +66,10 @@ signals:
     void accessGranted(bool success, const QString& fileName, const QString& username);
     void accessRevoked(bool success, const QString& fileName, const QString& username);
     void usersWithAccessReceived(const QString& fileName, const QStringList& users);
+    
+    // Missing OpenAPI endpoint signals
+    void fileMetadataReceived(const QString& fileId, const QJsonObject& metadata);
+    void auditLogsReceived(const QString& fileId, const QJsonArray& logs);
 
 private slots:
     void handleResponseReceived(int status, const QJsonObject& data);
@@ -75,4 +84,6 @@ private:
     void handleUploadResponse(const QJsonObject& data);
     void handleDownloadResponse(const QJsonObject& data);
     void handleDeleteResponse(const QJsonObject& data);
+    void handleMetadataResponse(const QJsonObject& data);
+    void handleAuditLogsResponse(const QJsonObject& data);
 };

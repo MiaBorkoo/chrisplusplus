@@ -2,7 +2,8 @@
 #include <QRegularExpression>
 #include <QDebug>
 
-SignUpController::SignUpController(SignUpView *view, QObject *parent): QObject(parent), view(view)
+SignUpController::SignUpController(SignUpView *view, std::shared_ptr<SignUpModel> model, QObject *parent) 
+    : QObject(parent), view(view), m_model(model)
 {
     commonPasswords = QSet<QString>({
         "123456789012", "password1234", "qwertyuiop12",
@@ -13,7 +14,17 @@ SignUpController::SignUpController(SignUpView *view, QObject *parent): QObject(p
         "password12345", "abc123abc123", "mysecurelogin"
     });
 
+    // Connect view signals
     connect(view, &SignUpView::signUpRequested, this, &SignUpController::onSignUpClicked);
+    
+    // Connect model signals  
+    connect(m_model.get(), &SignUpModel::registrationSuccess,
+            this, &SignUpController::registrationSuccessful);
+    connect(m_model.get(), &SignUpModel::registrationError,
+            this, [this](const QString& error) {
+                this->view->showError(error);
+                emit registrationFailed(error);
+            });
 }
 
 void SignUpController::onSignUpClicked(const QString &username, const QString &password, const QString &confirmPassword) {
@@ -44,8 +55,14 @@ void SignUpController::onSignUpClicked(const QString &username, const QString &p
         return;
     }
 
-    view->clearFields();
-    view->showError("Sign up successful!"); // we will remove this later when it switches to the new page
+    // Actually perform registration instead of fake success
+    if (m_model) {
+        view->clearFields();
+        view->showError("Registering user..."); // Show loading message
+        m_model->registerUser(username, password, confirmPassword);
+    } else {
+        view->showError("Registration service not available.");
+    }
 }
 
 bool SignUpController::isUsernameValid(const QString &username, QString &errorMessage) {
@@ -99,6 +116,7 @@ bool SignUpController::isPasswordValid(const QString &password, QString &errorMe
     // Check for numbers
     if (!password.contains(QRegularExpression("[0-9]"))) {
         errorMessage = "Password must contain at least one number.";
+        return false;
     }
     // Check for common passwords
     if (isCommonPassword(password)) {
@@ -120,3 +138,4 @@ bool SignUpController::isCommonPassword(const QString &password) const {
     return commonPasswords.contains(password) || 
            commonPasswords.contains(password.toLower());
 }
+

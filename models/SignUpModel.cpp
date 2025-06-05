@@ -8,15 +8,6 @@
  * This class handles user registration operations.
  */
 
-template <size_t N>
-QString toBase64String(const std::array<uint8_t, N>& data) {
-    return QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(data.data()), static_cast<int>(data.size())).toBase64());
-}
-
-QString toBase64String(const std::vector<uint8_t>& data) {
-    return QString::fromUtf8(QByteArray(reinterpret_cast<const char*>(data.data()), static_cast<int>(data.size())).toBase64());
-}
-
 SignUpModel::SignUpModel(std::shared_ptr<AuthService> authService, QObject* parent)
     : QObject(parent), m_authService(authService) 
 {

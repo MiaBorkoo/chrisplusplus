@@ -6,17 +6,26 @@
 #include <QSet>
 #include <QRegularExpression>
 #include "../views/SignUpView.h"
+#include "../services/auth/AuthService.h"
+#include <memory>
+
+#include "../models/SignUpModel.h"
 
 class SignUpController : public QObject {
     Q_OBJECT
 public:
-    explicit SignUpController(SignUpView *view, QObject *parent = nullptr);
+    explicit SignUpController(SignUpView *view, std::shared_ptr<SignUpModel> model, QObject *parent = nullptr);
 
 public slots:
     void onSignUpClicked(const QString &username, const QString &password, const QString &confirmPassword);
 
+signals:
+    void registrationSuccessful();
+    void registrationFailed(const QString& error);
+
 private:
     SignUpView *view;
+    std::shared_ptr<SignUpModel> m_model;
     bool isPasswordValid(const QString &password, QString &errorMessage);
     bool isUsernameValid(const QString &username, QString &errorMessage);
     bool isCommonPassword(const QString &password) const;

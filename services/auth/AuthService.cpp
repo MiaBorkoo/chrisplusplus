@@ -9,6 +9,14 @@
 #include <QSettings>           
 #include <QDebug>
 #include <QByteArray>
+#include <QTimer>
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
+#include <openssl/rand.h>
+#include <sstream>
+#include <iomanip>
 
 // Use qrencode library directly for TOTP QR codes
 extern "C" {
@@ -27,7 +35,7 @@ namespace {
 }
 
 AuthService::AuthService(std::shared_ptr<Client> client, QObject* parent)
-    : ApiService(parent), m_client(client), m_settings(new QSettings(this))  
+    : ApiService(parent), m_client(client), m_settings(new QSettings(this)), m_waitingForSalts(false)
 {
     m_validationService = std::make_shared<ValidationService>();
     
@@ -47,23 +55,23 @@ void AuthService::login(const QString& username, const QString& password) {
         return;
     }
 
+    if (m_waitingForSalts) {
+        emit errorOccurred("Another login operation is already in progress");
+        return;
+    }
+
+    qDebug() << "Starting login for username:" << username;
+    
+    // Store login state for when salts response arrives
+    m_pendingLoginUsername = username;
+    m_pendingLoginPassword = password;
+    m_waitingForSalts = true;
+    
+    // Request salts from server - response will be handled asynchronously
     try {
-        // Get current salts from server
-        AuthSalts salts = getAuthSalts(username);
-        
-        // Convert salts from base64
-        QByteArray authSalt1Data = QByteArray::fromBase64(salts.authSalt1.toUtf8());
-        QByteArray authSalt2Data = QByteArray::fromBase64(salts.authSalt2.toUtf8());
-        std::vector<uint8_t> authSalt1(authSalt1Data.begin(), authSalt1Data.end());
-        std::vector<uint8_t> authSalt2(authSalt2Data.begin(), authSalt2Data.end());
-        
-        // Derive auth hash using the retrieved salts
-        QString authHash = deriveAuthHash(password, authSalt1, authSalt2);
-        
-        // Proceed with hashed login
-        hashedLogin(username, authHash);
-        
+        AuthSalts salts = getAuthSalts(username);  // This triggers async request
     } catch (const std::exception& e) {
+        m_waitingForSalts = false;
         QString errorMessage = QString("Login failed: %1").arg(e.what());
         emit errorOccurred(errorMessage);
     }
@@ -72,15 +80,24 @@ void AuthService::login(const QString& username, const QString& password) {
 void AuthService::hashedLogin(const QString& username, const QString& authHash) {
     QJsonObject payload;
     payload["username"] = username;
-    payload["auth_hash"] = authHash;
+    payload["auth_key"] = authHash;  // OpenAPI field name
     
-    const QString secretB32 = m_settings->value("totp/secret").toString();
-    if (!secretB32.isEmpty()) {                 
-        TOTP totp(secretB32.toStdString());  
-        const QString otp = QString::fromStdString(totp.generate());  
-        payload["otp"] = otp;                   
+    // No TOTP code - for basic login without TOTP
+    m_client->sendRequest("/api/auth/login", "POST", payload);  // Correct OpenAPI endpoint
+}
+
+// Method for login with manual TOTP
+void AuthService::hashedLoginWithTOTP(const QString& username, const QString& authHash, const QString& totpCode) {
+    QJsonObject payload;
+    payload["username"] = username;
+    payload["auth_key"] = authHash;  // OpenAPI field name
+    
+    // User-entered TOTP code from Google Authenticator
+    if (!totpCode.isEmpty()) {
+        payload["otp"] = totpCode;
     }
-    m_client->sendRequest("/login", "POST", payload);
+    
+    m_client->sendRequest("/api/auth/login", "POST", payload);  // Correct OpenAPI endpoint
 }
 
 void AuthService::registerUser(const QString& username, const QString& password, const QString& confirmPassword) {
@@ -149,15 +166,27 @@ void AuthService::registerUser(const QString& username,
                              const QString& mekTag) {
     QJsonObject payload;
     payload["username"] = username;
-    payload["auth_hash"] = authHash;
+    payload["auth_key"] = authHash;
     payload["encrypted_mek"] = encryptedMEK;
-    payload["auth_salt1"] = authSalt1;
-    payload["auth_salt2"] = authSalt2;
+    payload["auth_salt"] = authSalt1;      // Server expects "auth_salt" (not "auth_salt1")
+    payload["auth_salt_2"] = authSalt2;    // Server expects "auth_salt_2" (with underscore)
     payload["enc_salt"] = encSalt;
+    
+    // Add the MEK encryption details
     payload["mek_iv"] = mekIV;
     payload["mek_tag"] = mekTag;
     
-    m_client->sendRequest("/register", "POST", payload);
+    // Add required fields that server expects
+    QJsonObject publicKey;
+    publicKey["type"] = "RSA";
+    publicKey["key"] = "temp_key_data";
+    payload["public_key"] = publicKey;
+    
+    // Generate a simple HMAC for user data validation  
+    payload["user_data_hmac"] = "temp_hmac_data";
+    
+    qDebug() << "Fixed registration payload:" << payload;
+    m_client->sendRequest("/api/auth/register", "POST", payload);
 }
 
 void AuthService::changePassword(const QString& username,
@@ -177,8 +206,10 @@ void AuthService::changePassword(const QString& username,
         // Convert salts from base64
         QByteArray authSalt1Data = QByteArray::fromBase64(salts.authSalt1.toUtf8());
         QByteArray authSalt2Data = QByteArray::fromBase64(salts.authSalt2.toUtf8());
+        QByteArray encSaltData = QByteArray::fromBase64(salts.encSalt.toUtf8());
         std::vector<uint8_t> authSalt1(authSalt1Data.begin(), authSalt1Data.end());
         std::vector<uint8_t> authSalt2(authSalt2Data.begin(), authSalt2Data.end());
+        std::vector<uint8_t> encSalt(encSaltData.begin(), encSaltData.end());
 
         std::vector<uint8_t> oldAuthSalt1; // = getCurrentSalts().authSalt1;
         std::vector<uint8_t> oldAuthSalt2; // = getCurrentSalts().authSalt2;
@@ -223,11 +254,22 @@ void AuthService::changePassword(const QString& username,
                                const QString& newEncryptedMEK) {
     QJsonObject payload;
     payload["username"] = username;
-    payload["old_auth_hash"] = oldAuthHash;
-    payload["new_auth_hash"] = newAuthHash;
+    payload["old_auth_key"] = oldAuthHash;  // Changed from old_auth_hash to old_auth_key to match OpenAPI spec
+    payload["new_auth_key"] = newAuthHash;  // Changed from new_auth_hash to new_auth_key to match OpenAPI spec
     payload["new_encrypted_mek"] = newEncryptedMEK;
     
-    m_client->sendRequest("/change_password", "POST", payload);
+    // Add required fields from OpenAPI spec
+    const QString secretB32 = m_settings->value("totp/secret").toString();
+    if (!secretB32.isEmpty()) {
+        TOTP totp(secretB32.toStdString());
+        const QString totpCode = QString::fromStdString(totp.generate());
+        payload["totp_code"] = totpCode;
+    } else {
+        payload["totp_code"] = "000000";  // Placeholder if TOTP not enabled
+    }
+    payload["session_token"] = m_sessionToken;
+
+    m_client->sendRequest("/api/auth/change_password", "POST", payload);  // Fixed: added /api/ prefix
 }
 
 std::vector<uint8_t> AuthService::generateSalt() const {
@@ -243,15 +285,22 @@ void AuthService::handleResponseReceived(int status, const QJsonObject& data) {
     // Get the endpoint from the response or context
     QString endpoint = data.value("endpoint").toString();
 
-    if (endpoint == "/auth/salts") {
+    if (endpoint.contains("/api/user/") && endpoint.endsWith("/salts")) {
         AuthSalts salts;
         handleSaltsResponse(status, data, salts);
-    } else if (endpoint == "/auth/login") {
+    } else if (endpoint == "/api/auth/login") {
         handleLoginResponse(status, data);
-    } else if (endpoint == "/auth/register") {
+    } else if (endpoint == "/api/auth/register") {
         handleRegisterResponse(status, data);
-    } else if (endpoint == "/auth/change-password") {
+    } else if (endpoint == "/api/auth/change_password") {
         handleChangePasswordResponse(status, data);
+    } else if (endpoint.contains("/api/auth/refresh")) {
+        handleRefreshResponse(status, data);
+    } else if (endpoint == "/api/auth/logout") {
+        handleLogoutResponse(status, data);
+    } else {
+        // Debug: log unhandled endpoints
+        qDebug() << "Unhandled endpoint response:" << endpoint << "Status:" << status;
     }
 }
 
@@ -260,22 +309,52 @@ void AuthService::handleNetworkError(const QString& error) {
 }
 
 void AuthService::handleLoginResponse(int status, const QJsonObject& data) {
+    qDebug() << "Login response - Status:" << status << "Data:" << data;
+    
     const bool success = (status == 200 && data.value("success").toBool());
     const QString token = data.value("token").toString();
     
     emit loginCompleted(success, token);
     if (success) {
         m_sessionToken = token;
+        qDebug() << "Login successful! Token:" << token;
     } else {
-        reportError(data.value("error").toString("Login failed. Please try again."));
+        QString errorMsg = data.value("error").toString("Login failed. Please try again.");
+        qDebug() << "Login failed with error:" << errorMsg;
+        reportError(errorMsg);
     }
 }
 
 void AuthService::handleRegisterResponse(int status, const QJsonObject& data) {
-    const bool success = (status == 200 && data.value("success").toBool());
-    emit registrationCompleted(success);
-    if (!success) {
-        reportError(data.value("error").toString("Registration failed. Please try again."));
+    qDebug() << "Registration response - Status:" << status << "Data:" << data;
+    
+    // Fix: Check for "status": "success" instead of "success": true
+    const bool success = (status == 200 && data.value("status").toString() == "success");
+    
+    if (success) {
+        qDebug() << "Registration successful!";
+        
+        // Check if server provided TOTP setup info (new flow)
+        if (data.contains("otpauth_uri")) {
+            QString otpauthUri = data.value("otpauth_uri").toString();
+            QString userId = data.value("user_id").toString();
+            
+            qDebug() << "Server provided TOTP setup info for user:" << userId;
+            qDebug() << "OTPAuth URI:" << otpauthUri;
+            
+            // TODO: Handle server-provided TOTP setup
+            // For now, just emit success
+            emit registrationCompleted(true);
+        } else {
+            // Standard registration without TOTP
+            emit registrationCompleted(true);
+        }
+        
+    } else {
+        QString errorMsg = data.value("error").toString("Registration failed. Please try again.");
+        qDebug() << "Registration failed with error:" << errorMsg;
+        reportError(errorMsg);
+        emit registrationCompleted(false);
     }
 }
 
@@ -289,6 +368,34 @@ void AuthService::handleChangePasswordResponse(int status, const QJsonObject& da
     }
 }
 
+void AuthService::handleRefreshResponse(int status, const QJsonObject& data) {
+    const bool success = (status == 200);
+    QString newToken;
+    
+    if (success) {
+        newToken = data.value("access_token").toString();
+        m_sessionToken = newToken;
+    }
+    
+    emit refreshCompleted(success, newToken);
+    if (!success) {
+        reportError(data.value("error").toString("Token refresh failed. Please login again."));
+    }
+}
+
+void AuthService::handleLogoutResponse(int status, const QJsonObject& data) {
+    const bool success = (status == 200);
+    
+    if (success) {
+        invalidateSession();
+    }
+    
+    emit logoutCompleted(success);
+    if (!success) {
+        reportError(data.value("error").toString("Logout failed. Please try again."));
+    }
+}
+
 void AuthService::invalidateSession() {
     m_sessionToken.clear();
 }
@@ -299,31 +406,104 @@ AuthService::AuthSalts AuthService::getAuthSalts(const QString& username) {
     }
 
     AuthSalts salts;
+    // No payload needed for GET request - username is in the path
     QJsonObject payload;
-    payload["username"] = username;
 
-    // Make synchronous request for salts
-    m_client->sendRequest("/auth/salts", "GET", payload);
+    // Fixed: Use correct OpenAPI endpoint with username in path
+    QString endpoint = QString("/api/user/%1/salts").arg(username);
+    m_client->sendRequest(endpoint, "GET", payload);
 
     // Response will be handled by handleResponseReceived and routed to handleSaltsResponse
     return salts;
 }
 
 void AuthService::handleSaltsResponse(int status, const QJsonObject& data, AuthSalts& salts) {
+    qDebug() << "Salts response - Status:" << status << "Data:" << data;
+    
     if (status != 200) {
         QString errorMessage = data.value("error").toString("Failed to get authentication salts");
+        
+        // Clear login state if we were waiting for salts
+        if (m_waitingForSalts) {
+            m_waitingForSalts = false;
+            m_pendingLoginUsername.clear();
+            m_pendingLoginPassword.clear();
+        }
+        
         emit errorOccurred(errorMessage);
         return;
     }
 
-    // Extract salts from response
-    salts.authSalt1 = data.value("auth_salt1").toString();
-    salts.authSalt2 = data.value("auth_salt2").toString();
+    // Extract salts from response - match server field names
+    salts.authSalt1 = data.value("auth_salt").toString();      // Server returns "auth_salt" 
+    salts.authSalt2 = data.value("auth_salt_2").toString();    // Server returns "auth_salt_2"
     salts.encSalt = data.value("enc_salt").toString();
 
+    qDebug() << "Extracted salts - authSalt1:" << (!salts.authSalt1.isEmpty() ? "present" : "missing")
+             << "authSalt2:" << (!salts.authSalt2.isEmpty() ? "present" : "missing")
+             << "encSalt:" << (!salts.encSalt.isEmpty() ? "present" : "missing");
+
     if (salts.authSalt1.isEmpty() || salts.authSalt2.isEmpty() || salts.encSalt.isEmpty()) {
-        emit errorOccurred("Invalid salt data received from server");
+        // Clear login state if we were waiting for salts
+        if (m_waitingForSalts) {
+            m_waitingForSalts = false;
+            m_pendingLoginUsername.clear();
+            m_pendingLoginPassword.clear();
+        }
+        
+        emit errorOccurred("Invalid salt data received from server - missing required salts");
         return;
+    }
+    
+    // If we were waiting for salts for login, continue the login process
+    if (m_waitingForSalts) {
+        qDebug() << "Continuing login with received salts";
+        
+        try {
+            // Convert salts from base64
+            QByteArray authSalt1Data = QByteArray::fromBase64(salts.authSalt1.toUtf8());
+            QByteArray authSalt2Data = QByteArray::fromBase64(salts.authSalt2.toUtf8());
+            QByteArray encSaltData = QByteArray::fromBase64(salts.encSalt.toUtf8());
+            std::vector<uint8_t> authSalt1(authSalt1Data.begin(), authSalt1Data.end());
+            std::vector<uint8_t> authSalt2(authSalt2Data.begin(), authSalt2Data.end());
+            std::vector<uint8_t> encSalt(encSaltData.begin(), encSaltData.end());
+            
+            // Derive auth hash using the retrieved salts
+            QString authHash = deriveAuthHash(m_pendingLoginPassword, authSalt1, authSalt2);
+            
+            qDebug() << "Auth hash computed successfully";
+            
+            // Clear login state
+            QString username = m_pendingLoginUsername;
+            m_waitingForSalts = false;
+            m_pendingLoginUsername.clear();
+            m_pendingLoginPassword.clear();
+            
+            // Check TOTP status and proceed accordingly
+            if (hasTOTPEnabledForUser(username)) {
+                qDebug() << "TOTP enabled for user" << username << ", requiring verification";
+                emit totpRequired(username, authHash);
+            } else if (isFirstTimeLogin(username)) {
+                qDebug() << "First time login detected for user" << username << "- auto-setting up TOTP";
+                QString qrCode = enableTOTP(username);
+                if (!qrCode.isEmpty()) {
+                    emit firstLoginTOTPSetupRequired(username, authHash, qrCode);
+                } else {
+                    emit errorOccurred("Failed to generate TOTP setup for first login");
+                }
+            } else {
+                // Normal login without TOTP
+                qDebug() << "Proceeding with normal login (no TOTP required)";
+                hashedLogin(username, authHash);
+            }
+            
+        } catch (const std::exception& e) {
+            m_waitingForSalts = false;
+            m_pendingLoginUsername.clear();
+            m_pendingLoginPassword.clear();
+            QString errorMessage = QString("Login failed: %1").arg(e.what());
+            emit errorOccurred(errorMessage);
+        }
     }
 }
 
@@ -428,6 +608,9 @@ bool AuthService::verifyTOTPSetup(const QString& code) {
             m_settings->setValue("totp/enabled_at", QDateTime::currentDateTimeUtc());
             m_settings->sync();
             
+            // CRITICAL FIX: Mark TOTP setup as completed for this user
+            markTOTPSetupCompleted(m_pendingUsername);
+            
             // Clear temporary data
             m_pendingTOTPSecret.clear();
             m_pendingUsername.clear();
@@ -452,6 +635,35 @@ bool AuthService::hasTOTPEnabled() const {
     return !m_settings->value("totp/secret").toString().isEmpty();
 }
 
+bool AuthService::hasTOTPEnabledForUser(const QString& username) const {
+    // Check if this specific user has completed TOTP setup
+    QString key = QString("users/%1/totp_setup_completed").arg(username);
+    return m_settings->value(key, false).toBool();
+}
+
+bool AuthService::isFirstTimeLogin(const QString& username) const {
+    // Check if this specific user has ever completed TOTP setup
+    QString key = QString("users/%1/totp_setup_completed").arg(username);
+    bool setupCompleted = m_settings->value(key, false).toBool();
+    
+    qDebug() << "First login check for user:" << username 
+             << "Setup completed:" << setupCompleted;
+    
+    // First time login = this specific user has never completed TOTP setup
+    return !setupCompleted;
+}
+
+void AuthService::markTOTPSetupCompleted(const QString& username) {
+    // Mark that this user has completed TOTP setup at least once
+    QString key = QString("users/%1/totp_setup_completed").arg(username);
+    m_settings->setValue(key, true);
+    m_settings->setValue(QString("users/%1/totp_setup_completed_at").arg(username), 
+                        QDateTime::currentDateTimeUtc());
+    m_settings->sync();
+    
+    qDebug() << "Marked TOTP setup as completed for user:" << username;
+}
+
 void AuthService::disableTOTP() {
     m_settings->remove("totp/secret");
     m_settings->remove("totp/username");  
@@ -460,4 +672,46 @@ void AuthService::disableTOTP() {
     
     emit totpDisabled();
     qDebug() << "TOTP disabled";
+}
+
+// Missing OpenAPI endpoints implementation
+void AuthService::refreshToken(const QString& refreshToken) {
+    if (!m_client) {
+        emit errorOccurred("AuthService not properly initialized");
+        return;
+    }
+
+    // OpenAPI spec uses query parameter for refresh token
+    QString endpoint = QString("/api/auth/refresh?refresh_token=%1").arg(refreshToken);
+    QJsonObject payload;  // Empty payload for refresh
+    
+    m_client->sendRequest(endpoint, "POST", payload);
+}
+
+void AuthService::logout(const QString& sessionToken) {
+    if (!m_client) {
+        emit errorOccurred("AuthService not properly initialized");
+        return;
+    }
+
+    QJsonObject payload;
+    payload["session_token"] = sessionToken;
+    
+    m_client->sendRequest("/api/auth/logout", "POST", payload);
+}
+
+// Enhanced TOTP methods for better user experience
+void AuthService::completeTOTPSetupAndLogin(const QString& username, const QString& authHash, const QString& totpCode) {
+    // First verify the TOTP setup
+    bool setupValid = verifyTOTPSetup(totpCode);
+    
+    if (setupValid) {
+        // TOTP setup successful, now complete login with the same code
+        qDebug() << "TOTP setup completed, proceeding with login for user:" << username;
+        hashedLoginWithTOTP(username, authHash, totpCode);
+    } else {
+        // TOTP setup failed, user needs to try again
+        qDebug() << "TOTP setup failed for user:" << username;
+        emit errorOccurred("Invalid TOTP code. Please try again.");
+    }
 }

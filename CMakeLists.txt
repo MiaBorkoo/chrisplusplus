@@ -119,6 +119,7 @@ qt_add_executable(ChrisPlusPlus
     ${RESOURCE_FILES}
     # ✅ ADD: Authentication system
     models/LoginModel.cpp
+    models/SignUpModel.cpp
     models/FileModel.cpp
     models/AccessModel.cpp
     models/SharedFileModel.cpp

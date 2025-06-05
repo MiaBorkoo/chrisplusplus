@@ -25,6 +25,6 @@ void Config::saveConfig() {
 
 void Config::setDefaults() {
     m_serverUrl = "https://chrisplusplus.gobbler.info/";
-    m_serverHost = "chrisplusplus";
+    m_serverHost = "chrisplusplus.gobbler.info";
     m_serverPort = "443";
 } 
